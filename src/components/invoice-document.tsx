@@ -41,7 +41,7 @@ function PartyBlock({ title, party, lang }: { title: ReactNode; party: Party; la
       {address && <div className="mt-1 text-[11px] leading-snug text-neutral-700">{address}</div>}
       {lang === "bilingual" && party.addressEn && <div className="text-[10.5px] leading-snug text-neutral-500">{party.addressEn}</div>}
       {party.taxId && (
-        <div className="num mt-1 text-[11px] text-neutral-700">
+        <div className="mt-1 text-[11px] tabular-nums text-neutral-700">
           {lang === "en" ? "Tax ID" : lang === "th" ? "เลขประจำตัวผู้เสียภาษี" : "เลขประจำตัวผู้เสียภาษี (Tax ID)"}: {party.taxId} ·{" "}
           {lang === "en" ? branch.en : branch.th}
         </div>
@@ -68,7 +68,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
   return (
     <div
       className="relative flex flex-col overflow-hidden bg-white p-12 text-[12px] leading-relaxed text-[#1a2536]"
-      style={{ width: A4.width, height: A4.height, fontFamily: "var(--font-thai), var(--font-inter), sans-serif", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
+      style={{ width: A4.width, height: A4.height, fontFamily: "var(--font-plex), sans-serif", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
     >
       {doc.status === "draft" && (
         <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -79,7 +79,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
       {/* Header */}
       <header className="flex items-start justify-between gap-6 border-b-4 pb-4" style={{ borderColor: ACCENT, boxShadow: `0 4px 0 ${AMBER}` }}>
         <div className="min-w-0">
-          <div className="text-[22px] font-bold leading-tight" style={{ color: ACCENT }}>
+          <div className="text-[26px] font-medium leading-tight" style={{ color: ACCENT, fontFamily: "var(--font-serif), var(--font-serif-th), Georgia, serif" }}>
             {lang === "en" ? label.en : label.th}
           </div>
           {lang === "bilingual" && <div className="text-[13px] font-semibold uppercase tracking-wide text-neutral-600">{label.en}</div>}
@@ -88,8 +88,8 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
             {lang === "bilingual" ? ` / ${copyLabel.en}` : ""})
           </div>
         </div>
-        <dl className="num shrink-0 text-right text-[11px]">
-          <div className="flex justify-end gap-2"><dt className="text-neutral-500"><T th="เลขที่" en="No." lang={lang === "bilingual" ? "th" : lang} />{lang === "bilingual" ? " / No." : ""}</dt><dd className="font-semibold">{doc.number ?? "— (draft)"}</dd></div>
+        <dl className="shrink-0 text-right text-[11px] tabular-nums">
+          <div className="flex justify-end gap-2"><dt className="text-neutral-500"><T th="เลขที่" en="No." lang={lang === "bilingual" ? "th" : lang} />{lang === "bilingual" ? " / No." : ""}</dt><dd className="num font-semibold">{doc.number ?? "— (draft)"}</dd></div>
           <div className="flex justify-end gap-2"><dt className="text-neutral-500"><T th="วันที่" en="Date" lang={lang === "bilingual" ? "th" : lang} />{lang === "bilingual" ? " / Date" : ""}</dt><dd>{date(doc.issueDate)}</dd></div>
           {doc.dueDate && <div className="flex justify-end gap-2"><dt className="text-neutral-500"><T th="ครบกำหนด" en="Due" lang={lang === "bilingual" ? "th" : lang} />{lang === "bilingual" ? " / Due" : ""}</dt><dd>{date(doc.dueDate)}</dd></div>}
         </dl>
@@ -120,7 +120,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
                 {lang === "en" ? l.descriptionEn ?? l.descriptionTh : l.descriptionTh}
                 {lang === "bilingual" && l.descriptionEn && <div className="text-[10.5px] text-neutral-500">{l.descriptionEn}</div>}
               </td>
-              <td className="num px-2 py-2 text-right">{qty(l.qtyMilli)} {l.unit}</td>
+              <td className="px-2 py-2 text-right"><span className="num">{qty(l.qtyMilli)}</span> {l.unit}</td>
               <td className="num px-2 py-2 text-right">{formatTHB(l.unitPrice)}</td>
               <td className="num px-2 py-2 text-right">{formatTHB(lineAmount(l))}</td>
             </tr>
@@ -149,7 +149,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
           )}
         </div>
 
-        <dl className="num w-64 shrink-0 text-[11.5px]">
+        <dl className="w-64 shrink-0 text-[11.5px]">
           <TotalRow k={<T th="รวมเป็นเงิน" en="Subtotal" lang={lang === "bilingual" ? "th" : lang} />} v={t.subtotal} />
           {t.discount > 0 && <TotalRow k={<T th="ส่วนลด" en="Discount" lang={lang === "bilingual" ? "th" : lang} />} v={-t.discount} />}
           <TotalRow k={<T th="ราคาก่อนภาษี" en="Amount before VAT" lang={lang === "bilingual" ? "th" : lang} />} v={t.taxable} />
@@ -197,7 +197,7 @@ function TotalRow({ k, v, strong, accent }: { k: ReactNode; v: number; strong?: 
   return (
     <div className={`flex items-baseline justify-between gap-3 py-0.5 ${strong ? "text-[13px] font-bold" : ""}`} style={accent ? { color: ACCENT } : undefined}>
       <dt>{k}</dt>
-      <dd>{v < 0 ? "−" : ""}{formatTHB(Math.abs(v))}</dd>
+      <dd className="num">{v < 0 ? "−" : ""}{formatTHB(Math.abs(v))}</dd>
     </div>
   );
 }

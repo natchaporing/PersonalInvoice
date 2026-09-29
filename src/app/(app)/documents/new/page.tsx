@@ -4,7 +4,7 @@ import { DocumentEditor } from "./editor";
 export default function NewDocument() {
   return (
     <>
-      <PageHeader title="New document" subtitle="สร้างเอกสารใหม่" />
+      <PageHeader eyebrow="สร้างเอกสารใหม่" title="New document" subtitle="The preview is the document your customer receives." />
       <DocumentEditor />
     </>
   );

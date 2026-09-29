@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Thai } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans_Thai, Noto_Serif_Thai, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-const thai = Noto_Sans_Thai({ variable: "--font-thai", subsets: ["thai", "latin"] });
+// Body: IBM Plex Sans Thai (Thai + Latin share one design). Display: Source Serif 4 with Noto Serif Thai for Thai glyphs.
+// Figures: IBM Plex Mono, so every amount aligns in columns like a ledger.
+const plex = IBM_Plex_Sans_Thai({ variable: "--font-plex", subsets: ["thai", "latin"], weight: ["300", "400", "500", "600"] });
+const serif = Source_Serif_4({ variable: "--font-serif", subsets: ["latin"] });
+const serifTh = Noto_Serif_Thai({ variable: "--font-serif-th", subsets: ["thai"] });
+const mono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"], weight: ["400", "500"] });
 
 export const metadata: Metadata = {
   title: "PersonalInvoice",
@@ -12,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${thai.variable} h-full antialiased`}>
+    <html lang="en" className={`${plex.variable} ${serif.variable} ${serifTh.variable} ${mono.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

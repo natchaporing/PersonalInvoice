@@ -60,43 +60,58 @@
   --color-warn: var(--warn);     --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger); --color-danger-soft: var(--danger-soft);
   --color-info: var(--info);     --color-info-soft: var(--info-soft);
-  --font-sans: var(--font-inter), var(--font-thai), system-ui, sans-serif;
+  --font-sans: var(--font-plex), system-ui, sans-serif;
+  --font-display: var(--font-serif), var(--font-serif-th), Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-inter), var(--font-thai), system-ui, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
+  font-family: var(--font-plex), system-ui, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.6;
 }
 
-.num { font-variant-numeric: tabular-nums; }
+/* One radius across the app. */
+:root { --radius: 3px; --rule: var(--fg); }
+
+/* Display type: serif, medium weight, tight leading. */
+.display { font-family: var(--font-serif), var(--font-serif-th), Georgia, serif; font-weight: 500; line-height: 1.15; letter-spacing: -0.01em; }
+/* Figures: monospaced + tabular so columns of money align like a ledger. */
+.num { font-family: var(--font-plex-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.figure { font-family: var(--font-serif), Georgia, serif; font-variant-numeric: tabular-nums lining-nums; font-weight: 500; letter-spacing: -0.02em; }
+.eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-muted); }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Shared form + button primitives. In a layer so Tailwind utilities (border-t-4, px-3, ...) can override them. */
 @layer components {
-.field {
-  width: 100%;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--fg);
-  border-radius: 8px;
-  padding: 8px 10px;
-  min-height: 38px;
-}
-.field:hover { border-color: color-mix(in srgb, var(--fg) 30%, var(--border)); }
-.label { display: block; font-size: 12px; font-weight: 500; color: var(--fg-muted); margin-bottom: 4px; }
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  min-height: 38px; padding: 0 14px; border-radius: 8px; font-weight: 500;
-  border: 1px solid var(--border); background: var(--surface); color: var(--fg); cursor: pointer;
-}
-.btn:hover { background: var(--surface-2); }
-.btn-primary { background: var(--cta); color: var(--cta-fg); border-color: var(--cta-border); font-weight: 600; }
-.btn-primary:hover { background: color-mix(in srgb, var(--cta) 88%, black); }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  /* Paper-form fields: underline only. Bottom edge is the affordance (>= 3:1). */
+  .field {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--fg-muted);
+    background: transparent;
+    color: var(--fg);
+    border-radius: 0;
+    padding: 6px 2px;
+    min-height: 38px;
+  }
+  .field:hover { border-bottom-color: var(--fg); }
+  .field:focus-visible { outline: none; border-bottom: 2px solid var(--accent); padding-bottom: 5px; }
+  .label { display: block; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); margin-bottom: 2px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 38px; padding: 0 16px; border-radius: var(--radius); font-weight: 500;
+    border: 1px solid var(--fg); background: transparent; color: var(--fg); cursor: pointer;
+  }
+  .btn:hover { background: var(--surface-2); }
+  .btn-primary { background: var(--cta); color: var(--cta-fg); border-color: var(--cta-border); font-weight: 600; }
+  .btn-primary:hover { background: color-mix(in srgb, var(--cta) 88%, black); }
+  /* Open section: a ruled block, not a box. */
+  .card { border-top: 1px solid var(--rule); background: transparent; }
+  .hairline { border-color: var(--border); }
 }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

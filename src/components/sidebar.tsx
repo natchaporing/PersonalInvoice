@@ -16,7 +16,8 @@ const NAV = [
 export function Sidebar() {
   const path = usePathname();
   return (
-    <nav aria-label="Main" className="flex gap-1 overflow-x-auto p-3 md:sticky md:top-4 md:flex-col md:overflow-visible">
+    <nav aria-label="Main" className="flex gap-2 overflow-x-auto px-4 py-3 md:sticky md:top-6 md:flex-col md:gap-0.5 md:overflow-visible md:px-6 md:py-6">
+      <div className="eyebrow mb-2 hidden md:block">Menu · เมนู</div>
       {NAV.map((n) => {
         const active = n.href === "/" ? path === "/" : path.startsWith(n.href);
         return (
@@ -24,13 +25,13 @@ export function Sidebar() {
             key={n.href}
             href={n.href}
             aria-current={active ? "page" : undefined}
-            className={`whitespace-nowrap rounded-lg border-l-4 px-3 py-2 ${
+            className={`whitespace-nowrap border-l-[3px] py-1.5 pl-3 pr-2 ${
               active
-                ? "border-secondary bg-accent-soft font-semibold text-accent"
-                : "border-transparent text-muted hover:bg-surface-2 hover:text-fg"
+                ? "border-secondary font-semibold text-accent"
+                : "border-transparent text-fg hover:border-border hover:text-accent"
             }`}
           >
-            {n.label} <span className="ml-1 hidden text-xs opacity-75 lg:inline">{n.th}</span>
+            {n.label} <span className="ml-1.5 hidden text-xs text-muted lg:inline">{n.th}</span>
           </Link>
         );
       })}

@@ -12,8 +12,8 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           <span className="text-xs text-white/80">฿ THB · VAT 7%</span>
         </div>
       </header>
-      <div className="flex-1 md:grid md:grid-cols-[224px_1fr]">
-        <aside className="border-b border-border bg-surface md:border-b-0 md:border-r">
+      <div className="flex-1 md:grid md:grid-cols-[232px_1fr]">
+        <aside className="border-b border-border md:border-b-0 md:border-r">
           <Sidebar />
         </aside>
         <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">{children}</main>

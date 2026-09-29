@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { A4, InvoiceDocument } from "@/components/invoice-document";
 import { ScaledPage } from "@/components/scaled-page";
+import { SectionHeading } from "@/components/ui";
 import type { DocumentView, Lang } from "@/lib/document-view";
 import { DOC_TYPE_LABEL, sampleCustomers, sampleSeller, type DocType } from "@/lib/sample-data";
 import { computeTotals, formatTHB, lineAmount, thbToSatang } from "@/lib/thai/money";
@@ -63,9 +64,9 @@ export function DocumentEditor() {
   const update = (id: number, patch: Partial<Line>) => setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)));
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       <div className="space-y-4">
-        <section className="card grid gap-4 p-4 sm:grid-cols-2">
+        <section className="card grid gap-x-6 gap-y-5 pt-5 sm:grid-cols-2">
           <div>
             <label className="label" htmlFor="type">Document type</label>
             <select id="type" className="field" value={type} onChange={(e) => setType(e.target.value as DocType)}>
@@ -77,7 +78,7 @@ export function DocumentEditor() {
             <select id="customer" className="field" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
               {sampleCustomers.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
             </select>
-            <p className="num mt-1 text-xs text-muted">Tax ID {customer.taxId} · {customer.juristic ? "Company (PND 53)" : "Individual (PND 3)"}</p>
+            <p className="mt-1 text-[12px] tabular-nums text-muted">Tax ID {customer.taxId} · {customer.juristic ? "Company (PND 53)" : "Individual (PND 3)"}</p>
           </div>
           <div>
             <label className="label" htmlFor="issue">Issue date</label>
@@ -89,25 +90,25 @@ export function DocumentEditor() {
           </div>
           <fieldset className="sm:col-span-2">
             <legend className="label">Document language</legend>
-            <div className="inline-flex rounded-lg border border-border p-0.5">
+            <div className="inline-flex border border-fg" style={{ borderRadius: "var(--radius)" }}>
               {LANG_OPTIONS.map((o) => (
                 <button
                   key={o.key}
                   type="button"
                   aria-pressed={lang === o.key}
                   onClick={() => setLang(o.key)}
-                  className={`min-h-9 rounded-md px-3 ${lang === o.key ? "bg-accent text-accent-fg" : "text-muted hover:bg-surface-2"}`}
+                  className={`min-h-9 px-4 ${lang === o.key ? "bg-accent text-accent-fg" : "text-fg hover:bg-surface-2"}`}
                 >{o.label}</button>
               ))}
             </div>
           </fieldset>
         </section>
 
-        <section className="card p-4">
-          <h2 className="mb-3 font-semibold text-accent">Line items</h2>
-          <div className="space-y-3">
+        <section className="card pt-5">
+          <SectionHeading>Line items</SectionHeading>
+          <div className="space-y-4">
             {lines.map((l, i) => (
-              <div key={l.id} className="grid grid-cols-2 gap-2 rounded-lg border border-border p-3 sm:grid-cols-[88px_140px_1fr_auto] sm:items-end">
+              <div key={l.id} className="grid grid-cols-2 gap-x-4 gap-y-2 border-b border-border pb-4 sm:grid-cols-[88px_150px_1fr_auto] sm:items-end">
                 <div className="col-span-2 sm:col-span-4">
                   <label className="label" htmlFor={`d${l.id}`}>{i === 0 ? "Description" : `Description ${i + 1}`} <span className="font-normal">(ไทย / English)</span></label>
                   <input id={`d${l.id}`} className="field" value={l.description} onChange={(e) => update(l.id, { description: e.target.value })} />
@@ -125,10 +126,10 @@ export function DocumentEditor() {
               </div>
             ))}
           </div>
-          <button type="button" className="btn mt-3" onClick={() => setLines((ls) => [...ls, { id: Date.now(), description: "", qty: "1", price: "0" }])}>+ Add line</button>
+          <button type="button" className="btn mt-4" onClick={() => setLines((ls) => [...ls, { id: Date.now(), description: "", qty: "1", price: "0" }])}>+ Add line</button>
         </section>
 
-        <section className="card grid gap-4 p-4 sm:grid-cols-3">
+        <section className="card grid gap-x-6 gap-y-5 pt-5 sm:grid-cols-3">
           <div>
             <label className="label" htmlFor="disc">Discount (THB)</label>
             <input id="disc" inputMode="decimal" className="field num text-right" value={discount} onChange={(e) => setDiscount(e.target.value)} />
@@ -149,10 +150,10 @@ export function DocumentEditor() {
           </div>
         </section>
 
-        <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="card flex flex-wrap items-end justify-between gap-3 border-t-[3px] border-secondary pt-4">
           <div>
-            <div className="text-xs text-muted">Net receivable</div>
-            <div className="num text-xl font-semibold text-accent">฿{formatTHB(totals.netReceivable)}</div>
+            <div className="eyebrow">Net receivable</div>
+            <div className="figure text-[32px] leading-tight text-accent">฿{formatTHB(totals.netReceivable)}</div>
           </div>
           <div className="flex gap-2">
             <button type="button" className="btn">Save draft</button>
@@ -163,10 +164,10 @@ export function DocumentEditor() {
 
       <aside aria-label="Live document preview" className="xl:sticky xl:top-6 xl:self-start">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-semibold text-accent">Preview</h2>
+          <h2 className="display text-xl text-accent">Preview</h2>
           <Link href={`/preview/tax-invoice?lang=${lang}`} className="text-accent hover:underline">Open sample mockup ↗</Link>
         </div>
-        <div className="overflow-hidden rounded-lg border border-border shadow-md">
+        <div className="overflow-hidden border border-border bg-white" style={{ borderRadius: "var(--radius)", boxShadow: "0 1px 0 var(--border), 0 12px 32px -18px rgb(26 37 54 / 0.35)" }}>
           <ScaledPage width={A4.width} height={A4.height}>
             <InvoiceDocument doc={doc} />
           </ScaledPage>
