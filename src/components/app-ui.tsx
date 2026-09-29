@@ -1,5 +1,6 @@
+import { GuillocheBackground } from "@/components/banknote";
 import { Badge } from "@/components/ui/badge";
-import type { DocStatus } from "@/lib/sample-data";
+import type { DocStatus } from "@/lib/domain/documents";
 
 /** Status as an ink-stamp badge. The word is always shown, colour is secondary. */
 export function StatusBadge({ status, overdue }: { status: DocStatus; overdue?: boolean }) {
@@ -8,6 +9,20 @@ export function StatusBadge({ status, overdue }: { status: DocStatus; overdue?: 
     <Badge variant={key} className="uppercase tracking-[0.08em]">
       {key}
     </Badge>
+  );
+}
+
+/** Empty list placeholder on banknote paper. */
+export function EmptyState({ title, children, action }: { title: string; children?: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <section className="relative overflow-hidden rounded-lg border border-dashed border-cobalt/40 bg-paper px-6 py-10 text-center">
+      <GuillocheBackground opacity={0.06} />
+      <div className="relative mx-auto max-w-[48ch]">
+        <h2 className="display text-xl text-cobalt">{title}</h2>
+        {children && <p className="mt-2 text-muted-foreground">{children}</p>}
+        {action && <div className="mt-5 flex justify-center">{action}</div>}
+      </div>
+    </section>
   );
 }
 

@@ -1,7 +1,13 @@
+import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { signOut } from "@/app/login/actions";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette } from "@/components/banknote";
 import { Sidebar } from "@/components/sidebar";
+import { requireUser } from "@/lib/supabase/server";
 
-export default function AppLayout({ children }: LayoutProps<"/">) {
+export default async function AppLayout({ children }: LayoutProps<"/">) {
+  const { supabase, user } = await requireUser();
+  const { data: profile } = await supabase.from("business_profiles").select("name_th").eq("owner_id", user.id).maybeSingle();
   return (
     <div className="flex min-h-screen flex-col">
       <header className="relative overflow-hidden bg-cobalt-deep text-white">
@@ -12,7 +18,14 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             <span className="display text-[22px] tracking-tight">PersonalInvoice</span>
             <span className="hidden text-xs text-amber sm:inline">ใบกำกับภาษี · Thai tax invoicing</span>
           </div>
-          <span className="num rounded-sm border border-white/35 px-2 py-0.5 text-[11px] tracking-[0.14em] text-white/90">THB · VAT 7%</span>
+          <div className="flex items-center gap-3">
+            <span className="hidden max-w-[28ch] truncate text-xs text-white/80 md:inline">{profile?.name_th ?? user.email}</span>
+            <form action={signOut}>
+              <button type="submit" className="inline-flex items-center gap-1.5 rounded-sm border border-white/35 px-2 py-1 text-xs text-white/90 hover:bg-white/10">
+                <LogOut className="size-3.5" aria-hidden /> Sign out
+              </button>
+            </form>
+          </div>
         </div>
         <Microprint color="#ffffff" opacity={0.45} className="relative border-t border-white/15 px-4 py-0.5 md:px-6" />
       </header>
@@ -22,7 +35,15 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <aside className="border-b bg-card md:border-r md:border-b-0">
           <Sidebar />
         </aside>
-        <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8">
+          {!profile && (
+            <div role="status" className="mb-6 rounded-md border border-amber bg-amber/10 px-4 py-3 text-sm">
+              Set up your business profile before issuing documents.{" "}
+              <Link href="/settings" className="font-medium text-cobalt underline underline-offset-4">Go to Settings</Link>
+            </div>
+          )}
+          {children}
+        </main>
       </div>
 
       <footer className="relative overflow-hidden bg-cobalt-deep text-white/85">

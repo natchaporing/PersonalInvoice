@@ -1,4 +1,7 @@
-import type { DocStatus, DocType } from "@/lib/sample-data";
+import type { Enums } from "@/lib/supabase/database.types";
+
+type DocType = Enums<"document_type">;
+type DocStatus = Enums<"document_status">;
 
 export type Lang = "th" | "en" | "bilingual";
 
@@ -50,5 +53,11 @@ export interface DocumentView {
   pricesIncludeVat: boolean;
   whtBps: number;
   notes?: string;
+  /** Credit/debit notes: why the original was adjusted. */
+  reason?: string;
+  /** Credit/debit notes: number of the original document. */
+  refNumber?: string;
+  /** Public verification code of an issued document. */
+  verifyCode?: string;
   copy?: "original" | "copy";
 }

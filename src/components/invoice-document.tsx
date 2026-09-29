@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette, Seal, SerialNumber } from "@/components/banknote";
 import type { DocumentView, Lang, Party } from "@/lib/document-view";
-import { DOC_TYPE_LABEL, isPayable } from "@/lib/sample-data";
+import { DOC_TYPE_LABEL, isPayable } from "@/lib/domain/documents";
 import { bahtText } from "@/lib/thai/baht-text";
 import { computeTotals, formatTHB, lineAmount } from "@/lib/thai/money";
 import { formatBankAccount } from "@/lib/thai/bank";
@@ -56,7 +56,8 @@ function PartyBlock({ title, party, lang }: { title: string; party: Party; lang:
   );
 }
 
-export function InvoiceDocument({ doc, idPrefix = "inv" }: { doc: DocumentView; idPrefix?: string }) {
+/** `verifyBaseUrl` is the public site origin used to print the verification link on issued documents. */
+export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc: DocumentView; idPrefix?: string; verifyBaseUrl?: string }) {
   const { lang } = doc;
   const t = computeTotals({
     lines: doc.lines,
@@ -86,6 +87,13 @@ export function InvoiceDocument({ doc, idPrefix = "inv" }: { doc: DocumentView; 
       {/* Watermark rosette behind the body, very faint. */}
       <Rosette size={520} tone="mono" opacity={0.06} className="absolute top-[330px] left-1/2 -translate-x-1/2" />
 
+      {doc.status === "void" && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <div className="-rotate-[20deg] rounded-md border-[6px] border-[#b3312a]/70 px-8 py-2 text-[76px] font-bold tracking-widest text-[#b3312a]/70">
+            {lang === "en" ? "VOID" : lang === "th" ? "ยกเลิก" : "ยกเลิก · VOID"}
+          </div>
+        </div>
+      )}
       {doc.status === "draft" && (
         <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="-rotate-[28deg] select-none whitespace-nowrap text-[84px] font-bold tracking-widest text-neutral-900/[0.06]">{lang === "en" ? "DRAFT" : lang === "th" ? "ฉบับร่าง" : "DRAFT · ฉบับร่าง"}</div>
@@ -165,6 +173,22 @@ export function InvoiceDocument({ doc, idPrefix = "inv" }: { doc: DocumentView; 
         {/* Totals + payment */}
         <section className="mt-5 flex items-start justify-between gap-6">
           <div className="flex-1">
+            {(doc.refNumber || doc.reason) && (
+              <div className="mb-3 rounded-md border-l-2 bg-neutral-50 px-3 py-2" style={{ borderColor: COBALT }}>
+                {doc.refNumber && (
+                  <div className="text-[11px]">
+                    <span className="text-neutral-500">{pair("อ้างอิงเอกสาร", "Reference", lang)}: </span>
+                    <span className="num font-semibold">{doc.refNumber}</span>
+                  </div>
+                )}
+                {doc.reason && (
+                  <div className="text-[11px]">
+                    <span className="text-neutral-500">{pair("เหตุผล", "Reason", lang)}: </span>
+                    {doc.reason}
+                  </div>
+                )}
+              </div>
+            )}
             {doc.notes && (
               <div className="mb-3">
                 <div className="text-[9.5px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">{pair("หมายเหตุ", "Notes", lang)}</div>
@@ -247,8 +271,14 @@ export function InvoiceDocument({ doc, idPrefix = "inv" }: { doc: DocumentView; 
         </section>
 
         <footer className="flex items-center justify-between border-t pt-2 text-[9.5px] text-neutral-500" style={{ borderColor: `${COBALT}40` }}>
-          <span>{doc.seller.phone} · {doc.seller.email}</span>
-          <span>{doc.status === "draft" ? "Draft · not a valid tax document" : "Electronically issued · verification code appears here once signed"}</span>
+          <span>{[doc.seller.phone, doc.seller.email].filter(Boolean).join(" · ")}</span>
+          <span>
+            {doc.status === "draft"
+              ? pair("ฉบับร่าง · ยังไม่ใช่เอกสารทางภาษี", "Draft · not a valid tax document", lang)
+              : doc.verifyCode
+                ? <>{pair("ตรวจสอบเอกสาร", "Verify", lang)}: <span className="num">{(verifyBaseUrl ?? "").replace(/^https?:\/\//, "")}/verify/{doc.verifyCode}</span></>
+                : pair("ออกเอกสารทางอิเล็กทรอนิกส์", "Electronically issued", lang)}
+          </span>
         </footer>
       </div>
     </div>

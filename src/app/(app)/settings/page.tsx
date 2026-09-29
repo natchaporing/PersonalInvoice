@@ -1,18 +1,18 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { PageHeader } from "@/components/app-ui";
+import { requireUser } from "@/lib/supabase/server";
+import { ProfileForm } from "./profile-form";
 
-export default function Settings() {
+export default async function Settings() {
+  const { supabase, user } = await requireUser();
+  const { data: profile } = await supabase.from("business_profiles").select("*").eq("owner_id", user.id).maybeSingle();
   return (
-    <ComingSoon
-      eyebrow="ตั้งค่า"
-      title="Settings"
-      description="Your business profile as it appears on every document."
-      items={[
-        "Legal name, address and 13-digit tax ID (Thai and English)",
-        "Head office / branch number",
-        "Bank account for transfers: bank, branch, account name and number",
-        "Logo and signature image",
-        "VAT rate (currently 7%)",
-      ]}
-    />
+    <>
+      <PageHeader
+        eyebrow="ตั้งค่า"
+        title="Settings"
+        subtitle={profile ? "Your business profile as it appears on every document." : "Set up your business profile before issuing your first document."}
+      />
+      <ProfileForm profile={profile} />
+    </>
   );
 }
