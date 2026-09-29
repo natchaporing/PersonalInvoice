@@ -1,6 +1,8 @@
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { A4, InvoiceDocument } from "@/components/invoice-document";
 import { ScaledPage } from "@/components/scaled-page";
+import { Button } from "@/components/ui/button";
 import type { Lang } from "@/lib/document-view";
 import { sampleTaxInvoice } from "@/lib/sample-data";
 import { PrintButton } from "./print-button";
@@ -19,25 +21,32 @@ export default async function TaxInvoicePreview({ searchParams }: PageProps<"/pr
   const href = (l: Lang, d: boolean) => `/preview/tax-invoice?lang=${l}${d ? "&status=draft" : ""}`;
 
   return (
-    <div className="min-h-screen bg-surface-2 py-6 print:bg-white print:py-0">
+    <div className="min-h-screen bg-secondary py-6 print:bg-white print:py-0">
       <style>{`@page { size: A4; margin: 0 } @media print { body { background: #fff } }`}</style>
       <div className="mx-auto mb-4 flex max-w-[794px] flex-wrap items-center justify-between gap-3 px-4 print:hidden">
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/documents/new" className="btn">← Editor</Link>
-          {LANGS.map((l) => (
-            <Link key={l.key} href={href(l.key, draft)} aria-current={l.key === lang ? "true" : undefined} className={`btn ${l.key === lang ? "btn-primary" : ""}`}>{l.label}</Link>
-          ))}
-          <Link href={href(lang, !draft)} className="btn">{draft ? "Show issued" : "Show draft"}</Link>
+          <Button asChild variant="outline"><Link href="/documents/new"><ArrowLeft /> Editor</Link></Button>
+          <div className="inline-flex rounded-md border border-input bg-card p-0.5">
+            {LANGS.map((l) => (
+              <Link
+                key={l.key}
+                href={href(l.key, draft)}
+                aria-current={l.key === lang ? "true" : undefined}
+                className={`inline-flex h-8 items-center rounded-sm px-3 text-sm ${l.key === lang ? "bg-cobalt font-medium text-white" : "hover:bg-secondary"}`}
+              >{l.label}</Link>
+            ))}
+          </div>
+          <Button asChild variant="outline"><Link href={href(lang, !draft)}>{draft ? "Show issued" : "Show draft"}</Link></Button>
         </div>
         <PrintButton />
       </div>
-      <div className="mx-auto max-w-[794px] px-4 shadow-none print:max-w-none print:p-0">
+      <div className="mx-auto max-w-[794px] px-4 print:max-w-none print:p-0">
         <div className="hidden print:block" style={{ width: A4.width, height: A4.height }}>
-          <InvoiceDocument doc={doc} />
+          <InvoiceDocument doc={doc} idPrefix="print" />
         </div>
-        <div className="border border-border shadow-lg print:hidden">
+        <div className="border shadow-lg print:hidden">
           <ScaledPage width={A4.width} height={A4.height}>
-            <InvoiceDocument doc={doc} />
+            <InvoiceDocument doc={doc} idPrefix="screen" />
           </ScaledPage>
         </div>
       </div>

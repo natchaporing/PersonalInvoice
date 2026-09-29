@@ -1,29 +1,33 @@
-import { cookies } from "next/headers";
+import { GuillocheBackground, GuillocheBand, Microprint, Rosette } from "@/components/banknote";
 import { Sidebar } from "@/components/sidebar";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { isTheme, THEME_COOKIE } from "@/lib/themes";
 
-export default async function AppLayout({ children }: LayoutProps<"/">) {
-  const saved = (await cookies()).get(THEME_COOKIE)?.value;
+export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b-2 border-secondary bg-brand text-brand-fg">
-        <div className="flex items-center justify-between px-4 py-3 md:px-6">
+      <header className="relative overflow-hidden bg-cobalt-deep text-white">
+        <GuillocheBackground tone="white" opacity={0.16} />
+        <Rosette size={150} tone="white" opacity={0.28} className="absolute -top-10 right-40 hidden md:block" />
+        <div className="relative flex items-center justify-between gap-4 px-4 py-3.5 md:px-6">
           <div className="flex items-baseline gap-3">
-            <span className="text-base font-semibold tracking-tight">PersonalInvoice</span>
-            <span className="hidden text-xs text-secondary sm:inline">ใบกำกับภาษี · Thai tax invoicing</span>
+            <span className="display text-[22px] tracking-tight">PersonalInvoice</span>
+            <span className="hidden text-xs text-amber sm:inline">ใบกำกับภาษี · Thai tax invoicing</span>
           </div>
-          <ThemeSwitcher initial={isTheme(saved) ? saved : "ledger"} />
+          <span className="num rounded-sm border border-white/35 px-2 py-0.5 text-[11px] tracking-[0.14em] text-white/90">THB · VAT 7%</span>
         </div>
+        <Microprint color="#ffffff" opacity={0.45} className="relative border-t border-white/15 px-4 py-0.5 md:px-6" />
       </header>
-      <div className="flex-1 md:grid md:grid-cols-[232px_1fr]">
-        <aside className="border-b border-border md:border-b-0 md:border-r">
+      <GuillocheBand tone="amber" height={10} opacity={1} />
+
+      <div className="flex-1 md:grid md:grid-cols-[236px_1fr]">
+        <aside className="border-b bg-card md:border-r md:border-b-0">
           <Sidebar />
         </aside>
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8">{children}</main>
       </div>
-      <footer className="bg-brand px-4 py-3 text-xs text-white/85 md:px-6">
-        PersonalInvoice · Documents follow Revenue Code s.86/4 · Keep electronic originals 5 years
+
+      <footer className="relative overflow-hidden bg-cobalt-deep text-white/85">
+        <Microprint color="#ffffff" opacity={0.35} className="px-4 py-0.5 md:px-6" text="REVENUE CODE S.86/4 · เก็บรักษาต้นฉบับอิเล็กทรอนิกส์ 5 ปี · " />
+        <div className="px-4 py-3 text-xs md:px-6">PersonalInvoice · Documents follow Revenue Code s.86/4 · Keep electronic originals 5 years</div>
       </footer>
     </div>
   );

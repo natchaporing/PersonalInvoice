@@ -1,204 +1,132 @@
 @import "tailwindcss";
 
-/* Design tokens: cobalt / amber / gold palette (see :root), status colours kept distinct from the brand. */
+/*
+ * Banknote theme on shadcn/ui tokens.
+ * Palette budget: pearl/white reading area (60) · charcoal-navy ink (30) · cobalt identity (7)
+ * · amber small accents (2) · gold only on primary actions (1).
+ * Amber and gold fail contrast as text on light surfaces: use them as fills, rules and linework only.
+ */
 :root {
-  /* Text-first 60/30/7/2/1: white+pearl reading area · charcoal navy text · cobalt identity ·
-     amber small accents · gold reserved for buttons. Amber/gold fail contrast as text on light: fills/borders only. */
-  --brand: #0047ab;         --brand-fg: #ffffff;
-  --secondary: #ffb854;
-  --cta: #f4d03f;           --cta-fg: #1a2536;   --cta-border: #c9a30a;
+  --radius: 0.375rem;
 
-  --bg: #f9f9fb;            /* soft pearl */
-  --surface: #ffffff;
-  --surface-2: #f0f1f5;
-  --border: #e1e4eb;
-  --fg: #1a2536;            /* charcoal navy: body text and titles */
-  --fg-muted: #4a5866;
-  --accent: #0047ab;        /* links, section headings */
-  --accent-fg: #ffffff;
-  --accent-soft: #e3ebf8;
-  --ok: #1f7a4d;       --ok-soft: #dff1e7;
-  --warn: #8a5a00;     --warn-soft: #faedcf;
-  --danger: #b3312a;   --danger-soft: #f8dfdc;
-  --info: #0047ab;     --info-soft: #e3ebf8;
+  --background: #f9f9fb;          /* pearl */
+  --foreground: #1a2536;          /* charcoal navy ink */
+  --card: #ffffff;
+  --card-foreground: #1a2536;
+  --popover: #ffffff;
+  --popover-foreground: #1a2536;
+  --primary: #f4d03f;             /* soft gold: primary action */
+  --primary-foreground: #1a2536;
+  --secondary: #eef0f5;
+  --secondary-foreground: #1a2536;
+  --muted: #eef0f5;
+  --muted-foreground: #4a5866;
+  --accent: #e3ebf8;              /* cobalt tint for hover/selection */
+  --accent-foreground: #0047ab;
+  --destructive: #b3312a;
+  --border: #dfe3ea;
+  --input: #8a94a6;               /* field edge, >= 3:1 on white */
+  --ring: #0047ab;
+
+  --cobalt: #0047ab;
+  --cobalt-deep: #003580;
+  --amber: #ffb854;
+  --gold: #f4d03f;
+  --gold-edge: #c9a30a;
+  --ok: #1f7a4d;
+  --paper: #fffdf7;               /* faintly warm banknote paper for hero panels */
+
+  --chart-1: #0047ab;
+  --chart-2: #ffb854;
+  --chart-3: #6f93cf;
+  --chart-4: #1f7a4d;
+  --chart-5: #b3312a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --brand: #0047ab;       /* fill only: too dark for text on dark surfaces */
-    --bg: #0d1424;
-    --surface: #141b2b;
-    --surface-2: #1c2538;
+    --background: #0d1424;
+    --foreground: #e8edf8;
+    --card: #141b2b;
+    --card-foreground: #e8edf8;
+    --popover: #141b2b;
+    --popover-foreground: #e8edf8;
+    --secondary: #1c2538;
+    --secondary-foreground: #e8edf8;
+    --muted: #1c2538;
+    --muted-foreground: #98a3bd;
+    --accent: #16294d;
+    --accent-foreground: #9dbcf2;
+    --destructive: #ee8079;
     --border: #2a3550;
-    --fg: #e8edf8;
-    --fg-muted: #98a3bd;
-    --accent: #7fa8ee;
-    --accent-fg: #0b1220;
-    --accent-soft: #16294d;
-    --ok: #62c48f;   --ok-soft: #173325;
-    --warn: #e0b04f; --warn-soft: #3a2d11;
-    --danger: #ee8079; --danger-soft: #3c1d1b;
-    --info: #7fa8ee; --info-soft: #16294d;
+    --input: #5d6a86;
+    --ring: #7fa8ee;
+    --cobalt: #7fa8ee;            /* text-safe cobalt on dark */
+    --cobalt-deep: #0047ab;
+    --ok: #62c48f;
+    --paper: #141b2b;
   }
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-border: var(--border);
-  --color-fg: var(--fg);
-  --color-muted: var(--fg-muted);
-  --color-brand: var(--brand);
-  --color-brand-fg: var(--brand-fg);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
-  --color-cta: var(--cta);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
-  --color-accent-fg: var(--accent-fg);
-  --color-accent-soft: var(--accent-soft);
-  --color-ok: var(--ok);         --color-ok-soft: var(--ok-soft);
-  --color-warn: var(--warn);     --color-warn-soft: var(--warn-soft);
-  --color-danger: var(--danger); --color-danger-soft: var(--danger-soft);
-  --color-info: var(--info);     --color-info-soft: var(--info-soft);
-  --font-sans: var(--f-body);
-  --font-display: var(--f-display);
-  --font-mono: var(--f-figure);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-cobalt: var(--cobalt);
+  --color-cobalt-deep: var(--cobalt-deep);
+  --color-amber: var(--amber);
+  --color-gold: var(--gold);
+  --color-gold-edge: var(--gold-edge);
+  --color-ok: var(--ok);
+  --color-paper: var(--paper);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+
+  --font-sans: var(--font-plex), system-ui, sans-serif;
+  --font-display: var(--font-serif), var(--font-serif-th), Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
-body {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--f-body);
-  font-size: 14.5px;
-  line-height: 1.6;
-}
-
-/* Theme knobs. Default theme = "ledger". Each theme below only changes these and a few component rules. */
-:root {
-  --f-body: var(--font-plex), system-ui, sans-serif;
-  --f-display: var(--font-serif), var(--font-serif-th), Georgia, serif;
-  --f-figure: var(--font-plex-mono), ui-monospace, monospace;
-  --display-weight: 500;
-  --figure-weight: 400;
-  --radius: 3px;
-  --rule: var(--fg);
-}
-
-.display { font-family: var(--f-display); font-weight: var(--display-weight); line-height: 1.15; letter-spacing: -0.01em; }
-/* Figures always tabular so columns of money align. */
-.num { font-family: var(--f-figure); font-weight: var(--figure-weight); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-.figure { font-family: var(--f-display); font-variant-numeric: tabular-nums lining-nums; font-weight: var(--display-weight); letter-spacing: -0.02em; }
-.eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-muted); }
-
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-/* Shared form + button primitives. In a layer so Tailwind utilities (border-t-4, px-3, ...) can override them. */
-@layer components {
-  /* Paper-form fields: underline only. Bottom edge is the affordance (>= 3:1). */
-  .field {
-    width: 100%;
-    border: 0;
-    border-bottom: 1px solid var(--fg-muted);
-    background: transparent;
-    color: var(--fg);
-    border-radius: 0;
-    padding: 6px 2px;
-    min-height: 38px;
+@layer base {
+  * { border-color: var(--border); }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-plex), system-ui, sans-serif;
+    font-size: 14.5px;
+    line-height: 1.6;
   }
-  .field:hover { border-bottom-color: var(--fg); }
-  .field:focus-visible { outline: none; border-bottom: 2px solid var(--accent); padding-bottom: 5px; }
-  .label { display: block; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); margin-bottom: 2px; }
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    min-height: 38px; padding: 0 16px; border-radius: var(--radius); font-weight: 500;
-    border: 1px solid var(--fg); background: transparent; color: var(--fg); cursor: pointer;
-  }
-  .btn:hover { background: var(--surface-2); }
-  .btn-primary { background: var(--cta); color: var(--cta-fg); border-color: var(--cta-border); font-weight: 600; }
-  .btn-primary:hover { background: color-mix(in srgb, var(--cta) 88%, black); }
-  /* Open section: a ruled block, not a box. */
-  .card { border-top: 1px solid var(--rule); background: transparent; }
-  .hairline { border-color: var(--border); }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 }
 
-/* ───────────── Themes ───────────── */
-/* Unlayered on purpose: these must win over Tailwind utilities in the markup. */
-
-/* Official · แบบฟอร์มราชการ: Sarabun, boxed grid tables, square corners, like a Revenue Department form. */
-[data-theme="official"] {
-  --f-body: var(--font-sarabun), system-ui, sans-serif;
-  --f-display: var(--font-sarabun), system-ui, sans-serif;
-  --f-figure: var(--font-sarabun), system-ui, sans-serif;
-  --display-weight: 700;
-  --figure-weight: 500;
-  --radius: 0px;
-  --rule: var(--brand);
-}
-[data-theme="official"] body { font-size: 15.5px; }
-[data-theme="official"] .field { border: 1px solid var(--fg-muted); background: var(--surface); padding: 6px 10px; }
-[data-theme="official"] .field:focus-visible { border: 2px solid var(--accent); padding: 5px 9px; }
-[data-theme="official"] .label { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; color: var(--fg); }
-[data-theme="official"] .eyebrow { text-transform: none; letter-spacing: 0; font-size: 13px; }
-[data-theme="official"] .card { border: 1px solid var(--fg-muted); border-top: 4px solid var(--brand); background: var(--surface); padding: 16px 20px 20px; }
-[data-theme="official"] main table { border: 1px solid var(--fg-muted); background: var(--surface); }
-[data-theme="official"] main th, [data-theme="official"] main td { border: 1px solid var(--border); padding-left: 10px !important; padding-right: 10px !important; }
-[data-theme="official"] main thead { background: var(--accent-soft); }
-[data-theme="official"] main thead tr { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--fg); }
-
-[data-theme="official"] .kpis { border-top: 0; padding-top: 0; }
-[data-theme="official"] .kpi-grid { gap: 12px; }
-[data-theme="official"] .kpi { border: 1px solid var(--fg-muted) !important; border-top: 4px solid var(--brand) !important; background: var(--surface); padding: 12px 16px !important; }
-
-/* Calm · นุ่มนวล: Anuphan, soft filled fields, white panels on pearl. Quiet, fintech-app feel. */
-[data-theme="calm"] {
-  --f-body: var(--font-anuphan), system-ui, sans-serif;
-  --f-display: var(--font-anuphan), system-ui, sans-serif;
-  --f-figure: var(--font-anuphan), system-ui, sans-serif;
-  --display-weight: 500;
-  --figure-weight: 500;
-  --radius: 10px;
-  --rule: transparent;
-}
-[data-theme="calm"] .field { border: 1px solid transparent; background: var(--surface-2); border-radius: var(--radius); padding: 8px 12px; }
-[data-theme="calm"] .field:hover { border-color: var(--border); }
-[data-theme="calm"] .field:focus-visible { border: 1px solid var(--accent); padding: 8px 12px; box-shadow: 0 0 0 3px var(--accent-soft); }
-[data-theme="calm"] .label, [data-theme="calm"] .eyebrow { text-transform: none; letter-spacing: 0; font-size: 12.5px; }
-[data-theme="calm"] .btn { border-color: var(--border); background: var(--surface); }
-[data-theme="calm"] .btn-primary { border-color: var(--cta); background: var(--cta); }
-[data-theme="calm"] .card { background: var(--surface); border-radius: 14px; padding: 20px; box-shadow: 0 1px 2px rgb(26 37 54 / 0.06); }
-[data-theme="calm"] main table { background: var(--surface); border-radius: 14px; overflow: hidden; }
-[data-theme="calm"] main thead { border-bottom-color: var(--border) !important; }
-[data-theme="calm"] main thead tr { text-transform: none; letter-spacing: 0; font-size: 12.5px; }
-[data-theme="calm"] main th:first-child, [data-theme="calm"] main td:first-child { padding-left: 16px; }
-[data-theme="calm"] main th:last-child, [data-theme="calm"] main td:last-child { padding-right: 16px; }
-[data-theme="calm"] main tbody tr:last-child { border-bottom: 0; }
-
-[data-theme="calm"] .kpis { border-top: 0; padding-top: 0; }
-[data-theme="calm"] .kpi-grid { gap: 12px; }
-[data-theme="calm"] .kpi { border: 0 !important; background: var(--surface); border-radius: 14px; padding: 18px 20px !important; box-shadow: 0 1px 2px rgb(26 37 54 / 0.06); }
-[data-theme="calm"] .kpi:first-child { box-shadow: inset 0 3px 0 var(--secondary), 0 1px 2px rgb(26 37 54 / 0.06); }
-
-/* Bold · หนักแน่น: Bai Jamjuree, heavy black rules, big numerals, square corners. Swiss-poster feel. */
-[data-theme="bold"] {
-  --f-body: var(--font-bai), system-ui, sans-serif;
-  --f-display: var(--font-bai), system-ui, sans-serif;
-  --f-figure: var(--font-bai), system-ui, sans-serif;
-  --display-weight: 700;
-  --figure-weight: 600;
-  --radius: 0px;
-  --rule: var(--fg);
-}
-[data-theme="bold"] .display { letter-spacing: -0.02em; }
-[data-theme="bold"] h1.display { font-size: 44px !important; line-height: 1; }
-[data-theme="bold"] .figure { font-size: 36px !important; }
-[data-theme="bold"] .field { border-bottom-width: 2px; border-bottom-color: var(--fg); font-weight: 500; }
-[data-theme="bold"] .field:focus-visible { border-bottom-width: 3px; padding-bottom: 5px; }
-[data-theme="bold"] .label, [data-theme="bold"] .eyebrow { font-weight: 700; color: var(--fg); letter-spacing: 0.1em; }
-[data-theme="bold"] .btn { border-width: 2px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 13px; }
-[data-theme="bold"] .btn-primary { border-color: var(--fg); }
-[data-theme="bold"] .card { border-top: 3px solid var(--fg); }
-[data-theme="bold"] .kpis { border-top-width: 6px; }
-[data-theme="bold"] main thead { border-bottom: 3px solid var(--fg) !important; }
-[data-theme="bold"] main tbody tr { border-bottom-color: var(--fg) !important; border-bottom-width: 1px; }
+/* Engraved display type for titles and headline figures. */
+.display { font-family: var(--font-serif), var(--font-serif-th), Georgia, serif; font-weight: 500; line-height: 1.12; letter-spacing: -0.01em; }
+/* Money: always tabular so columns align. */
+.num { font-family: var(--font-plex-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.figure { font-family: var(--font-serif), Georgia, serif; font-variant-numeric: tabular-nums lining-nums; font-weight: 500; letter-spacing: -0.02em; }
+.eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-foreground); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

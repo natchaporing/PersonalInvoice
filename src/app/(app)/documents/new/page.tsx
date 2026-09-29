@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui";
+import { PageHeader } from "@/components/app-ui";
 import { DocumentEditor } from "./editor";
 
 export default function NewDocument() {

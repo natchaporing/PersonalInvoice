@@ -1,16 +1,25 @@
+import { ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
-import { PageHeader, SectionHeading, StatusBadge } from "@/components/ui";
+import { PageHeader, StatusBadge } from "@/components/app-ui";
+import { GuillocheBackground, GuillocheBand, Microprint, Rosette, SerialNumber } from "@/components/banknote";
+import { Button } from "@/components/ui/button";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DOC_TYPE_LABEL, isOverdue, sampleDocs, sampleStats } from "@/lib/sample-data";
+import { bahtText } from "@/lib/thai/baht-text";
 import { formatTHB } from "@/lib/thai/money";
 import { formatDateEN } from "@/lib/thai/thai-date";
 
-function Figure({ label, value, hint, danger }: { label: string; value: string; hint: string; danger?: boolean }) {
+function Kpi({ label, th, value, hint, danger }: { label: string; th: string; value: number; hint: string; danger?: boolean }) {
   return (
-    <div className="kpi px-5 first:pl-0 last:pr-0">
-      <div className="eyebrow">{label}</div>
-      <div className={`figure mt-1 text-[30px] leading-tight ${danger ? "text-danger" : ""}`}>฿{value}</div>
-      <div className="mt-0.5 text-[13px] text-muted">{hint}</div>
-    </div>
+    <Card className="gap-0 overflow-hidden py-0">
+      <GuillocheBand tone={danger ? "red" : "cobalt"} height={8} opacity={0.55} />
+      <div className="px-5 pt-4 pb-5">
+        <div className="eyebrow">{label} · <span className="normal-case tracking-normal">{th}</span></div>
+        <div className={`figure mt-1.5 text-[28px] leading-tight ${danger ? "text-destructive" : ""}`}>฿{formatTHB(value)}</div>
+        <div className="mt-1 text-[13px] text-muted-foreground">{hint}</div>
+      </div>
+    </Card>
   );
 }
 
@@ -20,61 +29,114 @@ export default function Dashboard() {
   return (
     <>
       <PageHeader
-        eyebrow="กันยายน 2569 · September 2026"
+        eyebrow="กันยายน พ.ศ. 2569 · September 2026"
         title="Dashboard"
         subtitle="Where the money stands this month."
-        actions={<Link href="/documents/new" className="btn btn-primary">New document</Link>}
+        actions={
+          <Button asChild>
+            <Link href="/documents/new"><Plus /> New document</Link>
+          </Button>
+        }
       />
 
-      {/* Key figures: one ledger strip, separated by hairlines. Amber rule is the single accent. */}
-      <section aria-label="Key figures" className="kpis border-t-[3px] border-secondary pt-4">
-        <div className="kpi-grid grid grid-cols-2 gap-y-6 md:grid-cols-4 md:divide-x md:divide-border">
-          <Figure label="Outstanding" value={formatTHB(s.outstanding)} hint="Issued, not yet paid" />
-          <Figure label="Overdue" value={formatTHB(s.overdue)} hint="Past due date" danger />
-          <Figure label="Revenue · month" value={formatTHB(s.monthRevenue)} hint="Before VAT" />
-          <Figure label="Output VAT · month" value={formatTHB(s.monthVat)} hint="PP30 due 23 Oct (e-filing)" />
+      {/* Hero "note": the one number that matters, printed like currency. */}
+      <section aria-label="Outstanding receivables" className="relative overflow-hidden rounded-lg border border-cobalt/25 bg-paper">
+        <GuillocheBackground opacity={0.1} />
+        <div aria-hidden className="pointer-events-none absolute inset-2 rounded-md border border-cobalt/20" />
+        <Rosette size={280} opacity={0.55} className="absolute top-1/2 -right-12 hidden -translate-y-1/2 sm:block" />
+        <div className="relative p-6 sm:p-8 sm:pr-72">
+          <div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="eyebrow text-cobalt">Outstanding receivables · ยอดค้างรับ</span>
+              <SerialNumber value="PI2569-09" className="text-[12px]" />
+            </div>
+            <div className="figure mt-3 text-[52px] leading-none text-cobalt sm:text-[64px]">
+              <span className="mr-1 align-top text-[0.5em]">฿</span>{formatTHB(s.outstanding)}
+            </div>
+            <div className="mt-3 text-[15px] text-foreground">{bahtText(s.outstanding)}</div>
+            <div className="mt-1 text-[13px] text-muted-foreground">Across 3 issued documents · 1 overdue</div>
+          </div>
         </div>
+        <Microprint className="relative border-t border-cobalt/15 px-8 py-1" />
       </section>
 
-      <section aria-label="VAT registration threshold" className="mt-10 max-w-[720px]">
-        <div className="flex items-baseline justify-between gap-4">
-          <div className="eyebrow">Year to date vs ฿1.8M VAT threshold</div>
-          <div className="num text-[13px]">฿{formatTHB(s.yearRevenue)} · {pct}%</div>
-        </div>
-        <div className="mt-2 h-[3px] bg-border" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Share of VAT threshold reached">
-          <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
-        </div>
-        <p className="mt-2 text-[13px] text-muted">You are VAT-registered, so this is informational.</p>
+      <section aria-label="Key figures" className="mt-6 grid gap-4 sm:grid-cols-3">
+        <Kpi label="Overdue" th="เกินกำหนด" value={s.overdue} hint="Past due date" danger />
+        <Kpi label="Revenue" th="รายได้เดือนนี้" value={s.monthRevenue} hint="This month, before VAT" />
+        <Kpi label="Output VAT" th="ภาษีขาย" value={s.monthVat} hint="PP30 due 23 Oct (e-filing)" />
       </section>
 
-      <section aria-label="Recent documents" className="mt-12">
-        <SectionHeading aside={<Link href="/documents" className="text-accent underline-offset-4 hover:underline">All documents →</Link>}>Recent documents</SectionHeading>
-        <table className="w-full text-left">
-          <thead className="border-b border-fg text-left">
-            <tr className="eyebrow">
-              <th className="py-2 pr-4 font-medium">No.</th>
-              <th className="py-2 pr-4 font-medium">Customer</th>
-              <th className="hidden py-2 pr-4 font-medium sm:table-cell">Issued</th>
-              <th className="py-2 pr-4 font-medium">Status</th>
-              <th className="py-2 text-right font-medium">Total ฿</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>VAT threshold · เกณฑ์จดทะเบียน VAT</CardTitle>
+          <CardDescription>Year-to-date revenue against ฿1.8M. You are VAT-registered, so this is informational.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-baseline justify-between text-[13px]">
+            <span className="num">฿{formatTHB(s.yearRevenue)}</span>
+            <span className="num text-muted-foreground">{pct}% of ฿1,800,000.00</span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Share of VAT threshold reached">
+            <div className="h-full rounded-full bg-cobalt" style={{ width: `${pct}%` }} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Recent documents · เอกสารล่าสุด</CardTitle>
+          <CardAction>
+            <Button asChild variant="link" size="sm">
+              <Link href="/documents">All documents <ArrowRight /></Link>
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="px-2 sm:px-3">
+          <div className="hidden sm:block">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>No.</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead className="hidden sm:table-cell">Issued</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Total ฿</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sampleDocs.slice(0, 5).map((d) => (
+                <TableRow key={d.id}>
+                  <TableCell><SerialNumber value={d.number} className="text-[12px]" /></TableCell>
+                  <TableCell>
+                    {d.customer}
+                    <div className="text-[12px] text-muted-foreground">{DOC_TYPE_LABEL[d.type].en}</div>
+                  </TableCell>
+                  <TableCell className="hidden whitespace-nowrap text-muted-foreground sm:table-cell">{formatDateEN(d.issueDate)}</TableCell>
+                  <TableCell><StatusBadge status={d.status} overdue={isOverdue(d)} /></TableCell>
+                  <TableCell className="num text-right">{formatTHB(d.total)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          </div>
+          {/* Phones: stacked rows instead of a cramped table. */}
+          <ul className="divide-y sm:hidden">
             {sampleDocs.slice(0, 5).map((d) => (
-              <tr key={d.id} className="border-b border-border align-baseline">
-                <td className="num whitespace-nowrap py-3 pr-4 text-[13px]">{d.number}</td>
-                <td className="py-3 pr-4">
-                  {d.customer}
-                  <div className="text-[12px] text-muted">{DOC_TYPE_LABEL[d.type].en}</div>
-                </td>
-                <td className="hidden whitespace-nowrap py-3 pr-4 text-muted sm:table-cell">{formatDateEN(d.issueDate)}</td>
-                <td className="py-3 pr-4"><StatusBadge status={d.status} overdue={isOverdue(d)} /></td>
-                <td className="num py-3 text-right">{formatTHB(d.total)}</td>
-              </tr>
+              <li key={d.id} className="px-3 py-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <SerialNumber value={d.number} className="text-[12px]" />
+                  <span className="num">{formatTHB(d.total)}</span>
+                </div>
+                <div className="mt-1 truncate">{d.customer}</div>
+                <div className="mt-1 flex items-center justify-between gap-3 text-[12px] text-muted-foreground">
+                  <span>{DOC_TYPE_LABEL[d.type].en} · {formatDateEN(d.issueDate)}</span>
+                  <StatusBadge status={d.status} overdue={isOverdue(d)} />
+                </div>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </section>
+          </ul>
+        </CardContent>
+      </Card>
     </>
   );
 }
