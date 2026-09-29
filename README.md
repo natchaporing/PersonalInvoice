@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PersonalInvoice
 
-## Getting Started
+Invoicing backoffice for a VAT-registered Thai sole proprietor: quotations, invoices, tax invoices
+(ใบกำกับภาษี, Revenue Code s.86/4), receipts, credit and debit notes; VAT and withholding tax;
+bilingual Thai/English documents; signed PDFs with a public verification page; monthly PP30 figures.
 
-First, run the development server:
+Next.js 16 · Supabase (Postgres, auth, private storage) · shadcn/ui · deployed on Railway.
+
+## What it does
+
+- **Documents**: draft → issued → paid / void. Issuing assigns a gap-free number per type and year,
+  freezes seller and buyer snapshots, and makes the document immutable (enforced in Postgres).
+  Corrections go through credit or debit notes.
+- **Money**: integer satang everywhere. VAT 7% (exclusive or inclusive), withholding tax on the
+  pre-VAT amount, all computed on the server. See `src/lib/thai/`.
+- **Signed PDFs**: headless Chromium renders `/print/documents/:id`, the PDF is signed (CAdES-detached)
+  with a PKCS#12 certificate and stored privately with its SHA-256. `/verify/<code>` shows the
+  recorded facts and lets anyone check a PDF they received (hashed in the browser, never uploaded).
+- **Payments**: bank-transfer details print on payable documents; record payments (with slips) and
+  50 Tawi withholding certificates per document.
+- **Tax**: `/tax` shows output VAT for PP30 and the sales tax report, with CSV export.
+
+## Develop
 
 ```bash
+npm ci
+cp .env.example .env.local          # fill in Supabase URL/key, APP_URL and signing certificate
+npm run cert:generate -- "Your Business Name"   # prints SIGNING_P12_* for .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Local Supabase (no hosted project needed)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run db:local        # docker compose: Postgres, auth, REST, storage
+npm run db:gateway      # serves http://localhost:54321 like hosted Supabase
+# apply supabase/migrations/*.sql to the db container, then point .env.local at localhost:54321
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`supabase/local/.env` (generated, git-ignored) holds the local anon key.
 
-## Learn More
+### Tests
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm test                # unit tests: money, VAT/WHT, baht text, reports, PDF signing
+npm run typecheck && npm run lint
+npm run build && npx next start -p 3100
+BASE_URL=http://localhost:3100 npm run e2e   # full flow against a running app + Supabase
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy (Railway)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The `Dockerfile` builds a standalone Next.js server on Playwright's image (it ships the matching
+Chromium). Set these on the service:
 
-## Deploy on Vercel
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase project (also build-time) |
+| `APP_URL` | public origin, printed in each document's verification link |
+| `SIGNING_P12_BASE64`, `SIGNING_P12_PASSPHRASE` | document signing certificate |
+| `PORT` | `3000` |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+In Supabase → Authentication → URL Configuration, set **Site URL** to `APP_URL`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Signing certificate
+
+`npm run cert:generate` makes a self-signed certificate: signatures are tamper-evident, but PDF
+readers show the signer as "not trusted". To get a trusted signature (and later RD e-Tax Invoice),
+buy a certificate from a Thai CA and put it in the same two variables.
+
+## Not built (yet)
+
+Multi-user/multi-company, e-Tax Invoice by Email, recurring invoices, email sending, payment
+gateway links, input-VAT tracking, annual PND 90/91 report.
