@@ -13,6 +13,19 @@ export interface Party {
   email?: string;
 }
 
+/** Where the customer transfers money. Comes from the business profile. */
+export interface BankAccount {
+  bankTh: string;
+  bankEn?: string;
+  branchTh?: string;
+  branchEn?: string;
+  accountName: string;
+  accountNameEn?: string;
+  /** Digits only; formatted for display. */
+  accountNumber: string;
+  accountType?: "savings" | "current";
+}
+
 export interface DocLine {
   descriptionTh: string;
   descriptionEn?: string;
@@ -29,7 +42,7 @@ export interface DocumentView {
   issueDate: string;
   dueDate?: string;
   lang: Lang;
-  seller: Party & { promptPayId?: string };
+  seller: Party & { bank?: BankAccount };
   buyer: Party;
   lines: DocLine[];
   discount: number; // satang

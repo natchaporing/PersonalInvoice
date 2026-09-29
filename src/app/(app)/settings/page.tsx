@@ -9,7 +9,7 @@ export default function Settings() {
       items={[
         "Legal name, address and 13-digit tax ID (Thai and English)",
         "Head office / branch number",
-        "PromptPay ID for the payment QR",
+        "Bank account for transfers: bank, branch, account name and number",
         "Logo and signature image",
         "VAT rate (currently 7%)",
       ]}

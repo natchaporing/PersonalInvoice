@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bahtText } from "./baht-text";
 import { computeTotals, roundDiv } from "./money";
-import { crc16, promptPayPayload } from "./promptpay";
+import { formatBankAccount } from "./bank";
 import { formatDateEN, formatDateTH } from "./thai-date";
 
 describe("money", () => {
@@ -55,27 +55,12 @@ describe("thai-date", () => {
   });
 });
 
-describe("promptpay", () => {
-  it("CRC16-CCITT-FALSE check value", () => {
-    expect(crc16("123456789")).toBe("29B1");
+describe("bank account", () => {
+  it("formats 10-digit Thai account numbers", () => {
+    expect(formatBankAccount("1234567890")).toBe("123-4-56789-0");
+    expect(formatBankAccount("123-4-56789-0")).toBe("123-4-56789-0");
   });
-
-  it("builds a dynamic phone payload with valid CRC", () => {
-    const p = promptPayPayload("081-234-5678", 12345);
-    expect(p.startsWith("000201010212")).toBe(true);
-    expect(p).toContain("A000000677010111011300668123456785303764540" + "6123.45");
-    expect(p).toContain("5802TH6304");
-    expect(p.slice(-4)).toBe(crc16(p.slice(0, -4)));
-  });
-
-  it("uses tag 02 for 13-digit tax ID and static QR without amount", () => {
-    const p = promptPayPayload("0105555555555");
-    expect(p.startsWith("000201010211")).toBe(true);
-    expect(p).toContain("02130105555555555");
-    expect(p).toContain("53037645802TH6304");
-  });
-
-  it("rejects malformed IDs", () => {
-    expect(() => promptPayPayload("12345")).toThrow();
+  it("groups other lengths in fours", () => {
+    expect(formatBankAccount("123456789012")).toBe("1234-5678-9012");
   });
 });

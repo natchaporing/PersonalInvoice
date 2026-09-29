@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette, Seal, SerialNumber } from "@/components/banknote";
-import { QrSvg } from "@/components/qr";
 import type { DocumentView, Lang, Party } from "@/lib/document-view";
-import { DOC_TYPE_LABEL } from "@/lib/sample-data";
+import { DOC_TYPE_LABEL, isPayable } from "@/lib/sample-data";
 import { bahtText } from "@/lib/thai/baht-text";
 import { computeTotals, formatTHB, lineAmount } from "@/lib/thai/money";
-import { promptPayPayload } from "@/lib/thai/promptpay";
+import { formatBankAccount } from "@/lib/thai/bank";
 import { formatDateEN, formatDateTH } from "@/lib/thai/thai-date";
 
 export const A4 = { width: 794, height: 1123 } as const; // px at 96dpi
@@ -69,7 +68,7 @@ export function InvoiceDocument({ doc, idPrefix = "inv" }: { doc: DocumentView; 
   });
   const label = DOC_TYPE_LABEL[doc.type];
   const date = (iso: string) => (lang === "en" ? formatDateEN(iso) : formatDateTH(iso));
-  const qrValue = doc.seller.promptPayId && t.netReceivable > 0 ? promptPayPayload(doc.seller.promptPayId, t.netReceivable) : null;
+  const bank = isPayable(doc.type) && t.netReceivable > 0 ? doc.seller.bank : undefined;
   const copyLabel = doc.copy === "copy" ? { th: "สำเนา", en: "COPY" } : { th: "ต้นฉบับ", en: "ORIGINAL" };
   const micro = `${label.en.toUpperCase()} · ${label.th} · ${doc.number ?? "DRAFT"} · ${doc.seller.taxId} · `;
 
@@ -172,16 +171,33 @@ export function InvoiceDocument({ doc, idPrefix = "inv" }: { doc: DocumentView; 
                 <p className="whitespace-pre-line text-[11px] text-neutral-700">{doc.notes}</p>
               </div>
             )}
-            {qrValue && (
-              <div className="w-fit overflow-hidden rounded-md border" style={{ borderColor: AMBER }}>
+            {bank && (
+              <div className="w-fit min-w-[300px] overflow-hidden rounded-md border" style={{ borderColor: AMBER }}>
                 <GuillocheBand tone="amber" height={7} opacity={1} />
-                <div className="flex items-center gap-4 bg-white p-3 pr-5">
-                  <QrSvg value={qrValue} size={92} label="PromptPay QR code" />
-                  <div className="text-[11px] leading-snug">
-                    <div className="font-semibold"><T th="ชำระผ่านพร้อมเพย์" en="Pay with PromptPay" lang={lang} /></div>
-                    <div className="num mt-0.5 text-[15px] font-bold" style={{ color: COBALT }}>฿{formatTHB(t.netReceivable)}</div>
-                    {t.wht > 0 && <div className="text-[10px] text-neutral-500">{pair("ยอดสุทธิหลังหักภาษี ณ ที่จ่าย", "Net of withholding tax", lang === "bilingual" ? "th" : lang)}</div>}
-                  </div>
+                <div className="bg-white px-4 py-3 text-[11px] leading-snug">
+                  <div className="mb-1.5 font-semibold"><T th="ชำระโดยโอนเงินเข้าบัญชี" en="Pay by bank transfer" lang={lang} /></div>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+                    <dt className="text-neutral-500">{pair("ธนาคาร", "Bank", lang)}</dt>
+                    <dd>
+                      {lang === "en" ? bank.bankEn ?? bank.bankTh : bank.bankTh}
+                      {lang === "bilingual" && bank.bankEn ? ` (${bank.bankEn})` : ""}
+                      {(bank.branchTh || bank.branchEn) && ` · ${lang === "en" ? bank.branchEn ?? bank.branchTh : bank.branchTh}`}
+                    </dd>
+                    <dt className="text-neutral-500">{pair("ชื่อบัญชี", "Account name", lang)}</dt>
+                    <dd>{lang === "en" ? bank.accountNameEn ?? bank.accountName : bank.accountName}</dd>
+                    <dt className="text-neutral-500">{pair("เลขที่บัญชี", "Account no.", lang)}</dt>
+                    <dd className="num text-[13px] font-semibold tracking-wide" style={{ color: COBALT }}>
+                      {formatBankAccount(bank.accountNumber)}
+                      {bank.accountType && (
+                        <span className="ml-1.5 font-sans text-[10px] font-normal tracking-normal text-neutral-500">
+                          ({bank.accountType === "savings" ? pair("ออมทรัพย์", "Savings", lang) : pair("กระแสรายวัน", "Current", lang)})
+                        </span>
+                      )}
+                    </dd>
+                    <dt className="text-neutral-500">{pair("ยอดโอน", "Amount", lang)}</dt>
+                    <dd className="num font-semibold">฿{formatTHB(t.netReceivable)}</dd>
+                  </dl>
+                  {t.wht > 0 && <div className="mt-1 text-[10px] text-neutral-500">{pair("ยอดสุทธิหลังหักภาษี ณ ที่จ่าย", "Net of withholding tax", lang === "bilingual" ? "th" : lang)}</div>}
                 </div>
               </div>
             )}

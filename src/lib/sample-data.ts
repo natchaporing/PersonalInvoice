@@ -34,7 +34,14 @@ export const sampleSeller = {
   addressTh: "1 ถนนตัวอย่าง แขวงตัวอย่าง เขตตัวอย่าง กรุงเทพมหานคร 10000",
   addressEn: "1 Example Rd., Example, Bangkok 10000",
   taxId: "1234567890123", branchCode: "00000", phone: "02-000-0000", email: "billing@example.com",
-  promptPayId: "0812345678",
+  bank: {
+    bankTh: "ธนาคารตัวอย่าง", bankEn: "Example Bank",
+    branchTh: "สาขาตัวอย่าง", branchEn: "Example branch",
+    accountName: "ชื่อผู้ประกอบการ (ตัวอย่าง)",
+    accountNameEn: "Your Business Name (sample)",
+    accountNumber: "0000000000",
+    accountType: "savings" as const,
+  },
 };
 
 export const sampleDocs: SampleDoc[] = [
@@ -56,6 +63,8 @@ export const sampleStats = {
 };
 
 const RECEIVABLE: DocType[] = ["invoice", "tax_invoice", "debit_note"];
+/** Documents that ask the customer for money, and so show where to pay. */
+export const isPayable = (type: DocType) => RECEIVABLE.includes(type);
 /** Only documents that ask for payment can be overdue (not quotations, receipts or credit notes). */
 export const isOverdue = (d: Pick<SampleDoc, "type" | "status" | "dueDate">, today = "2026-09-29") =>
   RECEIVABLE.includes(d.type) && d.status === "issued" && d.dueDate < today;
