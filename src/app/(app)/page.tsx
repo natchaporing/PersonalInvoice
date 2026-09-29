@@ -6,7 +6,7 @@ import { formatDateEN } from "@/lib/thai/thai-date";
 
 function Figure({ label, value, hint, danger }: { label: string; value: string; hint: string; danger?: boolean }) {
   return (
-    <div className="px-5 first:pl-0 last:pr-0">
+    <div className="kpi px-5 first:pl-0 last:pr-0">
       <div className="eyebrow">{label}</div>
       <div className={`figure mt-1 text-[30px] leading-tight ${danger ? "text-danger" : ""}`}>฿{value}</div>
       <div className="mt-0.5 text-[13px] text-muted">{hint}</div>
@@ -27,8 +27,8 @@ export default function Dashboard() {
       />
 
       {/* Key figures: one ledger strip, separated by hairlines. Amber rule is the single accent. */}
-      <section aria-label="Key figures" className="border-t-[3px] border-secondary pt-4">
-        <div className="grid grid-cols-2 gap-y-6 md:grid-cols-4 md:divide-x md:divide-border">
+      <section aria-label="Key figures" className="kpis border-t-[3px] border-secondary pt-4">
+        <div className="kpi-grid grid grid-cols-2 gap-y-6 md:grid-cols-4 md:divide-x md:divide-border">
           <Figure label="Outstanding" value={formatTHB(s.outstanding)} hint="Issued, not yet paid" />
           <Figure label="Overdue" value={formatTHB(s.overdue)} hint="Past due date" danger />
           <Figure label="Revenue · month" value={formatTHB(s.monthRevenue)} hint="Before VAT" />

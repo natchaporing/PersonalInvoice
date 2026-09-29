@@ -1,6 +1,10 @@
+import { cookies } from "next/headers";
 import { Sidebar } from "@/components/sidebar";
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import { isTheme, THEME_COOKIE } from "@/lib/themes";
 
-export default function AppLayout({ children }: LayoutProps<"/">) {
+export default async function AppLayout({ children }: LayoutProps<"/">) {
+  const saved = (await cookies()).get(THEME_COOKIE)?.value;
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b-2 border-secondary bg-brand text-brand-fg">
@@ -9,7 +13,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             <span className="text-base font-semibold tracking-tight">PersonalInvoice</span>
             <span className="hidden text-xs text-secondary sm:inline">ใบกำกับภาษี · Thai tax invoicing</span>
           </div>
-          <span className="text-xs text-white/80">฿ THB · VAT 7%</span>
+          <ThemeSwitcher initial={isTheme(saved) ? saved : "ledger"} />
         </div>
       </header>
       <div className="flex-1 md:grid md:grid-cols-[232px_1fr]">

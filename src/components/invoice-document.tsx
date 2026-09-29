@@ -68,7 +68,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
   return (
     <div
       className="relative flex flex-col overflow-hidden bg-white p-12 text-[12px] leading-relaxed text-[#1a2536]"
-      style={{ width: A4.width, height: A4.height, fontFamily: "var(--font-plex), sans-serif", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
+      style={{ width: A4.width, height: A4.height, fontFamily: "var(--f-body)", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
     >
       {doc.status === "draft" && (
         <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -79,7 +79,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
       {/* Header */}
       <header className="flex items-start justify-between gap-6 border-b-4 pb-4" style={{ borderColor: ACCENT, boxShadow: `0 4px 0 ${AMBER}` }}>
         <div className="min-w-0">
-          <div className="text-[26px] font-medium leading-tight" style={{ color: ACCENT, fontFamily: "var(--font-serif), var(--font-serif-th), Georgia, serif" }}>
+          <div className="text-[26px] font-medium leading-tight" style={{ color: ACCENT, fontFamily: "var(--f-display)", fontWeight: "var(--display-weight)" }}>
             {lang === "en" ? label.en : label.th}
           </div>
           {lang === "bilingual" && <div className="text-[13px] font-semibold uppercase tracking-wide text-neutral-600">{label.en}</div>}
