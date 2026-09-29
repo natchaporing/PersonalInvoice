@@ -2,25 +2,25 @@
 
 /* Design tokens: cobalt / amber / gold palette (see :root), status colours kept distinct from the brand. */
 :root {
-  /* 60% Cobalt (dominant) · 30% Amber (structure) · 10% Gold (actions only).
-     Amber and gold fail contrast as text on white: use them as fills/borders, never body text. */
+  /* Text-first 60/30/7/2/1: white+pearl reading area · charcoal navy text · cobalt identity ·
+     amber small accents · gold reserved for buttons. Amber/gold fail contrast as text on light: fills/borders only. */
   --brand: #0047ab;         --brand-fg: #ffffff;
-  --secondary: #ffb854;     --secondary-fg: #1a1400;
-  --cta: #f4d03f;           --cta-fg: #1a1400;   --cta-border: #c9a30a;
+  --secondary: #ffb854;
+  --cta: #f4d03f;           --cta-fg: #1a2536;   --cta-border: #c9a30a;
 
-  --bg: #eef2f9;
+  --bg: #f9f9fb;            /* soft pearl */
   --surface: #ffffff;
-  --surface-2: #e6ecf7;
-  --border: #d6dfef;
-  --fg: #0f1b33;
-  --fg-muted: #56627a;
-  --accent: #0047ab;        /* text/links/progress on light surfaces */
+  --surface-2: #f0f1f5;
+  --border: #e1e4eb;
+  --fg: #1a2536;            /* charcoal navy: body text and titles */
+  --fg-muted: #4a5866;
+  --accent: #0047ab;        /* links, section headings */
   --accent-fg: #ffffff;
-  --accent-soft: #dbe6f8;
+  --accent-soft: #e3ebf8;
   --ok: #1f7a4d;       --ok-soft: #dff1e7;
   --warn: #8a5a00;     --warn-soft: #faedcf;
   --danger: #b3312a;   --danger-soft: #f8dfdc;
-  --info: #0047ab;     --info-soft: #dbe6f8;
+  --info: #0047ab;     --info-soft: #e3ebf8;
 }
 
 @media (prefers-color-scheme: dark) {

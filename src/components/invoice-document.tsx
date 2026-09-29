@@ -67,7 +67,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
 
   return (
     <div
-      className="relative flex flex-col overflow-hidden bg-white p-12 text-[12px] leading-relaxed text-neutral-900"
+      className="relative flex flex-col overflow-hidden bg-white p-12 text-[12px] leading-relaxed text-[#1a2536]"
       style={{ width: A4.width, height: A4.height, fontFamily: "var(--font-thai), var(--font-inter), sans-serif", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
     >
       {doc.status === "draft" && (

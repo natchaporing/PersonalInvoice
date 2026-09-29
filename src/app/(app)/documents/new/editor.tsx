@@ -104,7 +104,7 @@ export function DocumentEditor() {
         </section>
 
         <section className="card p-4">
-          <h2 className="mb-3 font-semibold">Line items</h2>
+          <h2 className="mb-3 font-semibold text-accent">Line items</h2>
           <div className="space-y-3">
             {lines.map((l, i) => (
               <div key={l.id} className="grid grid-cols-2 gap-2 rounded-lg border border-border p-3 sm:grid-cols-[88px_140px_1fr_auto] sm:items-end">
@@ -163,7 +163,7 @@ export function DocumentEditor() {
 
       <aside aria-label="Live document preview" className="xl:sticky xl:top-6 xl:self-start">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-semibold">Preview</h2>
+          <h2 className="font-semibold text-accent">Preview</h2>
           <Link href={`/preview/tax-invoice?lang=${lang}`} className="text-accent hover:underline">Open sample mockup ↗</Link>
         </div>
         <div className="overflow-hidden rounded-lg border border-border shadow-md">

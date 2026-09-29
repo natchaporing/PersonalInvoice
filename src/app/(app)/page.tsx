@@ -45,7 +45,7 @@ export default function Dashboard() {
 
       <section aria-label="Recent documents" className="card mt-6 overflow-hidden">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="font-semibold">Recent documents</h2>
+          <h2 className="font-semibold text-accent">Recent documents</h2>
           <Link href="/documents" className="text-accent hover:underline">View all</Link>
         </div>
         <ul>

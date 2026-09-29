@@ -16,11 +16,7 @@ const NAV = [
 export function Sidebar() {
   const path = usePathname();
   return (
-    <nav aria-label="Main" className="flex gap-1 overflow-x-auto p-3 md:flex-col md:overflow-visible">
-      <div className="hidden px-3 pb-4 pt-2 md:block">
-        <div className="text-base font-semibold tracking-tight text-brand-fg">PersonalInvoice</div>
-        <div className="text-xs text-secondary">ใบกำกับภาษี · Invoicing</div>
-      </div>
+    <nav aria-label="Main" className="flex gap-1 overflow-x-auto p-3 md:sticky md:top-4 md:flex-col md:overflow-visible">
       {NAV.map((n) => {
         const active = n.href === "/" ? path === "/" : path.startsWith(n.href);
         return (
@@ -30,8 +26,8 @@ export function Sidebar() {
             aria-current={active ? "page" : undefined}
             className={`whitespace-nowrap rounded-lg border-l-4 px-3 py-2 ${
               active
-                ? "border-secondary bg-white/15 font-medium text-brand-fg"
-                : "border-transparent text-white/80 hover:bg-white/10 hover:text-brand-fg"
+                ? "border-secondary bg-accent-soft font-semibold text-accent"
+                : "border-transparent text-muted hover:bg-surface-2 hover:text-fg"
             }`}
           >
             {n.label} <span className="ml-1 hidden text-xs opacity-75 lg:inline">{n.th}</span>
