@@ -18,8 +18,8 @@ export function Sidebar() {
   return (
     <nav aria-label="Main" className="flex gap-1 overflow-x-auto p-3 md:flex-col md:overflow-visible">
       <div className="hidden px-3 pb-4 pt-2 md:block">
-        <div className="text-base font-semibold tracking-tight">PersonalInvoice</div>
-        <div className="text-xs text-muted">ใบกำกับภาษี · Invoicing</div>
+        <div className="text-base font-semibold tracking-tight text-brand-fg">PersonalInvoice</div>
+        <div className="text-xs text-secondary">ใบกำกับภาษี · Invoicing</div>
       </div>
       {NAV.map((n) => {
         const active = n.href === "/" ? path === "/" : path.startsWith(n.href);
@@ -28,11 +28,13 @@ export function Sidebar() {
             key={n.href}
             href={n.href}
             aria-current={active ? "page" : undefined}
-            className={`whitespace-nowrap rounded-lg px-3 py-2 ${
-              active ? "bg-accent-soft font-medium text-accent" : "text-muted hover:bg-surface-2 hover:text-fg"
+            className={`whitespace-nowrap rounded-lg border-l-4 px-3 py-2 ${
+              active
+                ? "border-secondary bg-white/15 font-medium text-brand-fg"
+                : "border-transparent text-white/80 hover:bg-white/10 hover:text-brand-fg"
             }`}
           >
-            {n.label} <span className="ml-1 hidden text-xs opacity-70 lg:inline">{n.th}</span>
+            {n.label} <span className="ml-1 hidden text-xs opacity-75 lg:inline">{n.th}</span>
           </Link>
         );
       })}

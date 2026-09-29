@@ -6,7 +6,7 @@ import { formatDateEN } from "@/lib/thai/thai-date";
 
 function Stat({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "danger" }) {
   return (
-    <div className="card p-4">
+    <div className="card border-t-4 border-t-secondary p-4">
       <div className="text-xs font-medium text-muted">{label}</div>
       <div className={`num mt-1 text-2xl font-semibold ${tone === "danger" ? "text-danger" : ""}`}>฿{value}</div>
       {hint && <div className="mt-1 text-xs text-muted">{hint}</div>}

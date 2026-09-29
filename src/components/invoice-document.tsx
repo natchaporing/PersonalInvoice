@@ -9,7 +9,8 @@ import { formatDateEN, formatDateTH } from "@/lib/thai/thai-date";
 
 export const A4 = { width: 794, height: 1123 } as const; // px at 96dpi
 
-const ACCENT = "#0f5f5c";
+const ACCENT = "#0047ab"; // cobalt
+const AMBER = "#ffb854";
 
 /** Thai/English label pair, shown according to the document language. */
 function T({ th, en, lang, enClass = "text-neutral-500" }: { th: string; en: string; lang: Lang; enClass?: string }) {
@@ -67,7 +68,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
   return (
     <div
       className="relative flex flex-col overflow-hidden bg-white p-12 text-[12px] leading-relaxed text-neutral-900"
-      style={{ width: A4.width, height: A4.height, fontFamily: "var(--font-thai), var(--font-inter), sans-serif" }}
+      style={{ width: A4.width, height: A4.height, fontFamily: "var(--font-thai), var(--font-inter), sans-serif", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
     >
       {doc.status === "draft" && (
         <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -76,7 +77,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
       )}
 
       {/* Header */}
-      <header className="flex items-start justify-between gap-6 border-b-2 pb-4" style={{ borderColor: ACCENT }}>
+      <header className="flex items-start justify-between gap-6 border-b-4 pb-4" style={{ borderColor: ACCENT, boxShadow: `0 4px 0 ${AMBER}` }}>
         <div className="min-w-0">
           <div className="text-[22px] font-bold leading-tight" style={{ color: ACCENT }}>
             {lang === "en" ? label.en : label.th}
@@ -95,7 +96,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
       </header>
 
       {/* Parties */}
-      <section className="mt-4 flex gap-8">
+      <section className="mt-7 flex gap-8">
         <PartyBlock title={<T th="ผู้ขาย" en="Seller" lang={lang === "bilingual" ? "th" : lang} />} party={doc.seller} lang={lang} />
         <PartyBlock title={<T th="ผู้ซื้อ" en="Buyer" lang={lang === "bilingual" ? "th" : lang} />} party={doc.buyer} lang={lang} />
       </section>
@@ -103,7 +104,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
       {/* Lines */}
       <table className="mt-5 w-full border-collapse text-[11.5px]">
         <thead>
-          <tr className="text-white" style={{ backgroundColor: ACCENT }}>
+          <tr className="text-white" style={{ backgroundColor: ACCENT, boxShadow: `inset 0 -3px 0 ${AMBER}` }}>
             <th className="w-8 px-2 py-1.5 text-center font-medium">#</th>
             <th className="px-2 py-1.5 text-left font-medium"><T th="รายการ" en="Description" lang={lang} enClass="text-white/75" /></th>
             <th className="w-16 px-2 py-1.5 text-right font-medium"><T th="จำนวน" en="Qty" lang={lang} enClass="text-white/75" /></th>
@@ -137,7 +138,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
             </div>
           )}
           {qrValue && (
-            <div className="flex w-fit items-center gap-4 rounded-lg border border-neutral-200 p-3 pr-5">
+            <div className="flex w-fit items-center gap-4 rounded-lg border-2 p-3 pr-5" style={{ borderColor: AMBER }}>
               <QrSvg value={qrValue} size={92} label="PromptPay QR code" />
               <div className="text-[11px] leading-snug">
                 <div className="font-semibold"><T th="ชำระผ่านพร้อมเพย์" en="Pay with PromptPay" lang={lang} /></div>
@@ -153,7 +154,7 @@ export function InvoiceDocument({ doc }: { doc: DocumentView }) {
           {t.discount > 0 && <TotalRow k={<T th="ส่วนลด" en="Discount" lang={lang === "bilingual" ? "th" : lang} />} v={-t.discount} />}
           <TotalRow k={<T th="ราคาก่อนภาษี" en="Amount before VAT" lang={lang === "bilingual" ? "th" : lang} />} v={t.taxable} />
           <TotalRow k={<>{lang === "en" ? "VAT" : "ภาษีมูลค่าเพิ่ม"} {doc.vatBps / 100}%</>} v={t.vat} />
-          <div className="mt-1 border-t-2 pt-1" style={{ borderColor: ACCENT }}>
+          <div className="mt-1 border-t-2 pt-1" style={{ borderColor: AMBER }}>
             <TotalRow strong k={<T th="จำนวนเงินรวมทั้งสิ้น" en="Grand total" lang={lang === "bilingual" ? "th" : lang} />} v={t.total} />
           </div>
           {t.wht > 0 && (
