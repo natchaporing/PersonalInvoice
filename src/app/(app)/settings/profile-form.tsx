@@ -1,17 +1,26 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { BankPicker } from "@/components/bank-picker";
 import { Field, FormMessage, SubmitButton } from "@/components/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import type { FormState } from "@/lib/domain/forms";
 import type { Tables } from "@/lib/supabase/database.types";
+import { type Bank, findBankByName } from "@/lib/thai/banks";
 import { saveProfile } from "./actions";
 
 export function ProfileForm({ profile }: { profile: Tables<"business_profiles"> | null }) {
   const [state, action] = useActionState<FormState, FormData>(saveProfile, {});
   const e = state.fieldErrors ?? {};
   const v = (k: keyof Tables<"business_profiles">) => state.values?.[k] ?? (profile?.[k] as string | null | undefined) ?? "";
+  const [bankTh, setBankTh] = useState(v("bank_name_th"));
+  const [bankEn, setBankEn] = useState(v("bank_name_en"));
+  const picked = findBankByName(bankTh, bankEn);
+  const choose = (b: Bank) => {
+    setBankTh(b.th);
+    setBankEn(b.en);
+  };
 
   return (
     <form action={action} className="grid max-w-4xl gap-5">
@@ -54,11 +63,16 @@ export function ProfileForm({ profile }: { profile: Tables<"business_profiles"> 
           <CardDescription>Printed on invoices, tax invoices and debit notes so customers know where to transfer.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Bank (Thai)" htmlFor="bank_name_th" error={e.bank_name_th} hint="e.g. ธนาคารกสิกรไทย">
-            <Input id="bank_name_th" name="bank_name_th" defaultValue={v("bank_name_th")} />
+          <div className="grid gap-1.5 sm:col-span-2">
+            <span className="text-[13px] font-medium leading-none">Choose your bank · เลือกธนาคาร</span>
+            <BankPicker selected={picked} onSelect={choose} />
+            <p className="text-[12px] text-muted-foreground">Search by Thai or English name, short name (KBANK) or bank code. Not listed? Type the names below.</p>
+          </div>
+          <Field label="Bank (Thai)" htmlFor="bank_name_th" error={e.bank_name_th}>
+            <Input id="bank_name_th" name="bank_name_th" value={bankTh} onChange={(ev) => setBankTh(ev.target.value)} />
           </Field>
-          <Field label="Bank (English)" htmlFor="bank_name_en" error={e.bank_name_en} hint="e.g. Kasikornbank">
-            <Input id="bank_name_en" name="bank_name_en" defaultValue={v("bank_name_en")} />
+          <Field label="Bank (English)" htmlFor="bank_name_en" error={e.bank_name_en}>
+            <Input id="bank_name_en" name="bank_name_en" value={bankEn} onChange={(ev) => setBankEn(ev.target.value)} />
           </Field>
           <Field label="Branch (Thai)" htmlFor="bank_branch_th" error={e.bank_branch_th}>
             <Input id="bank_branch_th" name="bank_branch_th" defaultValue={v("bank_branch_th")} />

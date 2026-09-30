@@ -1,12 +1,16 @@
 import { LogOut } from "lucide-react";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette } from "@/components/banknote";
+import { PalettePicker } from "@/components/palette-picker";
 import { Sidebar } from "@/components/sidebar";
+import { DEFAULT_PALETTE, isPalette, PALETTE_COOKIE } from "@/lib/palettes";
 import { requireUser } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { supabase, user } = await requireUser();
+  const saved = (await cookies()).get(PALETTE_COOKIE)?.value;
   const { data: profile } = await supabase.from("business_profiles").select("name_th").eq("owner_id", user.id).maybeSingle();
   return (
     <div className="flex min-h-screen flex-col">
@@ -20,6 +24,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden max-w-[28ch] truncate text-xs text-white/80 md:inline">{profile?.name_th ?? user.email}</span>
+            <PalettePicker initial={isPalette(saved) ? saved : DEFAULT_PALETTE} />
             <form action={signOut}>
               <button type="submit" className="inline-flex items-center gap-1.5 rounded-sm border border-white/35 px-2 py-1 text-xs text-white/90 hover:bg-white/10">
                 <LogOut className="size-3.5" aria-hidden /> Sign out

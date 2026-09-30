@@ -18,6 +18,9 @@ Next.js 16 · Supabase (Postgres, auth, private storage) · shadcn/ui · deploye
   recorded facts and lets anyone check a PDF they received (hashed in the browser, never uploaded).
 - **Payments**: bank-transfer details print on payable documents; record payments (with slips) and
   50 Tawi withholding certificates per document.
+- **Bank list**: Settings has a searchable list of Thai banks (Thai/English name, short name or code) that fills the bank name fields; the bank codes beyond BBL/KBANK/KTB/TTB/SCB should be double-checked against the BOT list.
+- **Look**: light theme only. Pick a palette (Cobalt, Jade, Amethyst, Bronze) from the header; it is stored in a cookie and also colours documents and PDFs rendered afterwards.
+- **Sign-up**: the email must be typed twice and is confirmed through an emailed link (`/auth/callback`); the login page can resend it.
 - **Tax**: `/tax` shows output VAT for PP30 and the sales tax report, with CSV export.
 
 ## Develop
@@ -60,7 +63,7 @@ Chromium). Set these on the service:
 | `SIGNING_P12_BASE64`, `SIGNING_P12_PASSPHRASE` | document signing certificate |
 | `PORT` | `3000` |
 
-In Supabase → Authentication → URL Configuration, set **Site URL** to `APP_URL`.
+In Supabase → Authentication → URL Configuration, set **Site URL** to `APP_URL` and add `<APP_URL>/auth/callback` to the **Redirect URLs**. Keep "Confirm email" enabled under Sign In / Providers → Email.
 
 ## Signing certificate
 

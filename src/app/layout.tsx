@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { IBM_Plex_Mono, IBM_Plex_Sans_Thai, Noto_Serif_Thai, Source_Serif_4 } from "next/font/google";
+import { DEFAULT_PALETTE, isPalette, PALETTE_COOKIE } from "@/lib/palettes";
 import "./globals.css";
 
 // Body: IBM Plex Sans Thai. Display (engraved feel): Source Serif 4 + Noto Serif Thai. Serials & money: IBM Plex Mono.
@@ -13,9 +15,11 @@ export const metadata: Metadata = {
   description: "Thai invoice and tax-document backoffice",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const saved = (await cookies()).get(PALETTE_COOKIE)?.value;
+  const palette = isPalette(saved) ? saved : DEFAULT_PALETTE;
   return (
-    <html lang="en" className={`${plex.variable} ${serif.variable} ${serifTh.variable} ${mono.variable} h-full antialiased`}>
+    <html lang="en" data-palette={palette} className={`${plex.variable} ${serif.variable} ${serifTh.variable} ${mono.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

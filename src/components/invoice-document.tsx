@@ -9,10 +9,13 @@ import { formatDateEN, formatDateTH } from "@/lib/thai/thai-date";
 
 export const A4 = { width: 794, height: 1123 } as const; // px at 96dpi
 
-// Paper is always light, independent of the app's colour scheme.
-const COBALT = "#0047ab";
-const AMBER = "#ffb854";
+// Paper is always light. Colours come from the active palette, so an issued PDF carries the palette
+// that was selected when it was signed.
+const COBALT = "var(--cobalt)";
+const AMBER = "var(--amber)";
 const INK = "#1a2536";
+/** The brand colour at a given opacity, e.g. mix(25). */
+const mix = (pct: number) => `color-mix(in srgb, var(--cobalt) ${pct}%, transparent)`;
 const DISPLAY = "var(--font-serif), var(--font-serif-th), Georgia, serif";
 
 /** Thai/English label pair, shown according to the document language. */
@@ -80,7 +83,7 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
     >
       {/* Security frame: outer rule, microprint, inner rule. */}
       <div aria-hidden className="pointer-events-none absolute inset-[18px] border" style={{ borderColor: COBALT }} />
-      <div aria-hidden className="pointer-events-none absolute inset-[23px] border-[0.5px]" style={{ borderColor: `${COBALT}99` }} />
+      <div aria-hidden className="pointer-events-none absolute inset-[23px] border-[0.5px]" style={{ borderColor: mix(60) }} />
       <Microprint text={micro} size={4.2} opacity={0.7} className="absolute inset-x-[26px] top-[25px]" />
       <Microprint text={micro} size={4.2} opacity={0.7} className="absolute inset-x-[26px] bottom-[25px]" />
 
@@ -89,7 +92,7 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
 
       {doc.status === "void" && (
         <div aria-hidden className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <div className="-rotate-[20deg] rounded-md border-[6px] border-[#b3312a]/70 px-8 py-2 text-[76px] font-bold tracking-widest text-[#b3312a]/70">
+          <div className="-rotate-[20deg] rounded-md border-[6px] border-destructive/70 px-8 py-2 text-[76px] font-bold tracking-widest text-destructive/70">
             {lang === "en" ? "VOID" : lang === "th" ? "ยกเลิก" : "ยกเลิก · VOID"}
           </div>
         </div>
@@ -235,7 +238,7 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
               <TotalRow k={<>{lang === "en" ? "VAT" : "ภาษีมูลค่าเพิ่ม"} {doc.vatBps / 100}%</>} v={t.vat} />
             </dl>
             {/* Grand total printed like the face value of a note. */}
-            <div className="relative mt-2 overflow-hidden rounded-md border px-3 py-2.5" style={{ borderColor: `${COBALT}55`, background: "#fffdf7" }}>
+            <div className="relative mt-2 overflow-hidden rounded-md border px-3 py-2.5" style={{ borderColor: mix(33), background: "var(--paper)" }}>
               <GuillocheBackground opacity={0.1} />
               <div className="relative flex items-baseline justify-between gap-3">
                 <div className="text-[11px] font-semibold"><T th="จำนวนเงินรวมทั้งสิ้น" en="Grand total" lang={lang} /></div>
@@ -270,7 +273,7 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
           ))}
         </section>
 
-        <footer className="flex items-center justify-between border-t pt-2 text-[9.5px] text-neutral-500" style={{ borderColor: `${COBALT}40` }}>
+        <footer className="flex items-center justify-between border-t pt-2 text-[9.5px] text-neutral-500" style={{ borderColor: mix(25) }}>
           <span>{[doc.seller.phone, doc.seller.email].filter(Boolean).join(" · ")}</span>
           <span>
             {doc.status === "draft"

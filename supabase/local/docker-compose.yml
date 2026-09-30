@@ -17,7 +17,6 @@ services:
       retries: 60
   auth:
     image: supabase/gotrue:v2.177.0
-    depends_on: { db: { condition: service_healthy } }
     environment:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: 9999
@@ -32,8 +31,19 @@ services:
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       GOTRUE_JWT_ADMIN_ROLES: service_role
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
-      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      # Email confirmation is on: mail goes to Mailpit (http://localhost:8025) instead of the internet.
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_SMTP_HOST: mailpit
+      GOTRUE_SMTP_PORT: 1025
+      GOTRUE_SMTP_ADMIN_EMAIL: no-reply@personalinvoice.local
+      GOTRUE_SMTP_SENDER_NAME: PersonalInvoice
+      GOTRUE_SMTP_MAX_FREQUENCY: 2s   # hosted Supabase allows one email per 60s per address; relaxed locally for tests
+      GOTRUE_URI_ALLOW_LIST: "http://localhost:3100/**,http://localhost:3200/**,http://localhost:3000/**"
+    depends_on: { db: { condition: service_healthy }, mailpit: { condition: service_started } }
     ports: ["9999:9999"]
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports: ["8025:8025"]
   rest:
     image: postgrest/postgrest:v12.2.3
     depends_on: { db: { condition: service_healthy } }

@@ -5,12 +5,32 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { chromium } from "playwright-core";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3100";
+const MAIL = process.env.MAILPIT_URL ?? "http://localhost:8025"; // local Supabase stack catches auth email here
 const SHOTS = process.argv[2];
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 const email = `owner-${randomBytes(4).toString("hex")}@example.com`;
 const password = "correct-horse-battery";
 const log = (...a) => console.log("•", ...a);
 const fail = (msg) => { throw new Error(msg); };
+
+/** Waits until `count` emails to `to` exist in Mailpit; returns their confirmation links, newest first. */
+async function confirmationLinks(to, count = 1) {
+  for (let i = 0; i < 40; i++) {
+    const found = await (await fetch(`${MAIL}/api/v1/search?query=${encodeURIComponent(`to:${to}`)}`)).json();
+    if ((found.messages?.length ?? 0) >= count) {
+      const links = [];
+      for (const m of found.messages) {
+        const msg = await (await fetch(`${MAIL}/api/v1/message/${m.ID}`)).json();
+        const hit = /https?:\/\/[^\s"'<>]*\/verify\?[^\s"'<>]*/.exec(`${msg.HTML}\n${msg.Text}`);
+        if (hit) links.push(hit[0].replace(/&amp;/g, "&"));
+      }
+      if (links.length >= count) return links;
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`expected ${count} confirmation emails for ${to}`);
+}
+const confirmationLink = async (to, count = 1) => (await confirmationLinks(to, count))[0];
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ["--no-proxy-server"] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
@@ -26,13 +46,49 @@ try {
   if (!page.url().includes("/login")) fail(`expected redirect to /login, got ${page.url()}`);
   await shot("01-login");
 
-  // 2. Create the owner account → lands on Settings
+  // 2. Register: retype-email guard, confirmation email, sign-in blocked until confirmed
   await page.getByRole("button", { name: /create the owner account/i }).click();
-  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Confirm email").fill(email.replace("owner-", "ownr-"));
+  await page.getByText("The two email addresses don't match").waitFor();
+  if (!(await page.getByRole("button", { name: "Create account" }).isDisabled())) fail("submit should be disabled while emails differ");
+  await page.getByLabel("Confirm email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL(/\/settings/);
-  log("signed up", email);
+  await page.getByText(`We sent a confirmation link to ${email}`).waitFor();
+  if (!page.url().includes("/login")) fail("should stay on /login until confirmed");
+  await shot("01b-check-your-email");
+
+  // Sign in before confirming is refused with a resend option
+  await page.getByRole("button", { name: /already have an account/i }).click();
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByText(/confirm your email first/i).waitFor();
+
+  // Resend delivers a second email; either link confirms the account
+  await new Promise((r) => setTimeout(r, 2500)); // local throttle is 2s (hosted: 60s)
+  await page.getByRole("button", { name: /send the confirmation email again/i }).click();
+  await page.getByText(/sent again to/i).waitFor();
+  // The resent email finishes with tokens in the URL fragment: the login page signs the user in from it
+  const [resentLink, firstLink] = await confirmationLinks(email, 2);
+  await page.goto(resentLink);
+  await page.waitForURL(/\/settings\?confirmed=1/);
+  await page.getByText("Email confirmed. Welcome!").waitFor();
+  log("registered, confirmed by the resent email link", email);
+
+  // The original link (PKCE, already used or superseded) in a fresh browser: clear message, no crash
+  const stale = await browser.newContext();
+  const sp = await stale.newPage();
+  await sp.goto(firstLink);
+  await sp.waitForURL(/\/login|\/settings/);
+  if (sp.url().includes("/login")) {
+    await sp.getByText(/confirmation link is invalid or has expired|Sign in/).first().waitFor();
+    log("used link lands on /login with a clear message");
+  } else {
+    log("original link also signs in (unused PKCE code)");
+  }
+  await stale.close();
 
   // 3. Business profile with bank account
   const fill = async (label, value) => page.getByLabel(label, { exact: true }).fill(value);
@@ -42,8 +98,22 @@ try {
   await fill("Address (Thai)", "88 ถนนพระราม 9 แขวงห้วยขวาง เขตห้วยขวาง กรุงเทพมหานคร 10310");
   await fill("Address (English)", "88 Rama 9 Rd., Huai Khwang, Bangkok 10310");
   await fill("Email", "billing@natcha.example");
-  await fill("Bank (Thai)", "ธนาคารกสิกรไทย");
-  await fill("Bank (English)", "Kasikornbank");
+  // Bank list: search filters by Thai / English / short name; picking fills both name fields
+  const bankSearch = page.getByRole("combobox", { name: "Search bank" });
+  await bankSearch.fill("zzzz");
+  await page.getByText("No bank matches").waitFor();
+  await bankSearch.fill("scb");
+  await page.getByRole("option", { name: /Siam Commercial Bank/ }).waitFor();
+  const scbFirst = (await page.getByRole("listbox").getByRole("option").first().textContent()) ?? "";
+  if (!/Siam Commercial/.test(scbFirst)) fail("SCB should rank first for 'scb'");
+  await bankSearch.fill("กสิกร");
+  await page.getByRole("option", { name: /Siam Commercial Bank/ }).waitFor({ state: "detached" });
+  if ((await page.getByRole("listbox").getByRole("option").count()) !== 1) fail("expected exactly one match for กสิกร: " + JSON.stringify(await page.getByRole("listbox").getByRole("option").allTextContents()));
+  await bankSearch.press("ArrowDown").catch(() => {});
+  await page.getByRole("option", { name: /Kasikornbank/ }).click();
+  if ((await page.getByLabel("Bank (Thai)").inputValue()) !== "ธนาคารกสิกรไทย") fail("Thai bank name not filled");
+  if ((await page.getByLabel("Bank (English)").inputValue()) !== "Kasikornbank") fail("English bank name not filled");
+  log("bank list: search + select fill the bank fields");
   await fill("Account name (Thai)", "ณัฐชา สตูดิโอ");
   await fill("Account name (English)", "Natcha Studio");
   await fill("Account number", "123-4-56789-0");
@@ -101,6 +171,18 @@ try {
 
   // 8. Totals were computed server-side: 50,000 + 7% VAT = 53,500; WHT 3% = 1,500; net 52,000
   for (const t of ["53,500.00", "52,000.00", "1,500.00"]) await page.getByText(t, { exact: false }).first().waitFor();
+
+  // 8b. Light palettes: switch to Jade; it applies instantly, persists across reload, and colours the document
+  await page.getByRole("button", { name: /Palette/ }).click();
+  await page.getByRole("option", { name: /Jade/ }).click();
+  const readPalette = () => page.evaluate(() => ({ attr: document.documentElement.dataset.palette, brand: getComputedStyle(document.documentElement).getPropertyValue("--cobalt").trim(), scheme: getComputedStyle(document.documentElement).colorScheme }));
+  let pal = await readPalette();
+  if (pal.attr !== "jade" || pal.brand !== "#066044") fail(`palette not applied: ${JSON.stringify(pal)}`);
+  await shot("03b-jade");
+  await page.reload();
+  pal = await readPalette();
+  if (pal.attr !== "jade") fail("palette should persist after reload");
+  log("palette switched to jade and persisted");
 
   // 9. Issue & sign
   page.once("dialog", (d) => d.accept());
@@ -217,9 +299,13 @@ try {
   const op = await other.newPage();
   await op.goto(`${BASE}/login`);
   await op.getByRole("button", { name: /create the owner account/i }).click();
-  await op.getByLabel("Email").fill(`other-${randomBytes(4).toString("hex")}@example.com`);
+  const otherEmail = `other-${randomBytes(4).toString("hex")}@example.com`;
+  await op.getByLabel("Email", { exact: true }).fill(otherEmail);
+  await op.getByLabel("Confirm email").fill(otherEmail);
   await op.getByLabel("Password").fill(password);
   await op.getByRole("button", { name: "Create account" }).click();
+  await op.getByText(/We sent a confirmation link/).waitFor();
+  await op.goto(await confirmationLink(otherEmail));
   await op.waitForURL(/\/settings/);
   const resp = await op.goto(docUrl);
   if (resp?.status() !== 404) fail(`other user got ${resp?.status()} for someone else's document`);

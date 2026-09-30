@@ -1,47 +1,27 @@
-// Named banknote artworks rendered to standalone SVG documents. Served as static,
-// cacheable files from /art/<name>.svg so pages reference them instead of inlining
-// tens of kilobytes of path data.
-import { BANKNOTE, guillocheBand, guillocheField, guillocheRosette } from "./geometry";
+// Banknote linework as standalone SVG files, served prerendered and immutable from /art/<name>.svg.
+// Every stroke is `currentColor`, so pages reference a group with <use href="/art/x.svg#id"> and
+// colour it from CSS (palette variables). That keeps it vector in PDFs and lets palettes recolour it.
+import { guillocheBand, guillocheField, guillocheRosette } from "./geometry";
 
-const { cobalt, amber, white } = BANKNOTE;
+const doc = (body: string) => `<svg xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
+const group = (id: string, d: string, width: number, pathAttrs = "") =>
+  `<g id="${id}" fill="none" stroke="currentColor" stroke-width="${width}"><path d="${d}"${pathAttrs}/></g>`;
 
-const doc = (viewBox: string, body: string, extra = "") =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"${extra}>${body}</svg>`;
-
-function rosette(primary: string, secondary: string, width = 0.35) {
-  const colours = [primary, secondary];
-  const body = guillocheRosette()
-    .map((l) => `<path d="${l.d}" fill="none" stroke="${colours[l.tone]}" stroke-width="${width}"/>`)
-    .join("");
-  return doc("0 0 200 200", body);
-}
-
-// Field stretches to any box; non-scaling strokes keep lines hairline-thin at any size.
-function field(color: string, lines: number, seed: number) {
-  const d = guillocheField({ width: 600, height: 240, lines, amplitude: 10, waves: 2.5, seed });
-  return doc(
-    "0 -12 600 264",
-    `<path d="${d}" fill="none" stroke="${color}" stroke-width="0.6" vector-effect="non-scaling-stroke"/>`,
-    ` preserveAspectRatio="none"`,
-  );
-}
-
-// Band tile: repeat horizontally with background-repeat: repeat-x.
-function band(color: string, width = 0.55) {
-  const d = guillocheBand({ width: 120, height: 24, waves: 2, lines: 12 });
-  return doc("0 0 120 24", `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}"/>`, ` preserveAspectRatio="none"`);
+function rosette() {
+  const layers = guillocheRosette();
+  const join = (tone: 0 | 1) => layers.filter((l) => l.tone === tone).map((l) => l.d).join("");
+  return doc(group("p", join(0), 0.35) + group("s", join(1), 0.35));
 }
 
 export const ART = {
-  "rosette-cobalt": () => rosette(cobalt, amber),
-  "rosette-mono": () => rosette(cobalt, cobalt, 0.3),
-  "rosette-white": () => rosette(white, amber, 0.4),
-  "field-cobalt": () => field(cobalt, 44, 11),
-  "field-white": () => field(white, 36, 3),
-  "band-cobalt": () => band(cobalt),
-  "band-amber": () => band(amber, 0.7),
-  "band-red": () => band("#b3312a"),
+  // Two groups (#p primary, #s accent) in a 200×200 box.
+  "rosette-lines": () => rosette(),
+  // One group (#f) in a 600×240 box (viewBox "0 -12 600 264"); hairline at any scale.
+  "field-lines": () => doc(group("f", guillocheField({ width: 600, height: 240, lines: 44, amplitude: 10, waves: 2.5, seed: 11 }), 0.6, ' vector-effect="non-scaling-stroke"')),
+  // One group (#b) tile of 120×24 that repeats horizontally.
+  "band-lines": () => doc(group("b", guillocheBand({ width: 120, height: 24, waves: 2, lines: 12 }), 0.55)),
 } as const;
 
 export type ArtName = keyof typeof ART;
-export const artUrl = (name: ArtName) => `/art/${name}.svg`;
+/** URL of a group inside an artwork, for <use href>. */
+export const artRef = (name: ArtName, id: string) => `/art/${name}.svg#${id}`;

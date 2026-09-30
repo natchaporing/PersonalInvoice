@@ -16,7 +16,7 @@ import { formatDateEN, formatDateTH } from "@/lib/thai/thai-date";
 function Kpi({ label, th, value, hint, danger }: { label: string; th: string; value: number; hint: string; danger?: boolean }) {
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <GuillocheBand tone={danger ? "red" : "cobalt"} height={8} opacity={0.55} />
+      <GuillocheBand tone={danger ? "red" : "brand"} height={8} opacity={0.55} />
       <div className="px-5 pt-4 pb-5">
         <div className="eyebrow">{label} · <span className="normal-case tracking-normal">{th}</span></div>
         <div className={`figure mt-1.5 text-[28px] leading-tight ${danger && value > 0 ? "text-destructive" : ""}`}>฿{formatTHB(value)}</div>
