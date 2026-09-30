@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/logo";
 import { cookies } from "next/headers";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette } from "@/components/banknote";
 import { PalettePicker } from "@/components/palette-picker";
@@ -16,7 +17,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <header className="relative overflow-hidden bg-cobalt-deep px-6 py-4 text-white">
         <GuillocheBackground tone="white" opacity={0.16} />
         <div className="relative flex items-center justify-between">
-          <span className="display text-[22px]">PersonalInvoice</span>
+          <span className="flex items-center gap-3">
+            <LogoMark size={42} title="" />
+            <span className="display text-[22px]">PersonalInvoice</span>
+          </span>
           <PalettePicker initial={isPalette(saved) ? saved : DEFAULT_PALETTE} />
         </div>
       </header>

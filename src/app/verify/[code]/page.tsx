@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/logo";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette, SerialNumber } from "@/components/banknote";
 import { DOC_TYPE_LABEL } from "@/lib/domain/documents";
 import { createClient } from "@/lib/supabase/server";
@@ -17,7 +18,8 @@ export default async function Verify({ params }: PageProps<"/verify/[code]">) {
     <div className="flex min-h-screen flex-col bg-background">
       <header className="relative overflow-hidden bg-cobalt-deep px-6 py-4 text-white">
         <GuillocheBackground tone="white" opacity={0.16} />
-        <div className="relative flex items-baseline gap-3">
+        <div className="relative flex items-center gap-3">
+          <LogoMark size={42} title="" />
           <span className="display text-[22px]">PersonalInvoice</span>
           <span className="text-xs text-amber">ตรวจสอบเอกสาร · Document verification</span>
         </div>

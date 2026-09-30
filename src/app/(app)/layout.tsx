@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/logo";
 import { LogOut } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -18,7 +19,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <GuillocheBackground tone="white" opacity={0.16} />
         <Rosette size={150} tone="white" opacity={0.28} className="absolute -top-10 right-40 hidden md:block" />
         <div className="relative flex items-center justify-between gap-4 px-4 py-3.5 md:px-6">
-          <div className="flex items-baseline gap-3">
+          <div className="flex items-center gap-3">
+            <LogoMark size={42} title="" />
             <span className="display text-[22px] tracking-tight">PersonalInvoice</span>
             <span className="hidden text-xs text-amber sm:inline">ใบกำกับภาษี · Thai tax invoicing</span>
           </div>
