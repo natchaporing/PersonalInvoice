@@ -12,7 +12,7 @@ export interface DocumentBundle {
   payments: Tables<"payments">[];
   certificates: Tables<"wht_certificates">[];
   customer: Tables<"customers"> | null;
-  ref: Pick<Tables<"documents">, "id" | "number" | "doc_type"> | null;
+  ref: Pick<Tables<"documents">, "id" | "number" | "doc_type" | "issue_date" | "taxable"> | null;
   view: DocumentView;
 }
 
@@ -32,7 +32,7 @@ export async function getDocumentBundle(supabase: DB, id: string, ownerId: strin
     supabase.from("wht_certificates").select("*").eq("document_id", id).order("issued_on"),
     doc.customer_id ? supabase.from("customers").select("*").eq("id", doc.customer_id).maybeSingle() : Promise.resolve({ data: null }),
     doc.ref_document_id
-      ? supabase.from("documents").select("id, number, doc_type").eq("id", doc.ref_document_id).maybeSingle()
+      ? supabase.from("documents").select("id, number, doc_type, issue_date, taxable").eq("id", doc.ref_document_id).maybeSingle()
       : Promise.resolve({ data: null }),
     doc.status === "draft" ? getProfile(supabase, ownerId) : Promise.resolve(null),
     doc.status === "draft" && signerIds.length ? supabase.from("signatories").select("*").in("id", signerIds) : Promise.resolve({ data: null }),

@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/app-ui";
+import { listDistricts, listProvinces, listSubdistricts } from "@/lib/etax/geo";
 import { requireUser } from "@/lib/supabase/server";
 import { ProfileForm } from "./profile-form";
 import { Signatories } from "./signatories";
@@ -20,7 +21,12 @@ export default async function Settings({ searchParams }: PageProps<"/settings">)
           Email confirmed. Welcome! Start by filling in your business profile.
         </p>
       )}
-      <ProfileForm profile={profile} />
+      <ProfileForm
+        profile={profile}
+        provinces={listProvinces()}
+        initialDistricts={profile?.addr_province_code ? listDistricts(profile.addr_province_code) : []}
+        initialSubdistricts={profile?.addr_district_code ? listSubdistricts(profile.addr_district_code) : []}
+      />
       <div className="mt-8 max-w-4xl">
         <Signatories people={people ?? []} />
       </div>

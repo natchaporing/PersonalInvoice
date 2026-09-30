@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { branchCode, formObject, type FormState, invalid, optText, reqText, submitted, taxId } from "@/lib/domain/forms";
+import { isValidGeo } from "@/lib/etax/geo";
 import { requireUser } from "@/lib/supabase/server";
 
 const Profile = z
@@ -25,9 +26,24 @@ const Profile = z
       (v) => (typeof v === "string" ? v.replace(/\D/g, "") || null : v),
       z.string().regex(/^\d{6,20}$/, "Account number should be 6–20 digits").nullable(),
     ),
+    addr_building_number: optText(60),
+    addr_street: optText(120),
+    addr_province_code: optText(2),
+    addr_district_code: optText(4),
+    addr_subdistrict_code: optText(6),
+    addr_postcode: z.preprocess((v) => (typeof v === "string" ? v.replace(/\D/g, "") || null : v), z.string().regex(/^\d{5}$/, "Postcode is 5 digits").nullable()),
     bank_account_type: z.preprocess((v) => (v === "" ? null : v), z.enum(["savings", "current"]).nullable()),
   })
   .superRefine((p, ctx) => {
+    // e-Tax needs the seller address as structured codes. Either leave all of it empty or complete it.
+    const geo = [p.addr_building_number, p.addr_province_code, p.addr_district_code, p.addr_subdistrict_code, p.addr_postcode];
+    if (geo.some(Boolean)) {
+      if (!geo.every(Boolean)) {
+        ctx.addIssue({ code: "custom", path: ["addr_building_number"], message: "For e-Tax fill house number, province, district, sub-district and postcode together" });
+      } else if (!isValidGeo(p.addr_province_code!, p.addr_district_code!, p.addr_subdistrict_code!)) {
+        ctx.addIssue({ code: "custom", path: ["addr_subdistrict_code"], message: "Choose a valid province, district and sub-district" });
+      }
+    }
     const bank = [p.bank_name_th, p.bank_account_name, p.bank_account_number];
     if (bank.some(Boolean) && !bank.every(Boolean)) {
       ctx.addIssue({ code: "custom", path: ["bank_account_number"], message: "Fill bank name, account name and account number together" });

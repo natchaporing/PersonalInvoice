@@ -5,11 +5,14 @@ import { SerialNumber } from "@/components/banknote";
 import { A4, InvoiceDocument } from "@/components/invoice-document";
 import { ScaledPage } from "@/components/scaled-page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getDocumentBundle, paidAmount } from "@/lib/data/documents";
+import { getDocumentBundle, getProfile, paidAmount } from "@/lib/data/documents";
 import { DOC_TYPE_LABEL, isAdjustment, isOverdue, isPayable, isTaxDocument, todayBangkok } from "@/lib/domain/documents";
+import { prepareEtaxInput } from "@/lib/etax/prepare";
+import { isEtaxDocType } from "@/lib/etax/xml";
 import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 import { DocumentActions } from "./document-actions";
+import { EtaxPanel } from "./etax-panel";
 import { type CertRow, type PaymentRow, PaymentsPanel, WhtPanel } from "./panels";
 
 export default async function DocumentPage({ params }: PageProps<"/documents/[id]">) {
@@ -19,12 +22,23 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
   if (!bundle) notFound();
   const { doc, view, payments, certificates, ref } = bundle;
   const today = todayBangkok();
+  const etaxProfile = isEtaxDocType(doc.doc_type) ? await getProfile(supabase, user.id) : null;
 
   // Short-lived links to private files.
   const sign = async (path: string | null) =>
     path ? (await supabase.storage.from("documents").createSignedUrl(path, 600, { download: path.endsWith(".pdf") && path.includes("/documents/") })).data?.signedUrl ?? null : null;
-  const [pdfUrl, paymentRows, certRows] = await Promise.all([
+  const signDownload = async (path: string | null) => (path ? (await supabase.storage.from("documents").createSignedUrl(path, 600, { download: true })).data?.signedUrl ?? null : null);
+  const showEtax = isEtaxDocType(doc.doc_type) && (doc.status === "issued" || doc.status === "paid");
+  const etaxProblems = showEtax
+    ? (() => {
+        const r = prepareEtaxInput({ doc, lines: bundle.lines, customer: bundle.customer, profile: etaxProfile, ref: bundle.ref });
+        return "problems" in r ? r.problems : [];
+      })()
+    : [];
+  const [pdfUrl, etaxXmlUrl, etaxPdfUrl, paymentRows, certRows] = await Promise.all([
     sign(doc.pdf_path),
+    signDownload(doc.etax_xml_path),
+    signDownload(doc.etax_pdf_path),
     Promise.all(payments.map(async (p): Promise<PaymentRow> => ({ ...p, slipUrl: await sign(p.slip_path) }))),
     Promise.all(certificates.map(async (c): Promise<CertRow> => ({ ...c, fileUrl: await sign(c.file_path) }))),
   ]);
@@ -81,6 +95,18 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
             </CardContent>
           </Card>
 
+          {showEtax && (
+            <EtaxPanel
+              id={id}
+              problems={etaxProblems}
+              status={doc.etax_status}
+              testCert={doc.etax_test_cert}
+              generatedAt={doc.etax_generated_at}
+              xmlUrl={etaxXmlUrl}
+              pdfUrl={etaxPdfUrl}
+              error={doc.etax_error}
+            />
+          )}
           {isPayable(doc.doc_type) && doc.status !== "draft" && doc.status !== "void" && (
             <PaymentsPanel documentId={id} payments={paymentRows} netReceivable={doc.net_receivable} paid={paid} today={today} open={doc.status === "issued"} />
           )}

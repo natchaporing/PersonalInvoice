@@ -44,6 +44,12 @@ export type Database = {
       }
       business_profiles: {
         Row: {
+          addr_building_number: string | null
+          addr_district_code: string | null
+          addr_postcode: string | null
+          addr_province_code: string | null
+          addr_street: string | null
+          addr_subdistrict_code: string | null
           address_en: string | null
           address_th: string
           bank_account_name: string | null
@@ -68,6 +74,12 @@ export type Database = {
           vat_registered: boolean
         }
         Insert: {
+          addr_building_number?: string | null
+          addr_district_code?: string | null
+          addr_postcode?: string | null
+          addr_province_code?: string | null
+          addr_street?: string | null
+          addr_subdistrict_code?: string | null
           address_en?: string | null
           address_th: string
           bank_account_name?: string | null
@@ -92,6 +104,12 @@ export type Database = {
           vat_registered?: boolean
         }
         Update: {
+          addr_building_number?: string | null
+          addr_district_code?: string | null
+          addr_postcode?: string | null
+          addr_province_code?: string | null
+          addr_street?: string | null
+          addr_subdistrict_code?: string | null
           address_en?: string | null
           address_th?: string
           bank_account_name?: string | null
@@ -119,6 +137,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          postcode: string | null
           address_en: string | null
           address_th: string | null
           branch_code: string
@@ -133,6 +152,7 @@ export type Database = {
           tax_id: string | null
         }
         Insert: {
+          postcode?: string | null
           address_en?: string | null
           address_th?: string | null
           branch_code?: string
@@ -147,6 +167,7 @@ export type Database = {
           tax_id?: string | null
         }
         Update: {
+          postcode?: string | null
           address_en?: string | null
           address_th?: string | null
           branch_code?: string
@@ -241,6 +262,13 @@ export type Database = {
       }
       documents: {
         Row: {
+          etax_error: string | null
+          etax_generated_at: string | null
+          etax_pdf_path: string | null
+          etax_pdf_sha256: string | null
+          etax_status: string
+          etax_test_cert: boolean | null
+          etax_xml_path: string | null
           approver_id: string | null
           reply_by: string | null
           show_product_code: boolean
@@ -280,6 +308,13 @@ export type Database = {
           wht_bps: number
         }
         Insert: {
+          etax_error?: string | null
+          etax_generated_at?: string | null
+          etax_pdf_path?: string | null
+          etax_pdf_sha256?: string | null
+          etax_status?: string
+          etax_test_cert?: boolean | null
+          etax_xml_path?: string | null
           approver_id?: string | null
           reply_by?: string | null
           show_product_code?: boolean
@@ -319,6 +354,13 @@ export type Database = {
           wht_bps?: number
         }
         Update: {
+          etax_error?: string | null
+          etax_generated_at?: string | null
+          etax_pdf_path?: string | null
+          etax_pdf_sha256?: string | null
+          etax_status?: string
+          etax_test_cert?: boolean | null
+          etax_xml_path?: string | null
           approver_id?: string | null
           reply_by?: string | null
           show_product_code?: boolean

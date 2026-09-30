@@ -12,7 +12,9 @@
     "typecheck": "next typegen && tsc --noEmit",
     "db:local": "node supabase/local/keys.mjs && docker compose -f supabase/local/docker-compose.yml --env-file supabase/local/.env up -d",
     "db:gateway": "node supabase/local/gateway.mjs",
-    "cert:generate": "tsx scripts/generate-signing-cert.ts"
+    "cert:generate": "tsx scripts/generate-signing-cert.ts",
+    "etax:validate": "python3 scripts/validate-etax.py",
+    "etax:geo": "node scripts/build-etax-geo.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

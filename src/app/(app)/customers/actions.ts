@@ -15,6 +15,7 @@ const Customer = z.object({
   address_th: optText(500),
   address_en: optText(500),
   email: optText(200),
+  postcode: z.preprocess((v) => (typeof v === "string" ? v.replace(/\D/g, "") || null : v), z.string().regex(/^\d{5}$/, "Postcode is 5 digits").nullable()),
   phone: optText(50),
 });
 

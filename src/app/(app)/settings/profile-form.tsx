@@ -1,22 +1,52 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { BankPicker } from "@/components/bank-picker";
 import { Field, FormMessage, SubmitButton } from "@/components/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import type { FormState } from "@/lib/domain/forms";
+import type { GeoOption } from "@/lib/etax/geo";
 import type { Tables } from "@/lib/supabase/database.types";
 import { type Bank, findBankByName } from "@/lib/thai/banks";
 import { saveProfile } from "./actions";
+import { districtsOf, subdistrictsOf } from "./geo-actions";
 
-export function ProfileForm({ profile }: { profile: Tables<"business_profiles"> | null }) {
+export function ProfileForm({
+  profile,
+  provinces,
+  initialDistricts,
+  initialSubdistricts,
+}: {
+  profile: Tables<"business_profiles"> | null;
+  provinces: GeoOption[];
+  initialDistricts: GeoOption[];
+  initialSubdistricts: GeoOption[];
+}) {
   const [state, action] = useActionState<FormState, FormData>(saveProfile, {});
   const e = state.fieldErrors ?? {};
   const v = (k: keyof Tables<"business_profiles">) => state.values?.[k] ?? (profile?.[k] as string | null | undefined) ?? "";
   const [bankTh, setBankTh] = useState(v("bank_name_th"));
   const [bankEn, setBankEn] = useState(v("bank_name_en"));
   const picked = findBankByName(bankTh, bankEn);
+  const [province, setProvince] = useState(v("addr_province_code"));
+  const [district, setDistrict] = useState(v("addr_district_code"));
+  const [subdistrict, setSubdistrict] = useState(v("addr_subdistrict_code"));
+  const [districts, setDistricts] = useState(initialDistricts);
+  const [subdistricts, setSubdistricts] = useState(initialSubdistricts);
+  const [loadingGeo, startGeo] = useTransition();
+  const pickProvince = (code: string) => {
+    setProvince(code);
+    setDistrict("");
+    setSubdistrict("");
+    setSubdistricts([]);
+    startGeo(async () => setDistricts(code ? await districtsOf(code) : []));
+  };
+  const pickDistrict = (code: string) => {
+    setDistrict(code);
+    setSubdistrict("");
+    startGeo(async () => setSubdistricts(code ? await subdistrictsOf(code) : []));
+  };
   const choose = (b: Bank) => {
     setBankTh(b.th);
     setBankEn(b.en);
@@ -53,6 +83,44 @@ export function ProfileForm({ profile }: { profile: Tables<"business_profiles"> 
           </Field>
           <Field label="Email" htmlFor="email" error={e.email}>
             <Input id="email" name="email" type="email" defaultValue={v("email")} />
+          </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Address for e-Tax · ที่อยู่สำหรับ e-Tax</CardTitle>
+          <CardDescription>
+            The Revenue Department&apos;s e-Tax invoice needs your address as codes. Optional until you send e-Tax invoices; if you fill it, fill all of it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+          <Field label="House / building number" htmlFor="addr_building_number" error={e.addr_building_number} hint="บ้านเลขที่ e.g. 88/12">
+            <Input id="addr_building_number" name="addr_building_number" defaultValue={v("addr_building_number")} />
+          </Field>
+          <Field label="Street" htmlFor="addr_street" error={e.addr_street} hint="ถนน (optional)">
+            <Input id="addr_street" name="addr_street" defaultValue={v("addr_street")} />
+          </Field>
+          <Field label="Province · จังหวัด" htmlFor="addr_province_code" error={e.addr_province_code}>
+            <NativeSelect id="addr_province_code" name="addr_province_code" value={province} onChange={(ev) => pickProvince(ev.target.value)}>
+              <option value="">Choose…</option>
+              {provinces.map((p) => (<option key={p.code} value={p.code}>{p.name}</option>))}
+            </NativeSelect>
+          </Field>
+          <Field label="District · อำเภอ/เขต" htmlFor="addr_district_code" error={e.addr_district_code}>
+            <NativeSelect id="addr_district_code" name="addr_district_code" value={district} onChange={(ev) => pickDistrict(ev.target.value)} disabled={!province}>
+              <option value="">{loadingGeo && province ? "Loading…" : "Choose…"}</option>
+              {districts.map((d) => (<option key={d.code} value={d.code}>{d.name}</option>))}
+            </NativeSelect>
+          </Field>
+          <Field label="Sub-district · ตำบล/แขวง" htmlFor="addr_subdistrict_code" error={e.addr_subdistrict_code}>
+            <NativeSelect id="addr_subdistrict_code" name="addr_subdistrict_code" value={subdistrict} onChange={(ev) => setSubdistrict(ev.target.value)} disabled={!district}>
+              <option value="">{loadingGeo && district ? "Loading…" : "Choose…"}</option>
+              {subdistricts.map((d) => (<option key={d.code} value={d.code}>{d.name}</option>))}
+            </NativeSelect>
+          </Field>
+          <Field label="Postcode · รหัสไปรษณีย์" htmlFor="addr_postcode" error={e.addr_postcode}>
+            <Input id="addr_postcode" name="addr_postcode" inputMode="numeric" maxLength={5} className="num" defaultValue={v("addr_postcode")} />
           </Field>
         </CardContent>
       </Card>

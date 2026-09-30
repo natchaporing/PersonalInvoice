@@ -1,9 +1,51 @@
 # Phase 2 plan: Thailand e-Tax Invoice
 
-Status: **plan only, nothing built.** Written 2026-09-30.
+Status: **phases 2.0 to 2.3 built and tested (2026-09-30). Sending (2.4) and RD registration (2.5) wait on your domain and CA certificate.**
 
 Items marked **[VERIFY]** come from secondary sources or are unknown. Confirm them with the Revenue
 Department (RD), ETDA or an accountant before building on them. Do not treat them as fact.
+
+## Status and what we verified
+
+Built and passing (`npm test`, `npm run etax:validate`, and the end-to-end run with veraPDF):
+
+- **Official schema vendored** in `vendor/etda-etax/` (ETDA ขมธอ. 3-2560 **v2.0**, GitLab commit `abd815a`, last schema
+  change 2024-08-02). Six message types exist; we use `TaxInvoice` and `DebitCreditNote`.
+- **XML builder** `src/lib/etax/xml.ts`: tax invoice (type `388`), receipt/tax invoice (`T03`), credit note (`81`), debit
+  note (`80`). Every fixture validates against the XSD **and** the ETDA Schematron rules
+  (`python3 scripts/validate-etax.py file.xml`; needs `lxml`. The `.sch` files say `xslt2` but only use XPath 1.0, so the
+  script runs them as `xslt`).
+- **PDF/A-3B** `src/lib/etax/pdfa.ts`: Ghostscript converts the Chromium PDF, pdf-lib attaches the XML
+  (`AFRelationship: Alternative`). veraPDF 1.28 reports the result as compliant with the PDF/A-3B profile, **also after
+  signing**. The banknote art survives.
+- **Package generation** `src/lib/etax/generate.ts` + a panel on the document page: builds XML, PDF/A-3, signs, stores both files,
+  records status. Signs with `ETAX_SIGNING_P12_BASE64` if set, otherwise with the self-signed test certificate and
+  labels the package **test**.
+- **Data**: seller address as official codes (province / district / sub-district from the ETDA code lists, a picker
+  in Settings), buyer postcode on customers, e-Tax columns on documents (migration `20261003000000_etax.sql`).
+
+Facts read from the schema and its examples (no longer [VERIFY]):
+
+- Seller and buyer tax ID: `TXID` = 13-digit ID + 5-digit branch (18 characters), or `NIDN` = 13-digit national ID.
+- **Seller address must be structured** (postcode, house number, district code, sub-district code, province code).
+  **Buyer address may be free text** (one line plus postcode), so customers need only a postcode.
+- Credit and debit notes need the original document reference and a purpose code. We send `CDNS99` / `DBNS99` (other,
+  services) with the reason as the purpose text.
+- The `GuidelineSpecifiedDocumentContextParameter` ID is `ER3-2560`, `schemeVersionID` `v2.0`.
+
+Still open [VERIFY]:
+
+- **CA certificate as a file.** Sources name Thai Digital ID Co., Ltd. and Internet Thailand PCL (INET). Ask whether
+  they issue a P12/PFX we can run on a server. **This is now the main blocker for going live.**
+- **Credit/debit note amounts.** The ETDA sample's totals are internally inconsistent, so we state original amount,
+  corrected value, difference, and VAT on the difference, with the grand total being the note's own amount. Confirm
+  with ETDA (`eservice@etda.or.th`) or the accountant.
+- Whether the ETDA time-stamped reply can be received by email and how, then step 2.4.
+- RD registration (form *บ.อ.01*) steps and timing, and whether route A is right for you.
+- Whether the RD wants `PaymentTerms`, unit codes or a `PurposeCode` on ordinary tax invoices (the schema does not).
+
+Known limits of what is built: the XML uses today's profile address rather than a copy frozen at issue; per-line VAT
+is 7% or 0% only (no separate zero-rated / exempt code); `invoice` and `quotation` are not e-Tax documents.
 
 ## 1. Where we are
 
@@ -121,10 +163,10 @@ Signed e-Tax files go in the private `documents` bucket next to the ordinary PDF
 
 | Phase | Deliverable | Exit test |
 |---|---|---|
-| 2.0 Research | Confirm every **[VERIFY]**; get ETDA schema and RD manual; ask an accountant and one CA about file-based certificates | Written answers filed in `docs/` |
-| 2.1 XML | XML builder + XSD validation + tests for all six document types | XSD-valid output for the E2E fixtures |
-| 2.2 PDF/A-3 | Conversion + embedding in the Docker image | veraPDF passes on every document type, art intact |
-| 2.3 Signing | CA-certificate signing on the PDF/A-3 | Signature valid in Adobe Reader and veraPDF still passes |
+| 2.0 Research | **Done** for schema facts; CA and accountant questions still open (section above) | Written answers filed in `docs/` |
+| 2.1 XML | **Done.** Builder + XSD and Schematron validation + tests for the four document types | Passing |
+| 2.2 PDF/A-3 | **Done.** Conversion + embedding; Ghostscript added to the Docker image | veraPDF passes, art intact |
+| 2.3 Signing | **Done** with the test certificate (still compliant); CA certificate slot ready (`ETAX_SIGNING_P12_*`) | Signature valid in Adobe Reader with the CA certificate |
 | 2.4 Sending | Email with ETDA on copy, status tracking, stored stamped copy | Real send to ETDA in a test registration |
 | 2.5 Registration | Register with the RD, first live document | RD and ETDA accept it |
 

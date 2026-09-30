@@ -1,5 +1,6 @@
 // End-to-end run of the whole business flow against a running app + Supabase (use supabase/local).
 // Usage: BASE_URL=http://localhost:3100 CHROMIUM_PATH=... node e2e/full-flow.mjs [screenshotDir]
+import { spawnSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { chromium } from "playwright-core";
@@ -118,6 +119,13 @@ try {
   await fill("Account name (English)", "Natcha Studio");
   await fill("Account number", "123-4-56789-0");
   await page.getByLabel("Account type").selectOption("savings");
+  // e-Tax address as official codes: province → district → sub-district
+  await page.getByLabel("House / building number").fill("88");
+  await page.getByLabel("Street").fill("ถนนพระราม 9");
+  await page.getByLabel("Province · จังหวัด").selectOption({ label: "กรุงเทพมหานคร" });
+  await page.getByLabel("District · อำเภอ/เขต").selectOption({ label: "เขตห้วยขวาง" });
+  await page.getByLabel("Sub-district · ตำบล/แขวง").selectOption({ label: "ห้วยขวาง" });
+  await page.getByLabel("Postcode · รหัสไปรษณีย์").fill("10310");
   await page.getByRole("button", { name: "Save profile" }).click();
   await page.getByText("Business profile saved.").waitFor();
   await shot("02-settings");
@@ -152,6 +160,7 @@ try {
   await fill("Tax ID", "0105561000001");
   await fill("Address (Thai)", "99/9 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110");
   await fill("Address (English)", "99/9 Sukhumvit Rd., Khlong Toei, Bangkok 10110");
+  await fill("Postcode", "10110");
   await page.getByRole("button", { name: "Add customer" }).click();
   await page.waitForURL(/\/customers$/);
   await page.getByRole("link", { name: "บริษัท สยามดิจิทัล จำกัด" }).waitFor();
@@ -226,6 +235,31 @@ try {
   if (SHOTS) writeFileSync(`${SHOTS}/${number}.pdf`, pdf);
   log("signed PDF hash matches", actual.slice(0, 16));
 
+  // 10b. e-Tax package: XML (ETDA schema) + signed PDF/A-3 carrying it
+  await page.getByRole("button", { name: "Generate e-Tax package" }).click();
+  await page.getByText(/e-Tax package generated/).waitFor({ timeout: 90_000 });
+  const [xmlDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: /XML/ }).click()]);
+  const [pdfaDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: /PDF\/A-3/ }).click()]);
+  const xmlBytes = readFileSync(await xmlDl.path());
+  const pdfaBytes = readFileSync(await pdfaDl.path());
+  const xmlText = xmlBytes.toString("utf8");
+  if (!xmlText.includes("<ram:TypeCode>388</ram:TypeCode>") || !xmlText.includes("110170012345600000")) fail("e-Tax XML content is wrong");
+  const xmlFile = `${SHOTS ?? "/tmp"}/etax-${number}.xml`;
+  writeFileSync(xmlFile, xmlBytes);
+  const check = spawnSync("python3", ["scripts/validate-etax.py", xmlFile], { encoding: "utf8" });
+  if (check.error || (check.status !== 0 && !/No module named/.test(check.stderr))) fail(`e-Tax XML failed ETDA validation:\n${check.stdout}${check.stderr}`);
+  const pdfaText = pdfaBytes.toString("latin1");
+  if (!/pdfaid:part=['"]3['"]/.test(pdfaText)) fail("e-Tax PDF is not PDF/A-3");
+  if (!pdfaText.includes("/AFRelationship") || !pdfaText.includes("/ByteRange")) fail("e-Tax PDF should embed the XML and be signed");
+  const pdfaFile = `${SHOTS ?? "/tmp"}/etax-${number}.pdf`;
+  writeFileSync(pdfaFile, pdfaBytes);
+  if (process.env.VERAPDF) {
+    const v = spawnSync(process.env.VERAPDF, ["--flavour", "3b", pdfaFile], { encoding: "utf8" });
+    if (!/isCompliant="true"/.test(v.stdout)) fail(`veraPDF says the e-Tax PDF is not PDF/A-3B:\n${v.stdout.slice(0, 1500)}`);
+  }
+  await page.getByText(/TEST certificate|test certificate/).first().waitFor();
+  log("e-Tax package: XML passes ETDA XSD + Schematron, PDF/A-3 signed" + (process.env.VERAPDF ? ", veraPDF compliant" : ""));
+
   // 11. Issued documents cannot be edited
   await page.goto(`${docUrl}/edit`);
   if (page.url() !== docUrl) fail("edit page should redirect issued documents");
@@ -289,6 +323,18 @@ try {
   if (!/^CN\d{4}-0001$/.test(cn ?? "")) fail(`unexpected credit note number ${cn}`);
   await shot("07-credit-note");
   log("credit note issued", cn);
+
+  // 15b. e-Tax for the credit note: references the original, valid against the debit/credit note schema
+  await page.getByRole("button", { name: "Generate e-Tax package" }).click();
+  await page.getByText(/e-Tax package generated/).waitFor({ timeout: 90_000 });
+  const [cnXmlDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: /XML/ }).click()]);
+  const cnXml = readFileSync(await cnXmlDl.path()).toString("utf8");
+  if (!cnXml.includes("<ram:TypeCode>81</ram:TypeCode>") || !cnXml.includes(`<ram:IssuerAssignedID>${number}</ram:IssuerAssignedID>`)) fail("credit note e-Tax XML should reference the original");
+  const cnFile = `${SHOTS ?? "/tmp"}/etax-${cn}.xml`;
+  writeFileSync(cnFile, cnXml);
+  const cnCheck = spawnSync("python3", ["scripts/validate-etax.py", cnFile], { encoding: "utf8" });
+  if (cnCheck.error || (cnCheck.status !== 0 && !/No module named/.test(cnCheck.stderr))) fail(`credit note e-Tax XML failed ETDA validation:\n${cnCheck.stdout}${cnCheck.stderr}`);
+  log("credit note e-Tax XML passes ETDA validation");
 
   // 16. Tax page: 50,000 − 5,000 = 45,000 sales; VAT 3,500 − 350 = 3,150
   await page.goto(`${BASE}/tax`);

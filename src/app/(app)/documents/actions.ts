@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDocumentBundle, getProfile, paidAmount } from "@/lib/data/documents";
+import { generateEtaxPackage } from "@/lib/etax/generate";
 import { customerSnapshot, DocumentInput, isAdjustment, isPayable, sellerSnapshot, signatorySnapshot, totalsFor } from "@/lib/domain/documents";
 import { fieldErrors, type FormState, invalid, money, optText } from "@/lib/domain/forms";
 import { generateSignedPdf } from "@/lib/pdf/generate";
@@ -136,6 +137,19 @@ export async function regeneratePdf(id: string): Promise<FormState> {
   const pdf = await generateSignedPdf(supabase, id, user.id).catch((e: unknown) => ({ error: e instanceof Error ? e.message : String(e) }));
   revalidateDocs(id);
   return "error" in pdf ? { error: pdf.error } : { message: "Signed PDF generated." };
+}
+
+/** Build the e-Tax package (XML + signed PDF/A-3) for an issued tax document. */
+export async function generateEtax(id: string): Promise<FormState> {
+  const { supabase, user } = await requireUser();
+  const res = await generateEtaxPackage(supabase, id, user.id);
+  revalidateDocs(id);
+  if (!res.ok) return { error: res.problems.join(" ") };
+  return {
+    message: res.testCert
+      ? "e-Tax package generated and signed with the TEST certificate. The Revenue Department will not accept it until you sign with a CA-issued certificate."
+      : "e-Tax package generated.",
+  };
 }
 
 export async function voidDocument(id: string): Promise<FormState> {

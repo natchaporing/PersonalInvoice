@@ -24,6 +24,7 @@ Next.js 16 · Supabase (Postgres, auth, private storage) · shadcn/ui · deploye
 - **Bank list**: Settings has a searchable list of Thai banks (Thai/English name, short name or code) that fills the bank name fields; the bank codes beyond BBL/KBANK/KTB/TTB/SCB should be double-checked against the BOT list.
 - **Look**: light theme only. Pick a palette (Cobalt, Jade, Amethyst, Bronze) from the header; it is stored in a cookie and also colours documents and PDFs rendered afterwards.
 - **Sign-up**: the email must be typed twice and is confirmed through an emailed link (`/auth/callback`); the login page can resend it.
+- **e-Tax package** (phase 2): for issued tax invoices, receipts/tax invoices, credit and debit notes, one click builds the ETDA-standard XML and a signed PDF/A-3 that carries it. Signing with a CA-issued certificate, emailing for the ETDA time stamp and RD registration are still to do; see [docs/PHASE2-ETAX.md](docs/PHASE2-ETAX.md). Needs Ghostscript (in the Docker image) and, to validate locally, `xmllint` and `pip install lxml` (`npm run etax:validate -- file.xml`).
 - **Tax**: `/tax` shows output VAT for PP30 and the sales tax report, with CSV export.
 
 ## Develop
@@ -76,7 +77,7 @@ buy a certificate from a Thai CA and put it in the same two variables.
 
 ## Not built (yet)
 
-Official Revenue Department e-Tax submission is planned: see [docs/PHASE2-ETAX.md](docs/PHASE2-ETAX.md).
+Official Revenue Department e-Tax submission (sending, CA certificate, registration) is planned: see [docs/PHASE2-ETAX.md](docs/PHASE2-ETAX.md).
 
-Multi-user/multi-company, e-Tax Invoice by Email, recurring invoices, email sending, payment
+Multi-user/multi-company, recurring invoices, email sending, payment
 gateway links, input-VAT tracking, annual PND 90/91 report.

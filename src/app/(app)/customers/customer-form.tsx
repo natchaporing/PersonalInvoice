@@ -48,6 +48,9 @@ export function CustomerForm({ customer, next }: { customer?: Tables<"customers"
           <Field label="Email" htmlFor="email" error={e.email}>
             <Input id="email" name="email" type="email" defaultValue={dv("email")} />
           </Field>
+          <Field label="Postcode" htmlFor="postcode" error={e.postcode} hint="5 digits. Needed for e-Tax invoices.">
+            <Input id="postcode" name="postcode" inputMode="numeric" maxLength={5} className="num" defaultValue={dv("postcode")} />
+          </Field>
           <Field label="Phone" htmlFor="phone" error={e.phone}>
             <Input id="phone" name="phone" type="tel" defaultValue={dv("phone")} />
           </Field>

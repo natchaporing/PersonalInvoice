@@ -20,6 +20,9 @@ COPY . .
 RUN npm run build
 
 FROM base AS run
+# Ghostscript turns the rendered PDF into PDF/A-3 for e-Tax packages (src/lib/etax/pdfa.ts).
+RUN apt-get update && apt-get install -y --no-install-recommends ghostscript \
+ && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 COPY --from=build --chown=pwuser:pwuser /app/.next/standalone ./
 COPY --from=build --chown=pwuser:pwuser /app/.next/static ./.next/static
