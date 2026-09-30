@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette, Seal, SerialNumber } from "@/components/banknote";
-import type { DocumentView, Lang, Party } from "@/lib/document-view";
+import { Qr } from "@/components/qr";
+import type { DocumentView, Lang, Party, Signatory } from "@/lib/document-view";
 import { DOC_TYPE_LABEL, isPayable } from "@/lib/domain/documents";
 import { bahtText } from "@/lib/thai/baht-text";
-import { computeTotals, formatTHB, lineAmount } from "@/lib/thai/money";
+import { computeTotals, formatTHB, lineNet } from "@/lib/thai/money";
 import { formatBankAccount } from "@/lib/thai/bank";
 import { formatDateEN, formatDateTH } from "@/lib/thai/thai-date";
 
@@ -38,6 +39,28 @@ const branchLabel = (code: string) =>
 
 const qty = (milli: number) => String(milli / 1000);
 
+/** One signature column: image or blank line, printed name and title, date. */
+function SignBlock({ heading, who, date, lang, blankDate }: { heading: { th: string; en: string }; who?: Signatory; date: string; lang: Lang; blankDate?: boolean }) {
+  const name = who ? (lang === "en" ? who.nameEn ?? who.nameTh : who.nameTh) : undefined;
+  const title = who ? (lang === "en" ? who.titleEn ?? who.titleTh : who.titleTh) : undefined;
+  return (
+    <div className="min-w-0 flex-1 text-center">
+      <div className="mb-1 flex h-12 items-end justify-center border-b border-neutral-400">
+        {who?.signatureImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={who.signatureImage} alt="" className="max-h-11 max-w-full object-contain" />
+        )}
+      </div>
+      {name && <div className="font-medium">{name}</div>}
+      {title && <div className="text-[10px] text-neutral-500">{title}</div>}
+      <T th={heading.th} en={heading.en} lang={lang} />
+      <div className="mt-1 text-[10px] text-neutral-500">
+        {blankDate ? "วันที่ / Date ____/____/______" : `${pair("วันที่", "Date", lang)} ${date}`}
+      </div>
+    </div>
+  );
+}
+
 function PartyBlock({ title, party, lang }: { title: string; party: Party; lang: Lang }) {
   const branch = branchLabel(party.branchCode);
   const name = lang === "en" ? party.nameEn ?? party.nameTh : party.nameTh;
@@ -71,6 +94,10 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
     whtBps: doc.whtBps,
   });
   const label = DOC_TYPE_LABEL[doc.type];
+  const hasDiscount = doc.lines.some((l) => l.discount > 0);
+  const mixedVat = new Set(doc.lines.map((l) => l.vatBps)).size > 1;
+  const totalDiscount = t.lineDiscount + t.discount;
+  const verifyUrl = doc.verifyCode && verifyBaseUrl ? `${verifyBaseUrl.replace(/\/$/, "")}/verify/${doc.verifyCode}` : undefined;
   const date = (iso: string) => (lang === "en" ? formatDateEN(iso) : formatDateTH(iso));
   const bank = isPayable(doc.type) && t.netReceivable > 0 ? doc.seller.bank : undefined;
   const copyLabel = doc.copy === "copy" ? { th: "สำเนา", en: "COPY" } : { th: "ต้นฉบับ", en: "ORIGINAL" };
@@ -124,6 +151,8 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
                   {doc.number ? <SerialNumber value={doc.number} color={COBALT} emphasis={INK} /> : <span className="text-neutral-400">— {pair("ร่าง", "draft", lang)}</span>}
                 </dd>
                 <div className="flex justify-end gap-2"><dt className="text-neutral-500">{pair("วันที่", "Date", lang)}</dt><dd>{date(doc.issueDate)}</dd></div>
+                {doc.replyBy && <div className="flex justify-end gap-2"><dt className="text-neutral-500">{pair("ตอบรับภายใน", "Reply by", lang)}</dt><dd>{date(doc.replyBy)}</dd></div>}
+                {doc.validUntil && <div className="flex justify-end gap-2"><dt className="text-neutral-500">{pair("ใช้ได้ถึง", "Valid until", lang)}</dt><dd>{date(doc.validUntil)}</dd></div>}
                 {doc.dueDate && <div className="flex justify-end gap-2"><dt className="text-neutral-500">{pair("ครบกำหนด", "Due", lang)}</dt><dd>{date(doc.dueDate)}</dd></div>}
               </dl>
               <Seal
@@ -151,23 +180,33 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
           <thead>
             <tr className="text-white" style={{ backgroundColor: COBALT, boxShadow: `inset 0 -3px 0 ${AMBER}` }}>
               <th className="w-8 px-2 py-1.5 text-center font-medium">#</th>
+              {doc.showProductCode && <th className="w-20 px-2 py-1.5 text-left font-medium"><T th="รหัส" en="Code" lang={lang} enClass="text-white/75" /></th>}
               <th className="px-2 py-1.5 text-left font-medium"><T th="รายการ" en="Description" lang={lang} enClass="text-white/75" /></th>
-              <th className="w-16 px-2 py-1.5 text-right font-medium"><T th="จำนวน" en="Qty" lang={lang} enClass="text-white/75" /></th>
+              <th className="w-14 px-2 py-1.5 text-right font-medium"><T th="จำนวน" en="Qty" lang={lang} enClass="text-white/75" /></th>
+              {doc.showUnit && <th className="w-14 px-2 py-1.5 text-left font-medium"><T th="หน่วย" en="Unit" lang={lang} enClass="text-white/75" /></th>}
               <th className="w-24 px-2 py-1.5 text-right font-medium"><T th="ราคา/หน่วย" en="Unit price" lang={lang} enClass="text-white/75" /></th>
-              <th className="w-28 px-2 py-1.5 text-right font-medium"><T th="จำนวนเงิน" en="Amount" lang={lang} enClass="text-white/75" /></th>
+              {hasDiscount && <th className="w-20 px-2 py-1.5 text-right font-medium"><T th="ส่วนลด" en="Discount" lang={lang} enClass="text-white/75" /></th>}
+              {mixedVat && <th className="w-12 px-2 py-1.5 text-right font-medium">VAT</th>}
+              <th className="w-28 px-2 py-1.5 text-right font-medium">
+                <T th="จำนวนเงิน" en="Amount" lang={lang} enClass="text-white/75" />
+              </th>
             </tr>
           </thead>
           <tbody>
             {doc.lines.map((l, i) => (
               <tr key={i} className="border-b border-dashed border-neutral-300 align-top">
                 <td className="num px-2 py-2 text-center text-neutral-500">{i + 1}</td>
+                {doc.showProductCode && <td className="num px-2 py-2 text-[10.5px] text-neutral-600">{l.code}</td>}
                 <td className="px-2 py-2">
                   {lang === "en" ? l.descriptionEn ?? l.descriptionTh : l.descriptionTh}
                   {lang === "bilingual" && l.descriptionEn && <div className="text-[10.5px] text-neutral-500">{l.descriptionEn}</div>}
                 </td>
-                <td className="px-2 py-2 text-right"><span className="num">{qty(l.qtyMilli)}</span> {l.unit}</td>
+                <td className="num px-2 py-2 text-right">{qty(l.qtyMilli)}</td>
+                {doc.showUnit && <td className="px-2 py-2 text-neutral-700">{l.unit}</td>}
                 <td className="num px-2 py-2 text-right">{formatTHB(l.unitPrice)}</td>
-                <td className="num px-2 py-2 text-right">{formatTHB(lineAmount(l))}</td>
+                {hasDiscount && <td className="num px-2 py-2 text-right">{l.discount > 0 ? formatTHB(l.discount) : "–"}</td>}
+                {mixedVat && <td className="num px-2 py-2 text-right">{l.vatBps / 100}%</td>}
+                <td className="num px-2 py-2 text-right">{formatTHB(lineNet(l))}</td>
               </tr>
             ))}
           </tbody>
@@ -232,10 +271,18 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
 
           <div className="w-72 shrink-0">
             <dl className="px-1 text-[11.5px]">
-              <TotalRow k={pair("รวมเป็นเงิน", "Subtotal", lang === "bilingual" ? "th" : lang)} v={t.subtotal} />
-              {t.discount > 0 && <TotalRow k={pair("ส่วนลด", "Discount", lang === "bilingual" ? "th" : lang)} v={-t.discount} />}
+              <TotalRow k={pair("รวมเป็นเงิน", "Subtotal", lang === "bilingual" ? "th" : lang)} v={t.subtotal + t.lineDiscount} />
+              {totalDiscount > 0 && <TotalRow k={pair("ส่วนลด", "Discount", lang === "bilingual" ? "th" : lang)} v={-totalDiscount} />}
               <TotalRow k={pair("ราคาก่อนภาษี", "Amount before VAT", lang === "bilingual" ? "th" : lang)} v={t.taxable} />
-              <TotalRow k={<>{lang === "en" ? "VAT" : "ภาษีมูลค่าเพิ่ม"} {doc.vatBps / 100}%</>} v={t.vat} />
+              {t.vatGroups.filter((g) => g.bps > 0 || t.vatGroups.length === 1).map((g) => (
+                <TotalRow key={g.bps} k={<>{lang === "en" ? "VAT" : "ภาษีมูลค่าเพิ่ม"} {g.bps / 100}%</>} v={g.vat} />
+              ))}
+              {t.vatGroups.length > 1 && t.vatGroups.some((g) => g.bps === 0) && (
+                <div className="flex justify-between gap-3 py-0.5 text-[10.5px] text-neutral-500">
+                  <dt>{pair("รายการอัตราร้อยละ 0 / ยกเว้นภาษี", "0% / exempt lines", lang === "bilingual" ? "th" : lang)}</dt>
+                  <dd className="num">{formatTHB(t.vatGroups.find((g) => g.bps === 0)!.taxable)}</dd>
+                </div>
+              )}
             </dl>
             {/* Grand total printed like the face value of a note. */}
             <div className="relative mt-2 overflow-hidden rounded-md border px-3 py-2.5" style={{ borderColor: mix(33), background: "var(--paper)" }}>
@@ -259,27 +306,33 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
 
         <div className="flex-1" />
 
-        {/* Signatures */}
-        <section className="grid grid-cols-2 gap-16 pt-10 pb-5 text-center text-[11px]">
-          {[
-            { th: "ผู้รับสินค้า/บริการ", en: "Received by" },
-            { th: "ผู้ออกเอกสาร", en: "Authorized signature" },
-          ].map((s) => (
-            <div key={s.en}>
-              <div className="mb-1 h-10 border-b border-neutral-400" />
-              <T th={s.th} en={s.en} lang={lang} />
-              <div className="mt-1 text-[10px] text-neutral-400">วันที่ / Date ____/____/______</div>
-            </div>
-          ))}
+        {/* Signatures: customer, issuer, and approver when one is set */}
+        <section className="flex gap-10 pt-8 pb-4 text-[11px]">
+          <SignBlock
+            heading={doc.type === "quotation" ? { th: "ลูกค้า (ตอบรับใบเสนอราคา)", en: "Customer acceptance" } : { th: "ผู้รับสินค้า/บริการ", en: "Received by" }}
+            date=""
+            lang={lang}
+            blankDate
+          />
+          <SignBlock heading={{ th: "ผู้ออกเอกสาร", en: "Issued by" }} who={doc.signer} date={date(doc.issueDate)} lang={lang} blankDate={!doc.signer} />
+          {doc.approver && <SignBlock heading={{ th: "ผู้อนุมัติ", en: "Approved by" }} who={doc.approver} date={date(doc.issueDate)} lang={lang} />}
         </section>
 
-        <footer className="flex items-center justify-between border-t pt-2 text-[9.5px] text-neutral-500" style={{ borderColor: mix(25) }}>
-          <span>{[doc.seller.phone, doc.seller.email].filter(Boolean).join(" · ")}</span>
-          <span>
+        <footer className="flex items-end justify-between gap-4 border-t pt-2 text-[9.5px] text-neutral-500" style={{ borderColor: mix(25) }}>
+          <div className="flex items-end gap-3">
+            {verifyUrl && (
+              <div className="flex items-center gap-2">
+                <Qr value={verifyUrl} size={54} color={INK} label="Open this document online" />
+                <div className="max-w-[120px] leading-snug">{pair("สแกนเพื่อเปิดเอกสารออนไลน์", "Scan to open online", lang)}</div>
+              </div>
+            )}
+            <span>{[doc.seller.phone, doc.seller.email].filter(Boolean).join(" · ")}</span>
+          </div>
+          <span className="text-right">
             {doc.status === "draft"
               ? pair("ฉบับร่าง · ยังไม่ใช่เอกสารทางภาษี", "Draft · not a valid tax document", lang)
               : doc.verifyCode
-                ? <>{pair("ตรวจสอบเอกสาร", "Verify", lang)}: <span className="num">{(verifyBaseUrl ?? "").replace(/^https?:\/\//, "")}/verify/{doc.verifyCode}</span></>
+                ? <>{pair("ตรวจสอบเอกสาร", "Verify", lang)}: <span className="num">{verifyUrl?.replace(/^https?:\/\//, "")}</span></>
                 : pair("ออกเอกสารทางอิเล็กทรอนิกส์", "Electronically issued", lang)}
           </span>
         </footer>

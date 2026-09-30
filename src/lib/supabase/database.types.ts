@@ -164,6 +164,9 @@ export type Database = {
       }
       document_lines: {
         Row: {
+          discount: number
+          product_code: string | null
+          vat_bps: number
           amount: number
           description_en: string | null
           description_th: string
@@ -176,6 +179,9 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          discount?: number
+          product_code?: string | null
+          vat_bps?: number
           amount: number
           description_en?: string | null
           description_th: string
@@ -188,6 +194,9 @@ export type Database = {
           unit_price: number
         }
         Update: {
+          discount?: number
+          product_code?: string | null
+          vat_bps?: number
           amount?: number
           description_en?: string | null
           description_th?: string
@@ -232,6 +241,13 @@ export type Database = {
       }
       documents: {
         Row: {
+          approver_id: string | null
+          reply_by: string | null
+          show_product_code: boolean
+          show_unit: boolean
+          signer_id: string | null
+          signers_snapshot: Json | null
+          valid_until: string | null
           created_at: string
           customer_id: string | null
           customer_snapshot: Json | null
@@ -264,6 +280,13 @@ export type Database = {
           wht_bps: number
         }
         Insert: {
+          approver_id?: string | null
+          reply_by?: string | null
+          show_product_code?: boolean
+          show_unit?: boolean
+          signer_id?: string | null
+          signers_snapshot?: Json | null
+          valid_until?: string | null
           created_at?: string
           customer_id?: string | null
           customer_snapshot?: Json | null
@@ -296,6 +319,13 @@ export type Database = {
           wht_bps?: number
         }
         Update: {
+          approver_id?: string | null
+          reply_by?: string | null
+          show_product_code?: boolean
+          show_unit?: boolean
+          signer_id?: string | null
+          signers_snapshot?: Json | null
+          valid_until?: string | null
           created_at?: string
           customer_id?: string | null
           customer_snapshot?: Json | null
@@ -346,6 +376,8 @@ export type Database = {
       }
       items: {
         Row: {
+          code: string | null
+          default_vat_bps: number
           created_at: string
           default_wht_bps: number
           id: string
@@ -356,6 +388,8 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          code?: string | null
+          default_vat_bps?: number
           created_at?: string
           default_wht_bps?: number
           id?: string
@@ -366,6 +400,8 @@ export type Database = {
           unit_price: number
         }
         Update: {
+          code?: string | null
+          default_vat_bps?: number
           created_at?: string
           default_wht_bps?: number
           id?: string
@@ -421,6 +457,39 @@ export type Database = {
           },
         ]
       }
+      signatories: {
+        Row: {
+          created_at: string
+          id: string
+          name_en: string | null
+          name_th: string
+          owner_id: string
+          signature_image: string | null
+          title_en: string | null
+          title_th: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name_en?: string | null
+          name_th: string
+          owner_id?: string
+          signature_image?: string | null
+          title_en?: string | null
+          title_th?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name_en?: string | null
+          name_th?: string
+          owner_id?: string
+          signature_image?: string | null
+          title_en?: string | null
+          title_th?: string | null
+        }
+        Relationships: []
+      }
       wht_certificates: {
         Row: {
           certificate_no: string | null
@@ -471,7 +540,7 @@ export type Database = {
     }
     Functions: {
       issue_document: {
-        Args: { p_customer: Json; p_document_id: string; p_seller: Json }
+        Args: { p_customer: Json; p_document_id: string; p_seller: Json; p_signers?: Json }
         Returns: string
       }
       verify_document: {

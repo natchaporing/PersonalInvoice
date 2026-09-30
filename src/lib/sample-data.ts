@@ -7,6 +7,8 @@ export const sampleTaxInvoice: DocumentView = {
   number: "TX2026-0014",
   issueDate: "2026-09-24",
   dueDate: "2026-10-24",
+  showProductCode: true,
+  showUnit: true,
   lang: "bilingual",
   seller: {
     nameTh: "ชื่อผู้ประกอบการ (ตัวอย่าง)", nameEn: "Your Business Name (sample)",
@@ -27,9 +29,9 @@ export const sampleTaxInvoice: DocumentView = {
     taxId: "0105561000001", branchCode: "00000",
   },
   lines: [
-    { descriptionTh: "พัฒนาเว็บไซต์ (ขั้นตอนที่ 1)", descriptionEn: "Website development (phase 1)", qtyMilli: 1000, unit: "งาน", unitPrice: 4_000_000 },
-    { descriptionTh: "ออกแบบ UI/UX", descriptionEn: "UI/UX design", qtyMilli: 20000, unit: "ชม.", unitPrice: 50_000 },
-    { descriptionTh: "ค่าโฮสติ้งรายปี", descriptionEn: "Annual hosting", qtyMilli: 1000, unit: "ปี", unitPrice: 300_000 },
+    { descriptionTh: "พัฒนาเว็บไซต์ (ขั้นตอนที่ 1)", descriptionEn: "Website development (phase 1)", qtyMilli: 1000, unit: "งาน", unitPrice: 4_000_000, discount: 0, vatBps: 700, code: "WEB-01" },
+    { descriptionTh: "ออกแบบ UI/UX", descriptionEn: "UI/UX design", qtyMilli: 20000, unit: "ชม.", unitPrice: 50_000, discount: 50_000, vatBps: 700, code: "DSN-02" },
+    { descriptionTh: "ค่าโฮสติ้งรายปี", descriptionEn: "Annual hosting", qtyMilli: 1000, unit: "ปี", unitPrice: 300_000, discount: 0, vatBps: 700, code: "HST-03" },
   ],
   discount: 0,
   vatBps: 700,

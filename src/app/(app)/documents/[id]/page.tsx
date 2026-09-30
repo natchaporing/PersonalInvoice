@@ -84,7 +84,7 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
           {isPayable(doc.doc_type) && doc.status !== "draft" && doc.status !== "void" && (
             <PaymentsPanel documentId={id} payments={paymentRows} netReceivable={doc.net_receivable} paid={paid} today={today} open={doc.status === "issued"} />
           )}
-          {doc.wht > 0 && doc.status !== "draft" && doc.status !== "void" && (
+          {doc.wht > 0 && doc.doc_type !== "quotation" && doc.status !== "draft" && doc.status !== "void" && (
             <WhtPanel documentId={id} certificates={certRows} expectedWht={doc.wht} taxable={doc.taxable} today={today} />
           )}
         </div>

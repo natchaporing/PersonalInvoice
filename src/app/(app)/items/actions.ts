@@ -7,10 +7,12 @@ import { formObject, type FormState, invalid, money, optText, reqText, submitted
 import { requireUser } from "@/lib/supabase/server";
 
 const Item = z.object({
+  code: optText(60),
   name_th: reqText("Name (Thai)", 300),
   name_en: optText(300),
   unit: z.preprocess((v) => (typeof v === "string" ? v.trim() : v), z.string().max(30)),
   unit_price: money("Unit price"),
+  default_vat_bps: z.coerce.number().int().refine((v) => [0, 700].includes(v), "Unsupported VAT rate"),
   default_wht_bps: z.coerce.number().int().refine((v) => [0, 100, 200, 300, 500].includes(v), "Unsupported rate"),
 });
 

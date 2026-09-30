@@ -36,15 +36,20 @@ export async function generateSignedPdf(
   documentId: string,
   ownerId: string,
 ): Promise<{ path: string; sha256: string }> {
-  const { data: doc } = await supabase.from("documents").select("number, status, seller_snapshot").eq("id", documentId).maybeSingle();
+  const { data: doc } = await supabase.from("documents").select("number, status, seller_snapshot, signers_snapshot").eq("id", documentId).maybeSingle();
   if (!doc || !doc.number || doc.status === "draft") throw new Error("only issued documents get a signed PDF");
 
   const identity = signingIdentityFromEnv();
-  const seller = (doc.seller_snapshot ?? {}) as { name_th?: string; email?: string };
+  const seller = (doc.seller_snapshot ?? {}) as { name_th?: string; name_en?: string; email?: string };
+  const people = (doc.signers_snapshot ?? {}) as { signer?: { name_th?: string; name_en?: string } | null; approver?: { name_th?: string; name_en?: string } | null };
+  // The PDF signature dictionary holds plain 8-bit text, so use the English name when the Thai one would be garbled.
+  const latin = (p?: { name_th?: string; name_en?: string } | null) => (p?.name_en || (p?.name_th && /^[\x20-\xFF]+$/.test(p.name_th) ? p.name_th : undefined)) ?? undefined;
+  const signerName = latin(people.signer) ?? latin(seller) ?? "PersonalInvoice";
+  const approverName = latin(people.approver);
   const pdf = await renderDocumentPdf(documentId);
   const signed = await signPdf(pdf, identity, {
-    name: seller.name_th ?? "PersonalInvoice",
-    reason: `Issued ${doc.number}`,
+    name: signerName,
+    reason: `Issued ${doc.number}${people.signer ? ` by ${signerName}` : ""}${approverName ? `; approved by ${approverName}` : ""}`,
     location: "Thailand",
     contactInfo: seller.email ?? "",
   });

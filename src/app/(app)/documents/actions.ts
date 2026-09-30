@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDocumentBundle, getProfile, paidAmount } from "@/lib/data/documents";
-import { customerSnapshot, DocumentInput, isAdjustment, isPayable, sellerSnapshot, totalsFor } from "@/lib/domain/documents";
+import { customerSnapshot, DocumentInput, isAdjustment, isPayable, sellerSnapshot, signatorySnapshot, totalsFor } from "@/lib/domain/documents";
 import { fieldErrors, type FormState, invalid, money, optText } from "@/lib/domain/forms";
 import { generateSignedPdf } from "@/lib/pdf/generate";
 import { requireUser } from "@/lib/supabase/server";
@@ -37,6 +37,12 @@ export async function saveDocument(id: string | null, raw: unknown): Promise<For
     customer_id: input.customerId,
     issue_date: input.issueDate,
     due_date: input.dueDate ?? null,
+    valid_until: input.validUntil ?? null,
+    reply_by: input.replyBy ?? null,
+    show_product_code: input.showProductCode,
+    show_unit: input.showUnit,
+    signer_id: input.signerId ?? null,
+    approver_id: input.approverId ?? null,
     lang: input.lang,
     prices_include_vat: input.pricesIncludeVat,
     vat_bps: vatBps,
@@ -73,7 +79,10 @@ export async function saveDocument(id: string | null, raw: unknown): Promise<For
     qty_milli: l.qtyMilli,
     unit: l.unit,
     unit_price: l.unitPrice,
-    amount: lineAmount(l),
+    product_code: l.productCode ?? null,
+    discount: Math.min(l.discount, lineAmount(l)),
+    vat_bps: l.vatBps,
+    amount: lineAmount(l) - Math.min(l.discount, lineAmount(l)),
   }));
   const ins = await supabase.from("document_lines").insert(lines);
   if (ins.error) return { error: ins.error.message };
@@ -99,10 +108,20 @@ export async function issueDocument(id: string): Promise<FormState> {
   if (!profile) return { error: "Complete your business profile in Settings before issuing." };
   if (!bundle.customer) return { error: "The customer for this document no longer exists." };
 
+  // Freeze the signer and approver as they are now (name, title and signature image).
+  const ids = [bundle.doc.signer_id, bundle.doc.approver_id].filter((x): x is string => !!x);
+  const { data: people } = ids.length ? await supabase.from("signatories").select("*").in("id", ids) : { data: [] };
+  const person = (sid: string | null) => {
+    const row = people?.find((x) => x.id === sid);
+    return row ? signatorySnapshot(row) : null;
+  };
+  const signers = { signer: person(bundle.doc.signer_id), approver: person(bundle.doc.approver_id) };
+
   const { error } = await supabase.rpc("issue_document", {
     p_document_id: id,
     p_seller: sellerSnapshot(profile) as never,
     p_customer: customerSnapshot(bundle.customer) as never,
+    p_signers: signers as never,
   });
   if (error) return { error: error.message };
 

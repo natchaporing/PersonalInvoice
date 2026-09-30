@@ -19,6 +19,9 @@ const toLines = (rows: Tables<"document_lines">[]): EditorLine[] =>
     .sort((a, b) => a.position - b.position)
     .map((l) => ({
       key: l.id,
+      productCode: l.product_code ?? "",
+      discount: l.discount ? (l.discount / 100).toFixed(2) : "",
+      vatBps: l.vat_bps,
       descriptionTh: l.description_th,
       descriptionEn: l.description_en ?? "",
       qty: String(l.qty_milli / 1000),
@@ -32,6 +35,12 @@ export function valueFromDocument(doc: Tables<"documents">, lines: Tables<"docum
     customerId: doc.customer_id ?? "",
     issueDate: doc.issue_date,
     dueDate: doc.due_date ?? "",
+    validUntil: doc.valid_until ?? "",
+    replyBy: doc.reply_by ?? "",
+    showProductCode: doc.show_product_code,
+    showUnit: doc.show_unit,
+    signerId: doc.signer_id ?? "",
+    approverId: doc.approver_id ?? "",
     lang: doc.lang as Lang,
     pricesIncludeVat: doc.prices_include_vat,
     whtBps: doc.wht_bps,
@@ -45,7 +54,7 @@ export function valueFromDocument(doc: Tables<"documents">, lines: Tables<"docum
 
 /** Everything the editor needs besides the value itself. */
 export async function editorContext(supabase: Supa, ownerId: string) {
-  const [customers, items, profile, refs] = await Promise.all([
+  const [customers, items, profile, refs, signatories] = await Promise.all([
     supabase.from("customers").select("*").order("name_th"),
     supabase.from("items").select("*").order("name_th"),
     getProfile(supabase, ownerId),
@@ -55,6 +64,7 @@ export async function editorContext(supabase: Supa, ownerId: string) {
       .in("status", ["issued", "paid"])
       .order("issue_date", { ascending: false })
       .limit(300),
+    supabase.from("signatories").select("*").order("name_th"),
   ]);
   return {
     customers: customers.data ?? [],
@@ -62,6 +72,7 @@ export async function editorContext(supabase: Supa, ownerId: string) {
     seller: profile ? sellerSnapshot(profile) : null,
     vatBps: profile?.default_vat_bps ?? 700,
     refs: refs.data ?? [],
+    signatories: signatories.data ?? [],
   };
 }
 
@@ -75,7 +86,13 @@ export async function initialValue(supabase: Supa, sp: Record<string, string | s
     type,
     customerId: str("customer") ?? "",
     issueDate: today,
-    dueDate: isAdjustment(type) || type === "receipt_tax_invoice" ? "" : addDays(today, 30),
+    dueDate: isAdjustment(type) || type === "receipt_tax_invoice" || type === "quotation" ? "" : addDays(today, 30),
+    validUntil: type === "quotation" ? addDays(today, 30) : "",
+    replyBy: "",
+    showProductCode: false,
+    showUnit: true,
+    signerId: "",
+    approverId: "",
     lang: "bilingual",
     pricesIncludeVat: false,
     whtBps: 0,
@@ -83,7 +100,7 @@ export async function initialValue(supabase: Supa, sp: Record<string, string | s
     notes: "",
     refDocumentId: "",
     reason: "",
-    lines: [{ key: "l1", descriptionTh: "", descriptionEn: "", qty: "1", unit: "", price: "" }],
+    lines: [{ key: "l1", productCode: "", discount: "", vatBps: 700, descriptionTh: "", descriptionEn: "", qty: "1", unit: "", price: "" }],
   };
 
   const sourceId = str("ref") ?? str("copy");
@@ -97,5 +114,13 @@ export async function initialValue(supabase: Supa, sp: Record<string, string | s
   if (str("ref")) {
     return { ...fromSrc, type, issueDate: today, dueDate: "", refDocumentId: src.id, reason: "", notes: "", discount: "0" };
   }
-  return { ...fromSrc, issueDate: today, dueDate: fromSrc.dueDate ? addDays(today, 30) : "", refDocumentId: "", reason: "" };
+  return {
+    ...fromSrc,
+    issueDate: today,
+    dueDate: fromSrc.dueDate ? addDays(today, 30) : "",
+    validUntil: fromSrc.validUntil ? addDays(today, 30) : "",
+    replyBy: "",
+    refDocumentId: "",
+    reason: "",
+  };
 }

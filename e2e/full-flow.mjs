@@ -91,7 +91,7 @@ try {
   await stale.close();
 
   // 3. Business profile with bank account
-  const fill = async (label, value) => page.getByLabel(label, { exact: true }).fill(value);
+  const fill = async (label, value) => page.getByLabel(label, { exact: true }).first().fill(value);
   await fill("Name (Thai)", "สตูดิโอ ณัฐชา");
   await fill("Name (English)", "Natcha Studio");
   await fill("Tax ID", "1-1017-00123-45-6");
@@ -123,6 +123,22 @@ try {
   await shot("02-settings");
   log("profile saved");
 
+  // 3b. Signatories: a signer with a signature image and an approver without one
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAADwAAAAUCAYAAADRA14pAAAAdElEQVR4nO2Vuw3AIBBDmYM+K2T/zUiXBoVPYh8O8pNofX46ASkZY0yHfJzl6azuBqclu5X4qOgW0jMikdKU/LcCbOk7GzUEsSnGtqtMxABkUXrW1wEhW2FkKN87Wi/Vl5XaS/HvpP/pSrJhvZRE/9DLmEVcBB8FoPSoI7cAAAAASUVORK5CYII=", "base64");
+  await page.getByLabel("Name (Thai)").last().fill("ณัฐชา ผู้ออกเอกสาร");
+  await page.getByLabel("Name (English)").last().fill("Natcha Issuer");
+  await page.getByLabel("Title (English)").fill("Owner");
+  await page.getByLabel("Signature image").setInputFiles({ name: "sig.png", mimeType: "image/png", buffer: PNG });
+  await page.getByRole("button", { name: "Add signatory" }).click();
+  await page.getByText("Signatory added.").waitFor();
+  await page.getByLabel("Name (Thai)").last().fill("สมชาย ผู้อนุมัติ");
+  await page.getByLabel("Name (English)").last().fill("Somchai Approver");
+  await page.getByLabel("Title (English)").fill("Manager");
+  await page.getByRole("button", { name: "Add signatory" }).click();
+  await page.getByRole("img", { name: /Signature of ณัฐชา/ }).waitFor();
+  await page.getByText("สมชาย ผู้อนุมัติ").first().waitFor();
+  log("signatories added (one with a signature image)");
+
   // 4. Validation: bad tax ID on a customer is rejected
   await page.goto(`${BASE}/customers/new`);
   await fill("Name (Thai)", "บริษัท สยามดิจิทัล จำกัด");
@@ -147,6 +163,7 @@ try {
   await fill("Name (English)", "Website development");
   await fill("Unit price (THB)", "40,000");
   await fill("Unit", "งาน");
+  await fill("Product code", "WEB-01");
   await page.getByLabel("Customer usually withholds").selectOption("300");
   await page.getByRole("button", { name: "Add item" }).click();
   await page.waitForURL(/\/items$/);
@@ -293,6 +310,52 @@ try {
   // 18. Draft void rules: voiding is blocked for documents with payments (button hidden)
   await page.goto(docUrl);
   if (await page.getByRole("button", { name: "Void" }).count()) fail("void should be hidden when payments exist");
+
+  // 18b. Quotation with the new features: valid-until shown, reply-by hidden, product code, line discount, mixed VAT, signer + approver, QR
+  await page.goto(`${BASE}/documents/new?type=quotation`);
+  await page.getByLabel("Customer", { exact: true }).selectOption({ label: "บริษัท สยามดิจิทัล จำกัด" });
+  await page.getByLabel("Show product code").check();
+  await page.getByLabel("Show unit").uncheck();
+  if ((await page.getByLabel("Unit", { exact: true }).count()) !== 0) fail("unit inputs should be hidden when Show unit is off");
+  await page.getByLabel("Add a saved item").selectOption({ index: 1 }); // WEB-01, 40,000, 7%
+  await page.getByRole("button", { name: "Add line" }).click();
+  await page.getByLabel("Description (Thai) · 2").fill("โดเมนเนม");
+  await page.getByLabel("Unit price (THB)").nth(1).fill("1000");
+  await page.getByLabel("Discount (THB)").nth(0).fill("4000"); // 40,000 − 4,000 = 36,000 at 7%
+  await page.getByLabel("VAT").nth(1).selectOption("0");        // 1,000 at 0%
+  await page.getByLabel("Issued by (signer)").selectOption({ label: "ณัฐชา ผู้ออกเอกสาร" });
+  await page.getByLabel("Approved by (approver)").selectOption({ label: "สมชาย ผู้อนุมัติ" });
+  // Valid until is pre-filled (+30 days); Reply by is left empty
+  const validVal = await page.getByLabel("Valid until").inputValue();
+  if (!validVal) fail("valid-until should default for quotations");
+  await page.getByRole("button", { name: "Save as draft" }).click();
+  await page.waitForURL(/\/documents\/[0-9a-f-]{36}$/);
+  // 36,000 × 7% = 2,520; taxable 37,000; total 39,520
+  for (const t of ["37,000.00", "2,520.00", "39,520.00"]) await page.getByText(t, { exact: false }).first().waitFor();
+  const preview = page.getByLabel("Live document preview").or(page.locator("main"));
+  const bodyText = await page.locator("body").innerText();
+  if (!/Valid until|ใช้ได้ถึง/.test(bodyText)) fail("valid until should print on the document");
+  if (/Reply by|ตอบรับภายใน/.test(bodyText)) fail("reply by should be hidden when empty");
+  if (!/WEB-01/.test(bodyText)) fail("product code should print");
+  void preview;
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: /Issue & sign/ }).click();
+  await page.getByText(/Issued and signed\.|Issued\. The signed PDF/).waitFor({ timeout: 60_000 });
+  await page.reload();
+  const qNumber = (await page.locator("h1").textContent())?.trim();
+  if (!/^QT\d{4}-0001$/.test(qNumber ?? "")) fail(`unexpected quotation number ${qNumber}`);
+  await page.getByRole("img", { name: "Open this document online" }).waitFor();
+  await shot("10-quotation");
+  const [qDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Signed PDF" }).click()]);
+  const { readFileSync: readQ } = await import("node:fs");
+  const qPdf = readQ(await qDl.path());
+  const qRaw = qPdf.toString("latin1");
+  if (!qRaw.includes("/ByteRange")) fail("quotation PDF is not signed");
+  if (!/Natcha Issuer/.test(qRaw)) fail("signature should record the signer's name");
+  if (!/approved by Somchai Approver/.test(qRaw)) fail("signature should record the approver");
+  if (SHOTS) writeFileSync(`${SHOTS}/${qNumber}.pdf`, qPdf);
+  // The QR encodes the verify link: it must open the public verification page
+  log("quotation issued and signed with signer + approver, QR present", qNumber);
 
   // 19. Row-level security: a second user cannot see the first user's document or PDF
   const other = await browser.newContext();

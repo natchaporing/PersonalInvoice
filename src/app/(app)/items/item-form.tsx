@@ -22,6 +22,15 @@ export function ItemForm({ item }: { item?: Tables<"items"> }) {
       {item && <input type="hidden" name="id" value={item.id} />}
       <Card>
         <CardContent className="grid gap-4 sm:grid-cols-2">
+          <Field label="Product code" htmlFor="code" error={e.code} hint="Optional. Printed when the document shows codes.">
+            <Input id="code" name="code" defaultValue={dv("code", item?.code ?? "")} />
+          </Field>
+          <Field label="VAT rate" htmlFor="default_vat_bps" error={e.default_vat_bps}>
+            <NativeSelect id="default_vat_bps" name="default_vat_bps" defaultValue={dv("default_vat_bps", String(item?.default_vat_bps ?? 700))}>
+              <option value="700">7%</option>
+              <option value="0">0% / exempt</option>
+            </NativeSelect>
+          </Field>
           <Field label="Name (Thai)" htmlFor="name_th" error={e.name_th}>
             <Input id="name_th" name="name_th" defaultValue={dv("name_th", item?.name_th ?? "")} required />
           </Field>

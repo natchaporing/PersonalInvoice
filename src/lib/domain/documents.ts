@@ -1,8 +1,8 @@
 // Document rules and mapping between database rows and the renderable DocumentView.
 import { z } from "zod";
-import type { BankAccount, DocLine, DocumentView, Lang, Party } from "@/lib/document-view";
+import type { BankAccount, DocLine, DocumentView, Lang, Party, Signatory } from "@/lib/document-view";
 import type { Json, Tables } from "@/lib/supabase/database.types";
-import { computeTotals, lineAmount, type Totals } from "@/lib/thai/money";
+import { computeTotals, lineAmount, lineNet, type Totals } from "@/lib/thai/money";
 
 export type DocType = Tables<"documents">["doc_type"];
 export type DocStatus = Tables<"documents">["status"];
@@ -101,6 +101,27 @@ function buyerParty(c: CustomerSnapshot): Party {
   };
 }
 
+/** A signer or approver frozen onto the document at issue time. */
+export interface SignatorySnapshot {
+  name_th: string;
+  name_en?: string | null;
+  title_th?: string | null;
+  title_en?: string | null;
+  signature_image?: string | null;
+}
+
+export interface SignersSnapshot {
+  signer?: SignatorySnapshot | null;
+  approver?: SignatorySnapshot | null;
+}
+
+export const signatorySnapshot = (s: Tables<"signatories">): SignatorySnapshot => ({
+  name_th: s.name_th, name_en: s.name_en, title_th: s.title_th, title_en: s.title_en, signature_image: s.signature_image,
+});
+
+const signatoryView = (s: SignatorySnapshot | null | undefined): Signatory | undefined =>
+  s ? { nameTh: s.name_th, nameEn: s.name_en ?? undefined, titleTh: s.title_th ?? undefined, titleEn: s.title_en ?? undefined, signatureImage: s.signature_image ?? undefined } : undefined;
+
 export const EMPTY_SELLER: SellerSnapshot = { name_th: "—", address_th: "", tax_id: "", branch_code: "00000" };
 export const EMPTY_CUSTOMER: CustomerSnapshot = { name_th: "—", branch_code: "00000", is_juristic: true };
 
@@ -111,22 +132,30 @@ export const EMPTY_CUSTOMER: CustomerSnapshot = { name_th: "—", branch_code: "
 export function toDocumentView(
   doc: Tables<"documents">,
   lines: Tables<"document_lines">[],
-  live: { seller?: SellerSnapshot | null; customer?: CustomerSnapshot | null } = {},
+  live: { seller?: SellerSnapshot | null; customer?: CustomerSnapshot | null; signers?: SignersSnapshot | null } = {},
 ): DocumentView {
   const seller = asObj<SellerSnapshot>(doc.seller_snapshot) ?? live.seller ?? EMPTY_SELLER;
   const customer = asObj<CustomerSnapshot>(doc.customer_snapshot) ?? live.customer ?? EMPTY_CUSTOMER;
+  const signers = asObj<SignersSnapshot>(doc.signers_snapshot) ?? live.signers ?? null;
   return {
     type: doc.doc_type,
     status: doc.status,
     number: doc.number ?? undefined,
     issueDate: doc.issue_date,
     dueDate: doc.due_date ?? undefined,
+    validUntil: doc.valid_until ?? undefined,
+    replyBy: doc.reply_by ?? undefined,
+    showProductCode: doc.show_product_code,
+    showUnit: doc.show_unit,
+    signer: signatoryView(signers?.signer),
+    approver: signatoryView(signers?.approver),
     lang: doc.lang as Lang,
     seller: sellerParty(seller),
     buyer: buyerParty(customer),
     lines: [...lines].sort((a, b) => a.position - b.position).map<DocLine>((l) => ({
       descriptionTh: l.description_th, descriptionEn: l.description_en ?? undefined,
-      qtyMilli: l.qty_milli, unit: l.unit, unitPrice: l.unit_price,
+      code: l.product_code ?? undefined,
+      qtyMilli: l.qty_milli, unit: l.unit, unitPrice: l.unit_price, discount: l.discount, vatBps: l.vat_bps,
     })),
     discount: doc.discount,
     vatBps: doc.vat_bps,
@@ -142,7 +171,16 @@ export function toDocumentView(
 
 const satang = z.number().int().min(0).max(1_000_000_000_000);
 
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const optDate = isoDate.optional().or(z.literal("").transform(() => undefined));
+const optId = z.string().uuid().optional().or(z.literal("").transform(() => undefined));
+
+export const VAT_RATE_OPTIONS = [700, 0] as const;
+
 export const LineInput = z.object({
+  productCode: z.string().trim().max(60).optional().transform((v) => v || undefined),
+  discount: satang.default(0),
+  vatBps: z.number().int().refine((v) => (VAT_RATE_OPTIONS as readonly number[]).includes(v), "Unsupported VAT rate"),
   descriptionTh: z.string().trim().min(1, "Each line needs a Thai description").max(500),
   descriptionEn: z.string().trim().max(500).optional().transform((v) => v || undefined),
   qtyMilli: z.number().int().positive("Quantity must be more than 0").max(1_000_000_000),
@@ -155,7 +193,13 @@ export const DocumentInput = z
     type: z.enum(DOC_TYPES as [DocType, ...DocType[]]),
     customerId: z.string().uuid("Choose a customer"),
     issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("").transform(() => undefined)),
+    dueDate: optDate,
+    validUntil: optDate,
+    replyBy: optDate,
+    showProductCode: z.boolean(),
+    showUnit: z.boolean(),
+    signerId: optId,
+    approverId: optId,
     lang: z.enum(["th", "en", "bilingual"]),
     pricesIncludeVat: z.boolean(),
     whtBps: z.number().int().refine((v) => [0, 100, 200, 300, 500].includes(v), "Unsupported withholding rate"),
@@ -167,6 +211,11 @@ export const DocumentInput = z
   })
   .superRefine((d, ctx) => {
     if (d.dueDate && d.dueDate < d.issueDate) ctx.addIssue({ code: "custom", path: ["dueDate"], message: "Due date is before the issue date" });
+    if (d.validUntil && d.validUntil < d.issueDate) ctx.addIssue({ code: "custom", path: ["validUntil"], message: "Valid-until date is before the issue date" });
+    if (d.replyBy && d.replyBy < d.issueDate) ctx.addIssue({ code: "custom", path: ["replyBy"], message: "Reply-by date is before the issue date" });
+    d.lines.forEach((l, i) => {
+      if (l.discount > lineAmount(l)) ctx.addIssue({ code: "custom", path: ["lines", i, "discount"], message: "Discount is more than the line amount" });
+    });
     if (isAdjustment(d.type)) {
       if (!d.refDocumentId) ctx.addIssue({ code: "custom", path: ["refDocumentId"], message: "Choose the original document" });
       if (!d.reason) ctx.addIssue({ code: "custom", path: ["reason"], message: "Give the reason for the adjustment" });
@@ -176,12 +225,17 @@ export type DocumentInput = z.infer<typeof DocumentInput>;
 
 /** Server-side totals: the only totals ever stored. */
 export function totalsFor(
-  input: { lines: { qtyMilli: number; unitPrice: number }[]; discount: number; pricesIncludeVat: boolean; whtBps: number },
+  input: {
+    lines: { qtyMilli: number; unitPrice: number; discount?: number; vatBps?: number }[];
+    discount: number;
+    pricesIncludeVat: boolean;
+    whtBps: number;
+  },
   vatBps: number,
 ): Totals {
-  const subtotal = input.lines.reduce((s, l) => s + lineAmount(l), 0);
+  const subtotal = input.lines.reduce((s, l) => s + lineNet({ ...l, discount: Math.min(l.discount ?? 0, lineAmount(l)) }), 0);
   return computeTotals({
-    lines: input.lines,
+    lines: input.lines.map((l) => ({ ...l, discount: Math.min(l.discount ?? 0, lineAmount(l)) })),
     discount: Math.min(input.discount, subtotal),
     vatRegistered: true,
     vatBps,

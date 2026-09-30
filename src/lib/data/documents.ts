@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DocumentView } from "@/lib/document-view";
-import { customerSnapshot, sellerSnapshot, toDocumentView } from "@/lib/domain/documents";
+import { customerSnapshot, sellerSnapshot, signatorySnapshot, toDocumentView } from "@/lib/domain/documents";
 import type { Database, Tables } from "@/lib/supabase/database.types";
 
 type DB = SupabaseClient<Database>;
@@ -25,7 +25,8 @@ export async function getProfile(supabase: DB, ownerId: string) {
 export async function getDocumentBundle(supabase: DB, id: string, ownerId: string): Promise<DocumentBundle | null> {
   const { data: doc } = await supabase.from("documents").select("*").eq("id", id).maybeSingle();
   if (!doc) return null;
-  const [lines, payments, certificates, customer, ref, profile] = await Promise.all([
+  const signerIds = [doc.signer_id, doc.approver_id].filter((x): x is string => !!x);
+  const [lines, payments, certificates, customer, ref, profile, people] = await Promise.all([
     supabase.from("document_lines").select("*").eq("document_id", id).order("position"),
     supabase.from("payments").select("*").eq("document_id", id).order("paid_on"),
     supabase.from("wht_certificates").select("*").eq("document_id", id).order("issued_on"),
@@ -34,10 +35,16 @@ export async function getDocumentBundle(supabase: DB, id: string, ownerId: strin
       ? supabase.from("documents").select("id, number, doc_type").eq("id", doc.ref_document_id).maybeSingle()
       : Promise.resolve({ data: null }),
     doc.status === "draft" ? getProfile(supabase, ownerId) : Promise.resolve(null),
+    doc.status === "draft" && signerIds.length ? supabase.from("signatories").select("*").in("id", signerIds) : Promise.resolve({ data: null }),
   ]);
+  const person = (sid: string | null) => {
+    const row = people.data?.find((x) => x.id === sid);
+    return row ? signatorySnapshot(row) : null;
+  };
   const view = toDocumentView(doc, lines.data ?? [], {
     seller: profile ? sellerSnapshot(profile) : null,
     customer: customer.data ? customerSnapshot(customer.data) : null,
+    signers: { signer: person(doc.signer_id), approver: person(doc.approver_id) },
   });
   view.refNumber = ref.data?.number ?? undefined;
   return {

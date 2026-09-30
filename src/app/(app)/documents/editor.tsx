@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { DocumentView, Lang } from "@/lib/document-view";
+import type { DocumentView, Lang, Signatory } from "@/lib/document-view";
 import {
   type CustomerSnapshot,
   DOC_TYPE_LABEL,
@@ -22,6 +22,7 @@ import {
   isTaxDocument,
   type SellerSnapshot,
   totalsFor,
+  VAT_RATE_OPTIONS,
 } from "@/lib/domain/documents";
 import type { FormState } from "@/lib/domain/forms";
 import { WHT_OPTIONS } from "@/lib/domain/tax";
@@ -33,6 +34,9 @@ import { saveDocument } from "./actions";
 
 export interface EditorLine {
   key: string;
+  productCode: string;
+  discount: string; // THB
+  vatBps: number;
   descriptionTh: string;
   descriptionEn: string;
   qty: string;
@@ -45,6 +49,12 @@ export interface EditorValue {
   customerId: string;
   issueDate: string;
   dueDate: string;
+  validUntil: string;
+  replyBy: string;
+  showProductCode: boolean;
+  showUnit: boolean;
+  signerId: string;
+  approverId: string;
   lang: Lang;
   pricesIncludeVat: boolean;
   whtBps: number;
@@ -63,12 +73,17 @@ const LANG_OPTIONS: { key: Lang; label: string }[] = [
   { key: "en", label: "English" },
 ];
 
+const signatoryOf = (x?: Tables<"signatories">): Signatory | undefined =>
+  x ? { nameTh: x.name_th, nameEn: x.name_en ?? undefined, titleTh: x.title_th ?? undefined, titleEn: x.title_en ?? undefined, signatureImage: x.signature_image ?? undefined } : undefined;
+
 const num = (s: string) => {
   const n = Number(s.replace(/,/g, ""));
   return Number.isFinite(n) ? n : 0;
 };
 
-export const newLine = (): EditorLine => ({ key: crypto.randomUUID(), descriptionTh: "", descriptionEn: "", qty: "1", unit: "", price: "" });
+export const newLine = (vatBps = 700): EditorLine => ({
+  key: crypto.randomUUID(), productCode: "", discount: "", vatBps, descriptionTh: "", descriptionEn: "", qty: "1", unit: "", price: "",
+});
 
 export function DocumentEditor({
   id,
@@ -78,6 +93,7 @@ export function DocumentEditor({
   seller,
   vatBps,
   refs,
+  signatories,
 }: {
   id?: string;
   initial: EditorValue;
@@ -86,6 +102,7 @@ export function DocumentEditor({
   seller: SellerSnapshot | null;
   vatBps: number;
   refs: RefOption[];
+  signatories: Tables<"signatories">[];
 }) {
   const [v, setV] = useState<EditorValue>(initial);
   const [state, setState] = useState<FormState>({});
@@ -99,7 +116,7 @@ export function DocumentEditor({
   const refChoices = refs.filter((r) => isTaxDocument(r.doc_type) && !isAdjustment(r.doc_type) && (!v.customerId || r.customer_id === v.customerId));
 
   const lines = useMemo(
-    () => v.lines.map((l) => ({ qtyMilli: Math.round(num(l.qty) * 1000), unitPrice: thbToSatang(num(l.price)) })),
+    () => v.lines.map((l) => ({ qtyMilli: Math.round(num(l.qty) * 1000), unitPrice: thbToSatang(num(l.price)), discount: thbToSatang(num(l.discount)), vatBps: l.vatBps })),
     [v.lines],
   );
   const totals = totalsFor({ lines, discount: thbToSatang(num(v.discount)), pricesIncludeVat: v.pricesIncludeVat, whtBps: v.whtBps }, vatBps);
@@ -112,7 +129,13 @@ export function DocumentEditor({
     type: v.type,
     status: "draft",
     issueDate: v.issueDate,
-    dueDate: v.dueDate || undefined,
+    dueDate: v.type === "quotation" ? undefined : v.dueDate || undefined,
+    validUntil: v.type === "quotation" ? v.validUntil || undefined : undefined,
+    replyBy: v.type === "quotation" ? v.replyBy || undefined : undefined,
+    showProductCode: v.showProductCode,
+    showUnit: v.showUnit,
+    signer: signatoryOf(signatories.find((x) => x.id === v.signerId)),
+    approver: signatoryOf(signatories.find((x) => x.id === v.approverId)),
     lang: v.lang,
     seller: {
       nameTh: s.name_th, nameEn: s.name_en ?? undefined, addressTh: s.address_th, addressEn: s.address_en ?? undefined,
@@ -122,7 +145,8 @@ export function DocumentEditor({
       ? { nameTh: buyer.name_th, nameEn: buyer.name_en ?? undefined, addressTh: buyer.address_th ?? undefined, addressEn: buyer.address_en ?? undefined, taxId: buyer.tax_id ?? undefined, branchCode: buyer.branch_code }
       : { nameTh: "—", branchCode: "00000" },
     lines: v.lines.map((l, i) => ({
-      descriptionTh: l.descriptionTh || "—", descriptionEn: l.descriptionEn || undefined, qtyMilli: lines[i].qtyMilli, unit: l.unit, unitPrice: lines[i].unitPrice,
+      code: l.productCode || undefined, descriptionTh: l.descriptionTh || "—", descriptionEn: l.descriptionEn || undefined,
+      qtyMilli: lines[i].qtyMilli, unit: l.unit, unitPrice: lines[i].unitPrice, discount: Math.min(lines[i].discount, lineAmount(lines[i])), vatBps: l.vatBps,
     })),
     discount: totals.discount,
     vatBps,
@@ -141,7 +165,7 @@ export function DocumentEditor({
       whtBps: p.lines.every((l) => !l.descriptionTh) && it.default_wht_bps ? it.default_wht_bps : p.whtBps,
       lines: [
         ...p.lines.filter((l) => l.descriptionTh || l.price),
-        { key: crypto.randomUUID(), descriptionTh: it.name_th, descriptionEn: it.name_en ?? "", qty: "1", unit: it.unit, price: (it.unit_price / 100).toFixed(2) },
+        { key: crypto.randomUUID(), productCode: it.code ?? "", discount: "", vatBps: it.default_vat_bps, descriptionTh: it.name_th, descriptionEn: it.name_en ?? "", qty: "1", unit: it.unit, price: (it.unit_price / 100).toFixed(2) },
       ],
     }));
   };
@@ -152,7 +176,13 @@ export function DocumentEditor({
       type: v.type,
       customerId: v.customerId,
       issueDate: v.issueDate,
-      dueDate: v.dueDate,
+      dueDate: v.type === "quotation" ? "" : v.dueDate,
+      validUntil: v.type === "quotation" ? v.validUntil : "",
+      replyBy: v.type === "quotation" ? v.replyBy : "",
+      showProductCode: v.showProductCode,
+      showUnit: v.showUnit,
+      signerId: v.signerId,
+      approverId: v.approverId,
       lang: v.lang,
       pricesIncludeVat: v.pricesIncludeVat,
       whtBps: v.whtBps,
@@ -160,7 +190,10 @@ export function DocumentEditor({
       notes: v.notes,
       refDocumentId: adjustment ? v.refDocumentId : "",
       reason: adjustment ? v.reason : "",
-      lines: v.lines.map((l, i) => ({ descriptionTh: l.descriptionTh, descriptionEn: l.descriptionEn, qtyMilli: lines[i].qtyMilli, unit: l.unit, unitPrice: lines[i].unitPrice })),
+      lines: v.lines.map((l, i) => ({
+        productCode: l.productCode, descriptionTh: l.descriptionTh, descriptionEn: l.descriptionEn, qtyMilli: lines[i].qtyMilli,
+        unit: l.unit, unitPrice: lines[i].unitPrice, discount: lines[i].discount, vatBps: l.vatBps,
+      })),
     };
     startSave(async () => {
       const res = await saveDocument(id ?? null, payload);
@@ -205,9 +238,20 @@ export function DocumentEditor({
             <Field label="Issue date" htmlFor="issue" error={e.issueDate}>
               <Input id="issue" type="date" value={v.issueDate} onChange={(ev) => set("issueDate", ev.target.value)} />
             </Field>
-            <Field label="Due date" htmlFor="due" error={e.dueDate}>
-              <Input id="due" type="date" value={v.dueDate} onChange={(ev) => set("dueDate", ev.target.value)} />
-            </Field>
+            {v.type === "quotation" ? (
+              <>
+                <Field label="Valid until" htmlFor="valid" error={e.validUntil} hint="Leave empty to hide it on the document.">
+                  <Input id="valid" type="date" value={v.validUntil} onChange={(ev) => set("validUntil", ev.target.value)} />
+                </Field>
+                <Field label="Reply by" htmlFor="reply" error={e.replyBy} hint="Leave empty to hide it on the document.">
+                  <Input id="reply" type="date" value={v.replyBy} onChange={(ev) => set("replyBy", ev.target.value)} />
+                </Field>
+              </>
+            ) : (
+              <Field label="Due date" htmlFor="due" error={e.dueDate}>
+                <Input id="due" type="date" value={v.dueDate} onChange={(ev) => set("dueDate", ev.target.value)} />
+              </Field>
+            )}
             {adjustment && (
               <>
                 <Field label="Original document" htmlFor="ref" error={e.refDocumentId} hint="The issued tax document this note adjusts.">
@@ -241,24 +285,49 @@ export function DocumentEditor({
             {adjustment && <CardDescription>For a credit note, enter the amount being reduced; for a debit note, the amount being added.</CardDescription>}
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <Label className="font-normal">
+                <input type="checkbox" className="size-4 accent-[var(--cobalt)]" checked={v.showProductCode} onChange={(ev) => set("showProductCode", ev.target.checked)} />
+                Show product code
+              </Label>
+              <Label className="font-normal">
+                <input type="checkbox" className="size-4 accent-[var(--cobalt)]" checked={v.showUnit} onChange={(ev) => set("showUnit", ev.target.checked)} />
+                Show unit
+              </Label>
+            </div>
             {v.lines.map((l, i) => (
-              <div key={l.key} className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-dashed pb-4 sm:grid-cols-[88px_90px_150px_1fr_auto] sm:items-end">
-                <Field className="col-span-2 sm:col-span-5" htmlFor={`th-${l.key}`} label={`Description (Thai)${v.lines.length > 1 ? ` · ${i + 1}` : ""}`} error={e[`lines.${i}.descriptionTh`]}>
+              <div key={l.key} className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-dashed pb-4 sm:grid-cols-[repeat(auto-fit,minmax(104px,1fr))] sm:items-end">
+                <Field className="col-span-2 sm:col-span-full" htmlFor={`th-${l.key}`} label={`Description (Thai)${v.lines.length > 1 ? ` · ${i + 1}` : ""}`} error={e[`lines.${i}.descriptionTh`]}>
                   <Input id={`th-${l.key}`} value={l.descriptionTh} onChange={(ev) => setLine(l.key, { descriptionTh: ev.target.value })} />
                 </Field>
-                <Field className="col-span-2 sm:col-span-5" htmlFor={`en-${l.key}`} label="Description (English)">
+                <Field className="col-span-2 sm:col-span-full" htmlFor={`en-${l.key}`} label="Description (English)">
                   <Input id={`en-${l.key}`} value={l.descriptionEn} onChange={(ev) => setLine(l.key, { descriptionEn: ev.target.value })} />
                 </Field>
+                {v.showProductCode && (
+                  <Field label="Code" htmlFor={`c-${l.key}`} error={e[`lines.${i}.productCode`]}>
+                    <Input id={`c-${l.key}`} value={l.productCode} onChange={(ev) => setLine(l.key, { productCode: ev.target.value })} />
+                  </Field>
+                )}
                 <Field label="Qty" htmlFor={`q-${l.key}`} error={e[`lines.${i}.qtyMilli`]}>
                   <Input id={`q-${l.key}`} inputMode="decimal" className="num text-right" value={l.qty} onChange={(ev) => setLine(l.key, { qty: ev.target.value })} />
                 </Field>
-                <Field label="Unit" htmlFor={`u-${l.key}`}>
-                  <Input id={`u-${l.key}`} value={l.unit} onChange={(ev) => setLine(l.key, { unit: ev.target.value })} />
-                </Field>
+                {v.showUnit && (
+                  <Field label="Unit" htmlFor={`u-${l.key}`}>
+                    <Input id={`u-${l.key}`} value={l.unit} onChange={(ev) => setLine(l.key, { unit: ev.target.value })} />
+                  </Field>
+                )}
                 <Field label="Unit price (THB)" htmlFor={`p-${l.key}`} error={e[`lines.${i}.unitPrice`]}>
                   <Input id={`p-${l.key}`} inputMode="decimal" className="num text-right" value={l.price} onChange={(ev) => setLine(l.key, { price: ev.target.value })} />
                 </Field>
-                <div className="num pb-2 text-right font-medium">฿{formatTHB(lineAmount(lines[i]))}</div>
+                <Field label="Discount (THB)" htmlFor={`d-${l.key}`} error={e[`lines.${i}.discount`]}>
+                  <Input id={`d-${l.key}`} inputMode="decimal" className="num text-right" value={l.discount} onChange={(ev) => setLine(l.key, { discount: ev.target.value })} />
+                </Field>
+                <Field label="VAT" htmlFor={`v-${l.key}`} error={e[`lines.${i}.vatBps`]}>
+                  <NativeSelect id={`v-${l.key}`} value={l.vatBps} onChange={(ev) => setLine(l.key, { vatBps: Number(ev.target.value) })}>
+                    {VAT_RATE_OPTIONS.map((b) => (<option key={b} value={b}>{b === 0 ? "0% / exempt" : `${b / 100}%`}</option>))}
+                  </NativeSelect>
+                </Field>
+                <div className="num pb-2 text-right font-medium">฿{formatTHB(lineAmount(lines[i]) - Math.min(lines[i].discount, lineAmount(lines[i])))}</div>
                 <Button type="button" variant="ghost" size="icon" className="justify-self-end" aria-label={`Remove line ${i + 1}`} disabled={v.lines.length === 1}
                   onClick={() => set("lines", v.lines.filter((x) => x.key !== l.key))}>
                   <X />
@@ -267,7 +336,7 @@ export function DocumentEditor({
             ))}
             {e.lines && <p className="text-[12px] text-destructive">{e.lines}</p>}
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => set("lines", [...v.lines, newLine()])}><Plus /> Add line</Button>
+              <Button type="button" variant="outline" onClick={() => set("lines", [...v.lines, newLine(vatBps === 0 ? 0 : 700)])}><Plus /> Add line</Button>
               {items.length > 0 && (
                 <NativeSelect aria-label="Add a saved item" className="w-auto" value="" onChange={(ev) => addItem(ev.target.value)}>
                   <option value="">+ Add saved item…</option>
@@ -295,6 +364,29 @@ export function DocumentEditor({
             </Label>
             <Field className="sm:col-span-3" label="Notes" htmlFor="notes">
               <Textarea id="notes" rows={2} value={v.notes} onChange={(ev) => set("notes", ev.target.value)} />
+            </Field>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Signatures · ผู้ลงนาม</CardTitle>
+            <CardDescription>
+              Printed on the document with their name, title and signature image. Manage people in <Link href="/settings" className="text-cobalt underline">Settings</Link>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+            <Field label="Issued by (signer)" htmlFor="signer" error={e.signerId}>
+              <NativeSelect id="signer" value={v.signerId} onChange={(ev) => set("signerId", ev.target.value)}>
+                <option value="">Blank signature line</option>
+                {signatories.map((x) => (<option key={x.id} value={x.id}>{x.name_th}{x.title_th ? ` · ${x.title_th}` : ""}</option>))}
+              </NativeSelect>
+            </Field>
+            <Field label="Approved by (approver)" htmlFor="approver" error={e.approverId} hint="Leave empty for no approver block.">
+              <NativeSelect id="approver" value={v.approverId} onChange={(ev) => set("approverId", ev.target.value)}>
+                <option value="">None</option>
+                {signatories.map((x) => (<option key={x.id} value={x.id}>{x.name_th}{x.title_th ? ` · ${x.title_th}` : ""}</option>))}
+              </NativeSelect>
             </Field>
           </CardContent>
         </Card>

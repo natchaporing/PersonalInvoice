@@ -1,11 +1,13 @@
 import { PageHeader } from "@/components/app-ui";
 import { requireUser } from "@/lib/supabase/server";
 import { ProfileForm } from "./profile-form";
+import { Signatories } from "./signatories";
 
 export default async function Settings({ searchParams }: PageProps<"/settings">) {
   const { supabase, user } = await requireUser();
   const confirmed = (await searchParams).confirmed === "1";
   const { data: profile } = await supabase.from("business_profiles").select("*").eq("owner_id", user.id).maybeSingle();
+  const { data: people } = await supabase.from("signatories").select("*").order("created_at");
   return (
     <>
       <PageHeader
@@ -19,6 +21,9 @@ export default async function Settings({ searchParams }: PageProps<"/settings">)
         </p>
       )}
       <ProfileForm profile={profile} />
+      <div className="mt-8 max-w-4xl">
+        <Signatories people={people ?? []} />
+      </div>
     </>
   );
 }

@@ -18,6 +18,9 @@ Next.js 16 · Supabase (Postgres, auth, private storage) · shadcn/ui · deploye
   recorded facts and lets anyone check a PDF they received (hashed in the browser, never uploaded).
 - **Payments**: bank-transfer details print on payable documents; record payments (with slips) and
   50 Tawi withholding certificates per document.
+- **Quotation fields**: optional *valid until* and *reply by* dates (empty = not printed), per-line discount and VAT rate (7% or 0%/exempt; the document discount is shared across lines and VAT is computed per rate), optional product-code and unit columns.
+- **Signatories**: Settings holds people with a name, title and optional signature image. Pick an issuer and an approver per document; they are frozen onto it at issue, printed with the date, and named in the PDF's digital signature (the PDF itself is signed with your certificate).
+- **Open online**: issued documents carry a QR code (vector, in the PDF) that opens the public verification page.
 - **Bank list**: Settings has a searchable list of Thai banks (Thai/English name, short name or code) that fills the bank name fields; the bank codes beyond BBL/KBANK/KTB/TTB/SCB should be double-checked against the BOT list.
 - **Look**: light theme only. Pick a palette (Cobalt, Jade, Amethyst, Bronze) from the header; it is stored in a cookie and also colours documents and PDFs rendered afterwards.
 - **Sign-up**: the email must be typed twice and is confirmed through an emailed link (`/auth/callback`); the login page can resend it.
