@@ -211,6 +211,7 @@ export async function createReceiptFromInvoice(invoiceId: string): Promise<FormS
 
 const Commission = z
   .object({
+    payee_id: z.string().uuid().optional().or(z.literal("").transform(() => undefined)),
     payee_name: reqText("Payee", 200),
     payee_account: optText(200),
     basis: z.enum(["percent", "fixed"]),
@@ -232,11 +233,16 @@ export async function addCommission(quotationId: string, _: FormState, form: For
   const q = await loadQuotation(supabase, quotationId);
   if (!q || q.status === "void") return { error: "The quotation is void or missing.", values: submitted(form) };
   const c = parsed.data;
+  if (c.payee_id) {
+    const { data: p } = await supabase.from("commission_payees").select("id").eq("id", c.payee_id).maybeSingle();
+    if (!p) return { error: "That payee no longer exists.", values: submitted(form) };
+  }
   const rateBps = c.basis === "percent" ? Math.round((c.rate ?? 0) * 100) : undefined;
   const f = commissionFigures({ basis: c.basis, rateBps, fixed: c.fixed, whtBps: c.wht_bps }, q.taxable);
   if (f.amount <= 0) return { error: "The commission works out to ฿0.", values: submitted(form) };
   const { error } = await supabase.from("commissions").insert({
     quotation_id: quotationId,
+    payee_id: c.payee_id ?? null,
     payee_name: c.payee_name,
     payee_account: c.payee_account,
     basis: c.basis,

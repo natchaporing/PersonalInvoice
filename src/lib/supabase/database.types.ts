@@ -135,8 +135,63 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_payees: {
+        Row: {
+          address: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          created_at: string
+          default_rate_bps: number | null
+          default_wht_bps: number
+          email: string | null
+          id: string
+          is_juristic: boolean
+          name: string
+          note: string | null
+          owner_id: string
+          phone: string | null
+          tax_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          default_rate_bps?: number | null
+          default_wht_bps?: number
+          email?: string | null
+          id?: string
+          is_juristic?: boolean
+          name: string
+          note?: string | null
+          owner_id?: string
+          phone?: string | null
+          tax_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          default_rate_bps?: number | null
+          default_wht_bps?: number
+          email?: string | null
+          id?: string
+          is_juristic?: boolean
+          name?: string
+          note?: string | null
+          owner_id?: string
+          phone?: string | null
+          tax_id?: string | null
+        }
+        Relationships: []
+      }
       commissions: {
         Row: {
+          payee_id: string | null
           amount: number
           basis: string
           created_at: string
@@ -153,6 +208,7 @@ export type Database = {
           wht_bps: number
         }
         Insert: {
+          payee_id?: string | null
           amount: number
           basis: string
           created_at?: string
@@ -169,6 +225,7 @@ export type Database = {
           wht_bps?: number
         }
         Update: {
+          payee_id?: string | null
           amount?: number
           basis?: string
           created_at?: string

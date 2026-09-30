@@ -1,0 +1,15 @@
+import { PageHeader } from "@/components/app-ui";
+import { requireUser } from "@/lib/supabase/server";
+import { PayeeForm } from "../payee-form";
+
+export default async function NewPayee({ searchParams }: PageProps<"/payees/new">) {
+  await requireUser();
+  const sp = await searchParams;
+  const next = typeof sp.next === "string" && sp.next.startsWith("/") ? sp.next : undefined;
+  return (
+    <>
+      <PageHeader eyebrow="ผู้รับค่านายหน้าใหม่" title="New payee" />
+      <PayeeForm next={next} />
+    </>
+  );
+}

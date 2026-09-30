@@ -448,10 +448,18 @@ try {
   if ((await page.getByRole("button", { name: "Change plan" }).count()) !== 0) fail("plan should lock once installments are billed");
   log("installments: 50/50 plan, invoice → paid → receipt/tax invoice", instInv, rtx);
 
-  // 18d. Commission on the quotation: recorded and transferred, never printed
-  await page.getByLabel("Payee", { exact: true }).fill("คุณแนะนำ ลูกค้า");
-  await page.getByLabel("Rate (%)").fill("10");
-  await page.getByLabel("Withhold when paying").selectOption("300");
+  // 18d. Commission payee profile, then commission on the quotation: recorded and transferred, never printed
+  await page.getByRole("link", { name: "+ New payee profile" }).click();
+  await page.waitForURL(/\/payees\/new/);
+  await page.getByLabel("Name", { exact: true }).fill("คุณแนะนำ ลูกค้า");
+  await page.getByLabel("Tax ID / national ID").fill("3101700123456");
+  await page.getByLabel("Account number").fill("987-6-54321-0");
+  await page.getByLabel("Commission rate (%)").fill("10");
+  await page.getByRole("button", { name: "Add payee" }).click();
+  await page.waitForURL((u) => u.href === qUrl);
+  await page.getByLabel("Saved payee").selectOption({ label: "คุณแนะนำ ลูกค้า · 10%" });
+  if ((await page.getByLabel("Rate (%)").inputValue()) !== "10") fail("picking a payee should fill the default rate");
+  if (!(await page.getByLabel("Payee bank account").inputValue()).includes("9876543210")) fail("picking a payee should fill the account");
   await page.getByText("฿3,589.00").waitFor(); // 10% of 37,000 = 3,700 − 3% = 3,589
   await page.getByRole("button", { name: "Record commission" }).click();
   await page.getByText("คุณแนะนำ ลูกค้า").first().waitFor();
@@ -460,7 +468,11 @@ try {
   const printed = await (await ctx.request.get(`${BASE}/print/documents/${qUrl.split("/").pop()}`)).text();
   if (printed.includes("คุณแนะนำ") || /commission/i.test(printed)) fail("commission must not appear on the printed quotation");
   await shot("11-quotation-installments-commission");
-  log("commission recorded, marked transferred, not on the document");
+  await page.goto(`${BASE}/payees`);
+  await page.getByRole("link", { name: "คุณแนะนำ ลูกค้า" }).click();
+  await page.getByText(qNumber ?? "QT").first().waitFor();
+  await page.getByText(/^Transferred \d{4}-\d{2}-\d{2}$/).first().waitFor();
+  log("payee profile + commission recorded, marked transferred, not on the document");
 
   // 19. Row-level security: a second user cannot see the first user's document or PDF
   const other = await browser.newContext();

@@ -51,7 +51,7 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
 
   // Installments and commission (quotations), and the links between quotation, invoice and receipt.
   const isQuotation = doc.doc_type === "quotation";
-  const [plan, linked, commissions, receipts, parent, instInfo] = await Promise.all([
+  const [plan, linked, commissions, receipts, parent, instInfo, payees] = await Promise.all([
     isQuotation ? supabase.from("installments").select("*").eq("quotation_id", id).order("position") : Promise.resolve({ data: null }),
     isQuotation ? supabase.from("documents").select("id, doc_type, status, number, total, installment_id").eq("quotation_id", id) : Promise.resolve({ data: null }),
     isQuotation ? supabase.from("commissions").select("*").eq("quotation_id", id).order("created_at") : Promise.resolve({ data: null }),
@@ -60,6 +60,7 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
       ? supabase.from("documents").select("id, number, doc_type").in("id", [doc.quotation_id, doc.source_document_id].filter((x): x is string => !!x))
       : Promise.resolve({ data: null }),
     doc.installment_id ? supabase.from("installments").select("position, label, pct_bps, quotation_id").eq("id", doc.installment_id).maybeSingle() : Promise.resolve({ data: null }),
+    isQuotation ? supabase.from("commission_payees").select("*").order("name") : Promise.resolve({ data: null }),
   ]);
   const installmentRows: InstallmentRow[] = (plan.data ?? []).map((p) => {
     const st = installmentStage(p.id, linked.data ?? []);
@@ -130,7 +131,7 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
             <InstallmentsPanel quotationId={id} taxable={doc.taxable} rows={installmentRows} locked={planLocked} />
           )}
           {isQuotation && doc.status !== "void" && (
-            <CommissionPanel quotationId={id} taxable={doc.taxable} rows={commissions.data ?? []} today={today} />
+            <CommissionPanel quotationId={id} taxable={doc.taxable} rows={commissions.data ?? []} today={today} payees={payees.data ?? []} />
           )}
           {showEtax && (
             <EtaxPanel

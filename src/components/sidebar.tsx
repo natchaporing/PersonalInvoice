@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, LayoutDashboard, Package, Receipt, Settings, Users, Wallet } from "lucide-react";
+import { FileText, HandCoins, LayoutDashboard, Package, Receipt, Settings, Users, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/customers", label: "Customers", th: "ลูกค้า", icon: Users },
   { href: "/items", label: "Items", th: "สินค้า/บริการ", icon: Package },
   { href: "/payments", label: "Payments", th: "การรับชำระ", icon: Wallet },
+  { href: "/payees", label: "Payees", th: "ค่านายหน้า", icon: HandCoins },
   { href: "/tax", label: "Tax & VAT", th: "ภาษี", icon: Receipt },
   { href: "/settings", label: "Settings", th: "ตั้งค่า", icon: Settings },
 ];
