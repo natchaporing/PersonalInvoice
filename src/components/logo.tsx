@@ -5,7 +5,7 @@ import { petalBand, wovenRing } from "@/lib/banknote/geometry";
 const RING = wovenRing({ r: 89, a: 3, n: 60, strands: 4 });
 const PETALS = petalBand({ r0: 66, r1: 84, n: 26, strands: 8, p: 1.3 });
 
-export function LogoMark({ size = 32, className, title = "Logo" }: { size?: number; className?: string; title?: string }) {
+export function LogoMark({ size = 32, className, title = "Tra" }: { size?: number; className?: string; title?: string }) {
   return (
     <svg viewBox="0 0 200 200" width={size} height={size} role="img" aria-label={title} className={className}>
       <circle cx="100" cy="100" r="96" fill="var(--cobalt)" stroke="#fff" strokeOpacity=".55" strokeWidth="3" />

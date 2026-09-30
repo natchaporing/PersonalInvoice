@@ -3,7 +3,7 @@ import { A4, InvoiceDocument } from "@/components/invoice-document";
 import { getDocumentBundle } from "@/lib/data/documents";
 import { requireUser } from "@/lib/supabase/server";
 
-export const metadata = { title: "Print · PersonalInvoice" };
+export const metadata = { title: "Print · Tra" };
 
 /** Bare A4 page used for printing and for server-side PDF rendering. */
 export default async function PrintDocument({ params }: PageProps<"/print/documents/[id]">) {

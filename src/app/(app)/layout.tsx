@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <div className="relative flex items-center justify-between gap-4 px-4 py-3.5 md:px-6">
           <div className="flex items-center gap-3">
             <LogoMark size={42} title="" />
-            <span className="display text-[22px] tracking-tight">PersonalInvoice</span>
+            <span className="display text-[24px] tracking-tight">Tra<span className="ml-1.5 font-sans text-[15px] text-amber">ตรา</span></span>
             <span className="hidden text-xs text-amber sm:inline">ใบกำกับภาษี · Thai tax invoicing</span>
           </div>
           <div className="flex items-center gap-3">
@@ -55,7 +55,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
       <footer className="relative overflow-hidden bg-cobalt-deep text-white/85">
         <Microprint color="#ffffff" opacity={0.35} className="px-4 py-0.5 md:px-6" text="REVENUE CODE S.86/4 · เก็บรักษาต้นฉบับอิเล็กทรอนิกส์ 5 ปี · " />
-        <div className="px-4 py-3 text-xs md:px-6">PersonalInvoice · Documents follow Revenue Code s.86/4 · Keep electronic originals 5 years</div>
+        <div className="px-4 py-3 text-xs md:px-6">Tra · tra.in.th · Documents follow Revenue Code s.86/4 · Keep electronic originals 5 years</div>
       </footer>
     </div>
   );

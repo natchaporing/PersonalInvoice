@@ -6,7 +6,7 @@ import { formatTHB } from "@/lib/thai/money";
 import { formatDateEN, formatDateTH } from "@/lib/thai/thai-date";
 import { HashCheck } from "./hash-check";
 
-export const metadata = { title: "Verify document · PersonalInvoice", robots: { index: false } };
+export const metadata = { title: "Verify document · Tra", robots: { index: false } };
 
 export default async function Verify({ params }: PageProps<"/verify/[code]">) {
   const { code } = await params;
@@ -20,7 +20,7 @@ export default async function Verify({ params }: PageProps<"/verify/[code]">) {
         <GuillocheBackground tone="white" opacity={0.16} />
         <div className="relative flex items-center gap-3">
           <LogoMark size={42} title="" />
-          <span className="display text-[22px]">PersonalInvoice</span>
+          <span className="display text-[24px] tracking-tight">Tra<span className="ml-1.5 font-sans text-[15px] text-amber">ตรา</span></span>
           <span className="text-xs text-amber">ตรวจสอบเอกสาร · Document verification</span>
         </div>
       </header>

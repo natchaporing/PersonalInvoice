@@ -36,7 +36,7 @@ export async function signPdf(pdf: Uint8Array, identity: SigningIdentity, detail
     location: details.location,
     signingTime: details.signingTime,
     subFilter: SUBFILTER_ETSI_CADES_DETACHED,
-    appName: "PersonalInvoice",
+    appName: "Tra (tra.in.th)",
   });
   const withPlaceholder = await doc.save({ useObjectStreams: false });
   const signer = new P12Signer(identity.p12, { passphrase: identity.passphrase });

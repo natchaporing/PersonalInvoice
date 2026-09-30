@@ -11,7 +11,7 @@ const serifTh = Noto_Serif_Thai({ variable: "--font-serif-th", subsets: ["thai"]
 const mono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"], weight: ["400", "500"] });
 
 export const metadata: Metadata = {
-  title: "PersonalInvoice",
+  title: "Tra · ตรา",
   description: "Thai invoice and tax-document backoffice",
 };
 

@@ -74,7 +74,7 @@ export function GuillocheBand({
 
 /** One line of tiny repeated text, like the microprint on currency. */
 export function Microprint({
-  text = "PERSONALINVOICE · ใบกำกับภาษี · TAX INVOICE · ",
+  text = "TRA · ตรา · ใบกำกับภาษี · TAX INVOICE · ",
   color = PALETTE_COLOR.brand,
   opacity = 0.75,
   size = 5,

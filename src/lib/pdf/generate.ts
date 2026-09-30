@@ -44,7 +44,7 @@ export async function generateSignedPdf(
   const people = (doc.signers_snapshot ?? {}) as { signer?: { name_th?: string; name_en?: string } | null; approver?: { name_th?: string; name_en?: string } | null };
   // The PDF signature dictionary holds plain 8-bit text, so use the English name when the Thai one would be garbled.
   const latin = (p?: { name_th?: string; name_en?: string } | null) => (p?.name_en || (p?.name_th && /^[\x20-\xFF]+$/.test(p.name_th) ? p.name_th : undefined)) ?? undefined;
-  const signerName = latin(people.signer) ?? latin(seller) ?? "PersonalInvoice";
+  const signerName = latin(people.signer) ?? latin(seller) ?? "Tra";
   const approverName = latin(people.approver);
   const pdf = await renderDocumentPdf(documentId);
   const signed = await signPdf(pdf, identity, {

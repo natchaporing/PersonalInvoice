@@ -5,7 +5,7 @@ import { PalettePicker } from "@/components/palette-picker";
 import { DEFAULT_PALETTE, isPalette, PALETTE_COOKIE } from "@/lib/palettes";
 import { LoginForm } from "./login-form";
 
-export const metadata = { title: "Sign in · PersonalInvoice" };
+export const metadata = { title: "Sign in · Tra" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <div className="relative flex items-center justify-between">
           <span className="flex items-center gap-3">
             <LogoMark size={42} title="" />
-            <span className="display text-[22px]">PersonalInvoice</span>
+            <span className="display text-[24px] tracking-tight">Tra<span className="ml-1.5 font-sans text-[15px] text-amber">ตรา</span></span>
           </span>
           <PalettePicker initial={isPalette(saved) ? saved : DEFAULT_PALETTE} />
         </div>
