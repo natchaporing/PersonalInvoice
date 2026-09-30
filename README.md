@@ -76,5 +76,7 @@ buy a certificate from a Thai CA and put it in the same two variables.
 
 ## Not built (yet)
 
+Official Revenue Department e-Tax submission is planned: see [docs/PHASE2-ETAX.md](docs/PHASE2-ETAX.md).
+
 Multi-user/multi-company, e-Tax Invoice by Email, recurring invoices, email sending, payment
 gateway links, input-VAT tracking, annual PND 90/91 report.
