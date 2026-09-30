@@ -135,6 +135,57 @@ export type Database = {
         }
         Relationships: []
       }
+      commissions: {
+        Row: {
+          amount: number
+          basis: string
+          created_at: string
+          id: string
+          note: string | null
+          owner_id: string
+          paid_on: string | null
+          paid_reference: string | null
+          payee_account: string | null
+          payee_name: string
+          quotation_id: string
+          rate_bps: number | null
+          wht: number
+          wht_bps: number
+        }
+        Insert: {
+          amount: number
+          basis: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          owner_id?: string
+          paid_on?: string | null
+          paid_reference?: string | null
+          payee_account?: string | null
+          payee_name: string
+          quotation_id: string
+          rate_bps?: number | null
+          wht?: number
+          wht_bps?: number
+        }
+        Update: {
+          amount?: number
+          basis?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          owner_id?: string
+          paid_on?: string | null
+          paid_reference?: string | null
+          payee_account?: string | null
+          payee_name?: string
+          quotation_id?: string
+          rate_bps?: number | null
+          wht?: number
+          wht_bps?: number
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           postcode: string | null
@@ -262,6 +313,9 @@ export type Database = {
       }
       documents: {
         Row: {
+          installment_id: string | null
+          quotation_id: string | null
+          source_document_id: string | null
           etax_error: string | null
           etax_generated_at: string | null
           etax_pdf_path: string | null
@@ -308,6 +362,9 @@ export type Database = {
           wht_bps: number
         }
         Insert: {
+          installment_id?: string | null
+          quotation_id?: string | null
+          source_document_id?: string | null
           etax_error?: string | null
           etax_generated_at?: string | null
           etax_pdf_path?: string | null
@@ -354,6 +411,9 @@ export type Database = {
           wht_bps?: number
         }
         Update: {
+          installment_id?: string | null
+          quotation_id?: string | null
+          source_document_id?: string | null
           etax_error?: string | null
           etax_generated_at?: string | null
           etax_pdf_path?: string | null
@@ -415,6 +475,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      installments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          label: string
+          owner_id: string
+          pct_bps: number
+          position: number
+          quotation_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          label: string
+          owner_id?: string
+          pct_bps: number
+          position: number
+          quotation_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          label?: string
+          owner_id?: string
+          pct_bps?: number
+          position?: number
+          quotation_id?: string
+        }
+        Relationships: []
       }
       items: {
         Row: {

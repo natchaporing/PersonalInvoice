@@ -8,12 +8,15 @@ import { PreviewFrame } from "@/components/preview-frame";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocumentBundle, getProfile, paidAmount } from "@/lib/data/documents";
 import { DOC_TYPE_LABEL, isAdjustment, isOverdue, isPayable, isTaxDocument, todayBangkok } from "@/lib/domain/documents";
+import { installmentStage } from "@/lib/domain/installments";
 import { prepareEtaxInput } from "@/lib/etax/prepare";
 import { isEtaxDocType } from "@/lib/etax/xml";
 import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 import { DocumentActions } from "./document-actions";
+import { CommissionPanel } from "./commission-panel";
 import { EtaxPanel } from "./etax-panel";
+import { type InstallmentRow, InstallmentsPanel } from "./installments-panel";
 import { type CertRow, type PaymentRow, PaymentsPanel, WhtPanel } from "./panels";
 
 export default async function DocumentPage({ params }: PageProps<"/documents/[id]">) {
@@ -46,6 +49,27 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
   const paid = paidAmount(payments);
   const { data: adjustments } = await supabase.from("documents").select("id, number, doc_type, status, total").eq("ref_document_id", id);
 
+  // Installments and commission (quotations), and the links between quotation, invoice and receipt.
+  const isQuotation = doc.doc_type === "quotation";
+  const [plan, linked, commissions, receipts, parent, instInfo] = await Promise.all([
+    isQuotation ? supabase.from("installments").select("*").eq("quotation_id", id).order("position") : Promise.resolve({ data: null }),
+    isQuotation ? supabase.from("documents").select("id, doc_type, status, number, total, installment_id").eq("quotation_id", id) : Promise.resolve({ data: null }),
+    isQuotation ? supabase.from("commissions").select("*").eq("quotation_id", id).order("created_at") : Promise.resolve({ data: null }),
+    doc.doc_type === "invoice" ? supabase.from("documents").select("id, number, status").eq("source_document_id", id).neq("status", "void") : Promise.resolve({ data: null }),
+    doc.quotation_id || doc.source_document_id
+      ? supabase.from("documents").select("id, number, doc_type").in("id", [doc.quotation_id, doc.source_document_id].filter((x): x is string => !!x))
+      : Promise.resolve({ data: null }),
+    doc.installment_id ? supabase.from("installments").select("position, label, pct_bps, quotation_id").eq("id", doc.installment_id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const installmentRows: InstallmentRow[] = (plan.data ?? []).map((p) => {
+    const st = installmentStage(p.id, linked.data ?? []);
+    return { id: p.id, position: p.position, label: p.label, pctBps: p.pct_bps, amount: p.amount, stage: st.stage, invoice: st.invoice, receipt: st.receipt };
+  });
+  const planLocked = (linked.data ?? []).some((d) => d.status !== "void");
+  const quotationDoc = parent.data?.find((d) => d.id === doc.quotation_id);
+  const sourceDoc = parent.data?.find((d) => d.id === doc.source_document_id);
+  const receipt = receipts.data?.[0];
+
   return (
     <>
       <PageHeader
@@ -64,6 +88,7 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
             pdfUrl={pdfUrl}
             canAdjust={isTaxDocument(doc.doc_type) && !isAdjustment(doc.doc_type)}
             hasPayments={payments.length > 0}
+            receipt={doc.doc_type === "invoice" && (doc.status === "issued" || doc.status === "paid") ? receipt ?? null : undefined}
           />
 
           <Card>
@@ -79,6 +104,11 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
                 {isPayable(doc.doc_type) && (<><dt className="text-muted-foreground">Net receivable</dt><dd className="num font-semibold text-cobalt">฿{formatTHB(doc.net_receivable)}</dd></>)}
                 {ref && (<><dt className="text-muted-foreground">Adjusts</dt><dd><Link href={`/documents/${ref.id}`} className="text-cobalt underline"><SerialNumber value={ref.number ?? "—"} /></Link></dd></>)}
                 {doc.reason && (<><dt className="text-muted-foreground">Reason</dt><dd>{doc.reason}</dd></>)}
+                {quotationDoc && (
+                  <><dt className="text-muted-foreground">Quotation</dt><dd><Link href={`/documents/${quotationDoc.id}`} className="text-cobalt underline">{quotationDoc.number}</Link>{instInfo.data && ` · installment ${instInfo.data.position} · ${instInfo.data.label}`}</dd></>
+                )}
+                {sourceDoc && (<><dt className="text-muted-foreground">Settles invoice</dt><dd><Link href={`/documents/${sourceDoc.id}`} className="text-cobalt underline">{sourceDoc.number}</Link></dd></>)}
+                {receipt && (<><dt className="text-muted-foreground">Receipt / tax invoice</dt><dd><Link href={`/documents/${receipt.id}`} className="text-cobalt underline">{receipt.number ?? "Draft"}</Link></dd></>)}
                 {doc.pdf_sha256 && (<><dt className="text-muted-foreground">PDF SHA-256</dt><dd className="num break-all text-[12px]">{doc.pdf_sha256}</dd></>)}
                 {doc.verify_code && (<><dt className="text-muted-foreground">Verification</dt><dd><Link href={`/verify/${doc.verify_code}`} className="text-cobalt underline">/verify/{doc.verify_code}</Link></dd></>)}
               </dl>
@@ -96,6 +126,12 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
             </CardContent>
           </Card>
 
+          {isQuotation && doc.status !== "draft" && doc.status !== "void" && (
+            <InstallmentsPanel quotationId={id} taxable={doc.taxable} rows={installmentRows} locked={planLocked} />
+          )}
+          {isQuotation && doc.status !== "void" && (
+            <CommissionPanel quotationId={id} taxable={doc.taxable} rows={commissions.data ?? []} today={today} />
+          )}
           {showEtax && (
             <EtaxPanel
               id={id}

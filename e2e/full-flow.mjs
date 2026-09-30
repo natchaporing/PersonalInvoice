@@ -413,6 +413,55 @@ try {
   // The QR encodes the verify link: it must open the public verification page
   log("quotation issued and signed with signer + approver, QR present", qNumber);
 
+  // 18c. Installments 50/50 on the quotation: invoice for installment 1 → paid → receipt/tax invoice
+  const qUrl = page.url();
+  await page.getByRole("button", { name: "50 / 50" }).click();
+  await page.getByRole("button", { name: "Save plan" }).click();
+  await page.getByText("Installment plan saved.").waitFor();
+  await page.getByText("Not billed").first().waitFor();
+  await page.getByRole("button", { name: "Create invoice" }).first().click();
+  await page.waitForURL((u) => /\/documents\/[0-9a-f-]{36}$/.test(u.pathname) && u.href !== qUrl);
+  // 50% of 37,000 before VAT = 18,000 at 7% + 500 at 0%; VAT 1,260; total 19,760; WHT 3% of 18,500 = 555
+  for (const t of ["18,500.00", "1,260.00", "19,760.00", "555.00"]) await page.getByText(t, { exact: false }).first().waitFor();
+  if (!/งวดที่ 1\/2/.test(await page.locator("body").innerText())) fail("installment invoice should say which installment it is");
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: /Issue & sign/ }).click();
+  await page.getByText(/Issued and signed\.|Issued\. The signed PDF/).waitFor({ timeout: 60_000 });
+  await page.reload();
+  const instInv = (await page.locator("h1").textContent())?.trim();
+  if (!/^INV\d{4}-0001$/.test(instInv ?? "")) fail(`unexpected installment invoice number ${instInv}`);
+  await page.getByLabel("Amount (THB)", { exact: true }).fill("19205");
+  await page.getByRole("button", { name: "Record payment" }).click();
+  await page.getByText(/document is now paid/).waitFor();
+  await page.getByRole("button", { name: "Receipt / tax invoice" }).click();
+  await page.waitForURL((u) => !u.href.endsWith(instInv ?? "x"));
+  await page.getByText(`Paid against invoice ${instInv}`).first().waitFor();
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: /Issue & sign/ }).click();
+  await page.getByText(/Issued and signed\.|Issued\. The signed PDF/).waitFor({ timeout: 60_000 });
+  await page.reload();
+  const rtx = (await page.locator("h1").textContent())?.trim();
+  if (!/^RTX\d{4}-0001$/.test(rtx ?? "")) fail(`unexpected receipt/tax invoice number ${rtx}`);
+  await page.goto(qUrl);
+  await page.getByText("Receipted", { exact: true }).waitFor();
+  await page.getByText("Not billed", { exact: true }).waitFor();
+  if ((await page.getByRole("button", { name: "Change plan" }).count()) !== 0) fail("plan should lock once installments are billed");
+  log("installments: 50/50 plan, invoice → paid → receipt/tax invoice", instInv, rtx);
+
+  // 18d. Commission on the quotation: recorded and transferred, never printed
+  await page.getByLabel("Payee", { exact: true }).fill("คุณแนะนำ ลูกค้า");
+  await page.getByLabel("Rate (%)").fill("10");
+  await page.getByLabel("Withhold when paying").selectOption("300");
+  await page.getByText("฿3,589.00").waitFor(); // 10% of 37,000 = 3,700 − 3% = 3,589
+  await page.getByRole("button", { name: "Record commission" }).click();
+  await page.getByText("คุณแนะนำ ลูกค้า").first().waitFor();
+  await page.getByRole("button", { name: "Mark transferred" }).click();
+  await page.getByText(/^Transferred \d{4}-\d{2}-\d{2}/).waitFor();
+  const printed = await (await ctx.request.get(`${BASE}/print/documents/${qUrl.split("/").pop()}`)).text();
+  if (printed.includes("คุณแนะนำ") || /commission/i.test(printed)) fail("commission must not appear on the printed quotation");
+  await shot("11-quotation-installments-commission");
+  log("commission recorded, marked transferred, not on the document");
+
   // 19. Row-level security: a second user cannot see the first user's document or PDF
   const other = await browser.newContext();
   const op = await other.newPage();
