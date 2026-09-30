@@ -414,7 +414,7 @@ export function DocumentEditor({
       </form>
 
       <aside aria-label="Live document preview" className="xl:sticky xl:top-6 xl:self-start">
-        <h2 className="display mb-2 text-xl text-cobalt">Preview</h2>
+        <h2 className="display -mb-8 text-xl text-cobalt">Preview</h2>
         <PreviewFrame width={A4.width} height={A4.height} title="Live document preview">
           <InvoiceDocument doc={view} idPrefix="editor" />
         </PreviewFrame>

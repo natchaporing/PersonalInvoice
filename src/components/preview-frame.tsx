@@ -30,7 +30,7 @@ export function PreviewFrame({ width, height, title = "Document preview", childr
       role={full ? "dialog" : undefined}
       aria-modal={full || undefined}
       aria-label={full ? title : undefined}
-      className={cn(full ? "fixed inset-0 z-50 overflow-y-auto bg-neutral-900/85 px-3 pt-14 pb-8 backdrop-blur-sm sm:px-8" : "relative")}
+      className={cn(full ? "fixed inset-0 z-50 overflow-y-auto bg-neutral-900/85 px-3 pt-14 pb-8 backdrop-blur-sm sm:px-8" : "flex flex-col")}
       onClick={full ? (e) => e.target === e.currentTarget && setFull(false) : undefined}
     >
       <button
@@ -39,7 +39,7 @@ export function PreviewFrame({ width, height, title = "Document preview", childr
         aria-label={full ? "Close full screen" : "View full screen"}
         className={cn(
           "z-10 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm",
-          full ? "fixed top-3 right-3 border-white/30 bg-white text-foreground hover:bg-secondary sm:right-6" : "absolute top-2 right-2 bg-white/90 text-foreground hover:bg-white",
+          full ? "fixed top-3 right-3 border-white/30 bg-white text-foreground hover:bg-secondary sm:right-6" : "mb-2 ml-auto flex bg-card text-foreground hover:bg-secondary",
         )}
       >
         {full ? <X className="size-3.5" aria-hidden /> : <Maximize2 className="size-3.5" aria-hidden />}
