@@ -189,6 +189,16 @@ try {
   await page.getByLabel("Unit price (THB)").nth(1).fill("500");
   await page.getByLabel("Customer withholds").selectOption("300");
   await shot("03-editor");
+  // Full-screen preview: opens over the page, keeps updating live, closes with Esc
+  await page.getByRole("button", { name: "View full screen" }).click();
+  const dialog = page.getByRole("dialog", { name: "Live document preview" });
+  await dialog.waitFor();
+  const box = await dialog.locator("[data-slot=preview-page]").boundingBox();
+  if (!box || box.width < 900) fail(`full-screen preview should be large, got ${box?.width}`);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/03c-fullscreen.png` });
+  await page.keyboard.press("Escape");
+  await dialog.waitFor({ state: "detached" });
+  log("full-screen preview opens and closes");
   await page.getByRole("button", { name: "Save as draft" }).click();
   await page.waitForURL(/\/documents\/[0-9a-f-]{36}$/);
   const docUrl = page.url();

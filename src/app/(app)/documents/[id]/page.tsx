@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PageHeader, StatusBadge } from "@/components/app-ui";
 import { SerialNumber } from "@/components/banknote";
 import { A4, InvoiceDocument } from "@/components/invoice-document";
-import { ScaledPage } from "@/components/scaled-page";
+import { PreviewFrame } from "@/components/preview-frame";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocumentBundle, getProfile, paidAmount } from "@/lib/data/documents";
 import { DOC_TYPE_LABEL, isAdjustment, isOverdue, isPayable, isTaxDocument, todayBangkok } from "@/lib/domain/documents";
@@ -116,11 +116,9 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
         </div>
 
         <aside aria-label="Document" className="xl:sticky xl:top-6 xl:self-start">
-          <div className="overflow-hidden rounded-md border bg-white shadow-[0_1px_0_var(--border),0_14px_34px_-18px_rgb(26_37_54/0.4)]">
-            <ScaledPage width={A4.width} height={A4.height}>
-              <InvoiceDocument doc={view} idPrefix="detail" verifyBaseUrl={process.env.APP_URL} />
-            </ScaledPage>
-          </div>
+          <PreviewFrame width={A4.width} height={A4.height} title={doc.number ?? "Draft preview"}>
+            <InvoiceDocument doc={view} idPrefix="detail" verifyBaseUrl={process.env.APP_URL} />
+          </PreviewFrame>
         </aside>
       </div>
     </>

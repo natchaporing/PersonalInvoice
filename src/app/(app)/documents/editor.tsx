@@ -6,7 +6,7 @@ import { useMemo, useState, useTransition } from "react";
 import { GuillocheBackground, Microprint } from "@/components/banknote";
 import { A4, InvoiceDocument } from "@/components/invoice-document";
 import { Field, FormMessage } from "@/components/form";
-import { ScaledPage } from "@/components/scaled-page";
+import { PreviewFrame } from "@/components/preview-frame";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
@@ -415,11 +415,9 @@ export function DocumentEditor({
 
       <aside aria-label="Live document preview" className="xl:sticky xl:top-6 xl:self-start">
         <h2 className="display mb-2 text-xl text-cobalt">Preview</h2>
-        <div className="overflow-hidden rounded-md border bg-white shadow-[0_1px_0_var(--border),0_14px_34px_-18px_rgb(26_37_54/0.4)]">
-          <ScaledPage width={A4.width} height={A4.height}>
-            <InvoiceDocument doc={view} idPrefix="editor" />
-          </ScaledPage>
-        </div>
+        <PreviewFrame width={A4.width} height={A4.height} title="Live document preview">
+          <InvoiceDocument doc={view} idPrefix="editor" />
+        </PreviewFrame>
       </aside>
     </div>
   );
