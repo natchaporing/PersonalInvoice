@@ -52,35 +52,33 @@ const marks = [
   { n: "C · Leaf with a coin stem", m: m3, d: "A sprout with a coin at its base: growth from small amounts. The most distinctive and least like other finance logos." },
 ];
 
-const wordmarks = (c: string, thai: string) => [
-  `<div class="wm"><span style="font:600 40px ${SERIF};color:${c}">Bai Satang</span></div>`,
-  `<div class="wm"><span style="font:600 38px ${SERIF};color:${c}">bai</span><span style="font:600 38px ${SERIF};color:${thai}">satang</span></div>`,
-  `<div class="wm col"><span style="font:600 36px ${SANS};color:${c}">ใบสตางค์</span><span style="font:500 13px ${SANS};letter-spacing:.28em;color:${thai};text-transform:uppercase">Bai Satang</span></div>`,
-];
+const bai = (c: string, thai: string) => `<div class="wm"><span style="font:600 44px ${SERIF};color:${c}">bai</span><span style="font:500 30px ${SANS};color:${thai};margin-left:10px">ใบ</span></div>`;
+const satang = (c: string) => `<div class="wm"><span style="font:600 42px ${SERIF};color:${c}">Satang</span></div>`;
 
 const section = (k: (typeof marks)[number]) => `
 <section class="card"><h2>${k.n}</h2>
   <div class="row">
-    <div class="tile" style="background:#fff"><div class="lockup"><div class="mark">${k.m}</div>${wordmarks(C.cobalt, C.amber)[0]}</div></div>
-    <div class="tile" style="background:${C.deep}"><div class="lockup"><div class="mark">${k.m}</div>${wordmarks("#fff", C.amber)[1]}</div></div>
-    <div class="tile" style="background:#fff"><div class="lockup"><div class="mark">${k.m}</div>${wordmarks(C.cobalt, C.amber)[2]}</div></div>
+    <div class="tile" style="background:#fff"><div class="lockup"><div class="mark">${k.m}</div>${bai(C.cobalt, C.amber)}</div></div>
+    <div class="tile" style="background:${C.deep}"><div class="lockup"><div class="mark">${k.m}</div>${bai("#fff", C.amber)}</div></div>
+    <div class="tile" style="background:#fff"><div class="lockup"><div class="mark">${k.m}</div>${satang(C.cobalt)}</div></div>
+    <div class="tile" style="background:${C.deep}"><div class="lockup"><div class="mark">${k.m}</div>${satang("#fff")}</div></div>
     <div class="tile small" style="background:${C.pearl}"><div class="mark s">${k.m}</div><div class="mark xs">${k.m}</div></div>
   </div><p>${k.d}</p></section>`;
 
 writeFileSync(
   new URL("./bai-satang.html", import.meta.url),
-  `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bai Satang</title>
+  `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bai + Satang</title>
 <style>
   body{margin:0;background:${C.pearl};color:${C.ink};font:15px/1.5 ${SANS};padding:32px 24px}
   h1{font:600 30px ${SERIF};margin:0 0 4px} h1 small{font:500 24px ${SANS};color:${C.cobalt}} .lead{margin:0 0 26px;color:#4b5666;max-width:64ch}
   .card{max-width:1120px;margin:0 auto 30px} h2{font:600 20px ${SERIF};margin:0 0 10px}
-  .row{display:grid;grid-template-columns:1.3fr 1.3fr 1.2fr .5fr;gap:12px} .tile{border:1px solid #dfe3ea;border-radius:12px;min-height:140px;display:flex;align-items:center;justify-content:center;padding:14px}
+  .row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr .4fr;gap:12px} .tile{border:1px solid #dfe3ea;border-radius:12px;min-height:140px;display:flex;align-items:center;justify-content:center;padding:14px}
   .lockup{display:flex;align-items:center;gap:12px} .mark{width:76px;height:76px;flex:none} .tile.small{gap:14px;flex-direction:column} .mark.s{width:44px;height:44px} .mark.xs{width:24px;height:24px}
   .mark svg{width:100%;height:100%;display:block} .wm.col{display:flex;flex-direction:column;gap:2px} p{margin:8px 0 0;max-width:72ch;color:#3a4657}
   @media (max-width:860px){.row{grid-template-columns:1fr}}
 </style>
-<h1>Bai Satang <small>ใบสตางค์</small></h1>
-<p class="lead">ใบ is the sheet (every Thai business document) and the leaf; สตางค์ is the smallest unit of money. Together: a document accurate to the last satang. Three marks that merge the leaf and the coin, each with three ways to write the name.</p>
+<h1>Bai + Satang, one mark</h1>
+<p class="lead">The two concepts merged in one symbol (the leaf/sheet from Bai, the coin from Satang), shown with either name. Pick a mark and a name independently.</p>
 ${marks.map(section).join("")}
 </html>`,
 );
