@@ -4,7 +4,8 @@ import { Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { GuillocheBackground, Microprint } from "@/components/banknote";
-import { A4, InvoiceDocument } from "@/components/invoice-document";
+import { A4 } from "@/components/invoice-document";
+import { InvoiceModern } from "@/components/invoice-modern";
 import { Field, FormMessage } from "@/components/form";
 import { PreviewFrame } from "@/components/preview-frame";
 import { Button } from "@/components/ui/button";
@@ -416,7 +417,7 @@ export function DocumentEditor({
       <aside aria-label="Live document preview" className="xl:sticky xl:top-6 xl:self-start">
         <h2 className="display -mb-8 text-xl text-cobalt">Preview</h2>
         <PreviewFrame width={A4.width} height={A4.height} title="Live document preview">
-          <InvoiceDocument doc={view} idPrefix="editor" />
+          <InvoiceModern doc={view} />
         </PreviewFrame>
       </aside>
     </div>

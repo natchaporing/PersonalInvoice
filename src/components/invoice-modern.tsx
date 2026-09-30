@@ -8,7 +8,8 @@ import { computeTotals, formatTHB, lineNet } from "@/lib/thai/money";
 import { formatDateEN, formatDateTH } from "@/lib/thai/thai-date";
 import { cn } from "@/lib/utils";
 
-// Draft "modern" document styles, shown side by side at /preview/styles before one replaces the Banknote layout.
+// Document layout used for previews, the print view and signed PDFs ("clean"). /preview/styles compares the variants
+// and the earlier Banknote layout (InvoiceDocument).
 // Same data as InvoiceDocument (DocumentView), same A4 size, colours from the active palette.
 
 export type ModernVariant = "clean" | "band" | "mono";
@@ -234,6 +235,9 @@ export function InvoiceModern({ doc, variant = "clean", verifyBaseUrl }: { doc: 
               {t.vatGroups.filter((g) => g.bps > 0).map((g) => (
                 <Row key={g.bps} k={`${pair("ภาษีมูลค่าเพิ่ม", "VAT", sub)} ${g.bps / 100}%`} v={formatTHB(g.vat)} />
               ))}
+              {t.vatGroups.length > 1 && t.vatGroups.some((g) => g.bps === 0) && (
+                <Row k={pair("ยอด 0% / ยกเว้นภาษี", "0% / exempt", sub)} v={formatTHB(t.vatGroups.find((g) => g.bps === 0)!.taxable)} />
+              )}
             </dl>
             <div className="mt-3 border-t-2 pt-3" style={{ borderColor: INK }}>
               <div className="flex items-baseline justify-between">

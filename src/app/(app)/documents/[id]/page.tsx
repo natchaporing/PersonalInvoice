@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageHeader, StatusBadge } from "@/components/app-ui";
 import { SerialNumber } from "@/components/banknote";
-import { A4, InvoiceDocument } from "@/components/invoice-document";
+import { A4 } from "@/components/invoice-document";
+import { InvoiceModern } from "@/components/invoice-modern";
 import { PreviewFrame } from "@/components/preview-frame";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocumentBundle, getProfile, paidAmount } from "@/lib/data/documents";
@@ -117,7 +118,7 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
 
         <aside aria-label="Document" className="xl:sticky xl:top-6 xl:self-start">
           <PreviewFrame width={A4.width} height={A4.height} title={doc.number ?? "Draft preview"}>
-            <InvoiceDocument doc={view} idPrefix="detail" verifyBaseUrl={process.env.APP_URL} />
+            <InvoiceModern doc={view} verifyBaseUrl={process.env.APP_URL} />
           </PreviewFrame>
         </aside>
       </div>
