@@ -131,21 +131,39 @@ try {
   await shot("02-settings");
   log("profile saved");
 
-  // 3b. Signatories: a signer with a signature image and an approver without one
+  // 3b. Signatories: the signer draws a signature on the pad; the approver uploads an image
   const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAADwAAAAUCAYAAADRA14pAAAAdElEQVR4nO2Vuw3AIBBDmYM+K2T/zUiXBoVPYh8O8pNofX46ASkZY0yHfJzl6azuBqclu5X4qOgW0jMikdKU/LcCbOk7GzUEsSnGtqtMxABkUXrW1wEhW2FkKN87Wi/Vl5XaS/HvpP/pSrJhvZRE/9DLmEVcBB8FoPSoI7cAAAAASUVORK5CYII=", "base64");
+  /** Draws a wavy stroke across a signature pad canvas with the mouse. */
+  const scribble = async (canvas) => {
+    await canvas.scrollIntoViewIfNeeded();
+    const box = await canvas.boundingBox();
+    await page.mouse.move(box.x + box.width * 0.15, box.y + box.height * 0.6);
+    await page.mouse.down();
+    for (let i = 1; i <= 24; i++) await page.mouse.move(box.x + box.width * (0.15 + i * 0.03), box.y + box.height * (0.6 - 0.25 * Math.sin(i / 2.5)));
+    await page.mouse.up();
+  };
   await page.getByLabel("Name (Thai)").last().fill("ณัฐชา ผู้ออกเอกสาร");
   await page.getByLabel("Name (English)").last().fill("Natcha Issuer");
   await page.getByLabel("Title (English)").fill("Owner");
-  await page.getByLabel("Signature image").setInputFiles({ name: "sig.png", mimeType: "image/png", buffer: PNG });
+  await scribble(page.getByRole("img", { name: "Draw your signature" }));
+  await page.waitForFunction(() => document.querySelector('input[name="signature_drawn"]')?.value.startsWith("data:image/png;base64,"), null, { timeout: 5000 }).catch(() => fail("drawing should produce a PNG"));
   await page.getByRole("button", { name: "Add signatory" }).click();
-  await page.getByText("Signatory added.").waitFor();
+  await page.getByRole("img", { name: /Signature of ณัฐชา/ }).waitFor();
   await page.getByLabel("Name (Thai)").last().fill("สมชาย ผู้อนุมัติ");
   await page.getByLabel("Name (English)").last().fill("Somchai Approver");
   await page.getByLabel("Title (English)").fill("Manager");
+  await page.getByRole("button", { name: "Upload image" }).click();
+  await page.getByLabel("Signature image").setInputFiles({ name: "sig.png", mimeType: "image/png", buffer: PNG });
   await page.getByRole("button", { name: "Add signatory" }).click();
-  await page.getByRole("img", { name: /Signature of ณัฐชา/ }).waitFor();
-  await page.getByText("สมชาย ผู้อนุมัติ").first().waitFor();
-  log("signatories added (one with a signature image)");
+  await page.getByRole("img", { name: /Signature of สมชาย/ }).waitFor();
+  // Redraw an existing signature
+  const before = await page.getByRole("img", { name: /Signature of สมชาย/ }).getAttribute("src");
+  await page.getByRole("button", { name: "Redraw signature" }).nth(1).click();
+  await scribble(page.getByRole("img", { name: "Signature of สมชาย ผู้อนุมัติ" }).and(page.locator("canvas")));
+  await page.getByRole("button", { name: "Save signature" }).click();
+  await page.getByText("Signature updated.").waitFor();
+  await page.waitForFunction((b) => document.querySelector('img[alt^="Signature of สมชาย"]')?.getAttribute("src") !== b, before);
+  log("signatories: drawn, uploaded and redrawn signatures saved");
 
   // 4. Validation: bad tax ID on a customer is rejected
   await page.goto(`${BASE}/customers/new`);

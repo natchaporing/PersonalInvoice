@@ -14,15 +14,28 @@ const Signatory = z.object({
   title_en: optText(200),
 });
 
+/** A PNG drawn on the signature pad, as a data URL. Checked to really be a PNG and small enough to store. */
+function drawnSignature(value: FormDataEntryValue | null): { png: string | null; error?: string } {
+  if (typeof value !== "string" || !value) return { png: null };
+  const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(value);
+  if (!m) return { png: null, error: "The drawn signature could not be read. Clear it and draw again." };
+  const bytes = Buffer.from(m[1], "base64");
+  if (bytes.length > MAX_IMAGE) return { png: null, error: "The drawn signature is too large. Clear it and draw again." };
+  if (bytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") return { png: null, error: "The drawn signature is not a PNG image." };
+  return { png: value };
+}
+
 /** Add a person who can sign or approve documents. The signature image is stored as a small data URL. */
 export async function addSignatory(_: FormState, form: FormData): Promise<FormState> {
   const { supabase } = await requireUser();
   const parsed = Signatory.safeParse(formObject(form));
   if (!parsed.success) return invalid(form, parsed.error.issues);
 
-  let signature_image: string | null = null;
+  const drawn = drawnSignature(form.get("signature_drawn"));
+  if (drawn.error) return { error: drawn.error, values: submitted(form) };
+  let signature_image: string | null = drawn.png;
   const file = form.get("signature");
-  if (file instanceof File && file.size > 0) {
+  if (!signature_image && file instanceof File && file.size > 0) {
     if (file.type !== "image/png" && file.type !== "image/jpeg") return { error: "Signature must be a PNG or JPEG image.", values: submitted(form) };
     if (file.size > MAX_IMAGE) return { error: "Signature image is larger than 250 KB. Use a smaller image.", values: submitted(form) };
     signature_image = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
@@ -32,6 +45,17 @@ export async function addSignatory(_: FormState, form: FormData): Promise<FormSt
   if (error) return { error: error.message, values: submitted(form) };
   revalidatePath("/settings");
   return { message: "Signatory added." };
+}
+
+/** Replace a signatory's signature with a newly drawn one. Documents already issued keep the old one. */
+export async function updateSignature(id: string, png: string): Promise<FormState> {
+  const { supabase } = await requireUser();
+  const drawn = drawnSignature(png);
+  if (drawn.error || !drawn.png) return { error: drawn.error ?? "Draw a signature first." };
+  const { error } = await supabase.from("signatories").update({ signature_image: drawn.png }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/settings");
+  return { message: "Signature updated." };
 }
 
 /** Remove a signatory. Documents already issued keep their frozen copy; drafts fall back to a blank line. */
