@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, Undo2 } from "lucide-react";
+import { ChevronDown, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { Field, FormMessage, SubmitButton } from "@/components/form";
@@ -11,6 +11,7 @@ import type { FormState } from "@/lib/domain/forms";
 import { commissionFigures } from "@/lib/domain/installments";
 import type { Tables } from "@/lib/supabase/database.types";
 import { formatTHB, thbToSatang } from "@/lib/thai/money";
+import { cn } from "@/lib/utils";
 import { addCommission, deleteCommission, markCommissionPaid, undoCommissionPaid } from "../installment-actions";
 
 const WHT = [
@@ -37,8 +38,12 @@ function PaidForm({ id, today }: { id: string; today: string }) {
   );
 }
 
-/** Commission owed on a quotation: internal bookkeeping only, never printed on any document. */
-export function CommissionPanel({ quotationId, taxable, rows, today, payees }: { quotationId: string; taxable: number; rows: Tables<"commissions">[]; today: string; payees: Tables<"commission_payees">[] }) {
+/**
+ * Commission owed on a quotation: internal bookkeeping only, never printed on any document.
+ * Collapsed by default so it stays out of the way; the header still shows what is left to transfer.
+ */
+export function CommissionPanel({ quotationId, taxable, rows, today, payees, defaultOpen = false }: { quotationId: string; taxable: number; rows: Tables<"commissions">[]; today: string; payees: Tables<"commission_payees">[]; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [msg, setMsg] = useState<FormState>({});
   const [pending, start] = useTransition();
   const owed = rows.filter((r) => !r.paid_on).reduce((s, r) => s + r.amount - r.wht, 0);
@@ -48,12 +53,23 @@ export function CommissionPanel({ quotationId, taxable, rows, today, payees }: {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Commission · ค่านายหน้า</CardTitle>
-        <CardDescription>
-          For your records only. Nothing here appears on the quotation, invoices or PDFs. Transfer it yourself, then mark it transferred.
-        </CardDescription>
+        <CardTitle>
+          <button type="button" aria-expanded={open} aria-controls="commission-body" onClick={() => setOpen((o) => !o)}
+            className="-mx-1 flex w-full items-center justify-between gap-3 rounded px-1 text-left hover:text-cobalt">
+            <span>Commission · ค่านายหน้า</span>
+            <span className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
+              <span className="num">{rows.length ? `${rows.length} recorded · to transfer ฿${formatTHB(owed)}` : "None recorded"}</span>
+              <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} aria-hidden />
+            </span>
+          </button>
+        </CardTitle>
+        {open && (
+          <CardDescription>
+            For your records only. Nothing here appears on the quotation, invoices or PDFs. Transfer it yourself, then mark it transferred.
+          </CardDescription>
+        )}
       </CardHeader>
-      <CardContent className="space-y-4 text-sm">
+      <CardContent id="commission-body" hidden={!open} className="space-y-4 text-sm">
         {rows.length > 0 && (
           <>
             <div className="num text-muted-foreground">To transfer ฿{formatTHB(owed)} · transferred ฿{formatTHB(paid)}</div>
@@ -131,7 +147,7 @@ function CommissionForm({ quotationId, taxable, payees }: { quotationId: string;
     <form action={action} className="grid gap-3 sm:grid-cols-2">
       <input type="hidden" name="payee_id" value={payeeId} />
       <Field label="Saved payee" htmlFor="c_profile" className="sm:col-span-2"
-        hint={<Link href={`/payees/new?next=/documents/${quotationId}`} className="text-cobalt underline">+ New payee profile</Link>}>
+        hint={<Link href={`/payees/new?next=${encodeURIComponent(`/documents/${quotationId}?commission=open`)}`} className="text-cobalt underline">+ New payee profile</Link>}>
         <NativeSelect id="c_profile" value={payeeId} onChange={(ev) => pick(ev.target.value)}>
           <option value="">One-off (not saved)</option>
           {payees.map((p) => <option key={p.id} value={p.id}>{p.name}{p.default_rate_bps ? ` · ${p.default_rate_bps / 100}%` : ""}</option>)}

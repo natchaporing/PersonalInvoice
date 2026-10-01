@@ -19,8 +19,9 @@ import { EtaxPanel } from "./etax-panel";
 import { type InstallmentRow, InstallmentsPanel } from "./installments-panel";
 import { type CertRow, type PaymentRow, PaymentsPanel, WhtPanel } from "./panels";
 
-export default async function DocumentPage({ params }: PageProps<"/documents/[id]">) {
+export default async function DocumentPage({ params, searchParams }: PageProps<"/documents/[id]">) {
   const { id } = await params;
+  const { commission } = await searchParams;
   const { supabase, user } = await requireUser();
   const bundle = await getDocumentBundle(supabase, id, user.id);
   if (!bundle) notFound();
@@ -131,7 +132,7 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
             <InstallmentsPanel quotationId={id} taxable={doc.taxable} rows={installmentRows} locked={planLocked} />
           )}
           {isQuotation && doc.status !== "void" && (
-            <CommissionPanel quotationId={id} taxable={doc.taxable} rows={commissions.data ?? []} today={today} payees={payees.data ?? []} />
+            <CommissionPanel quotationId={id} taxable={doc.taxable} rows={commissions.data ?? []} today={today} payees={payees.data ?? []} defaultOpen={commission === "open"} />
           )}
           {showEtax && (
             <EtaxPanel

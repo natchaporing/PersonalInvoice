@@ -514,6 +514,10 @@ try {
   log("installments: 50/50 plan, invoice → paid → receipt/tax invoice", instInv, rtx);
 
   // 18d. Commission payee profile, then commission on the quotation: recorded and transferred, never printed
+  const commissionToggle = page.getByRole("button", { name: /Commission · ค่านายหน้า/ });
+  if ((await commissionToggle.getAttribute("aria-expanded")) !== "false" || (await page.getByLabel("Saved payee").isVisible()))
+    fail("commission section should start collapsed");
+  await commissionToggle.click();
   await page.getByRole("link", { name: "+ New payee profile" }).click();
   await page.waitForURL(/\/payees\/new/);
   await page.getByLabel("Name", { exact: true }).fill("คุณแนะนำ ลูกค้า");
@@ -521,7 +525,8 @@ try {
   await page.getByLabel("Account number").fill("987-6-54321-0");
   await page.getByLabel("Commission rate (%)").fill("10");
   await page.getByRole("button", { name: "Add payee" }).click();
-  await page.waitForURL((u) => u.href === qUrl);
+  await page.waitForURL((u) => u.href === `${qUrl}?commission=open`);
+  if ((await commissionToggle.getAttribute("aria-expanded")) !== "true") fail("returning from a new payee should open the commission section");
   await page.getByLabel("Saved payee").selectOption({ label: "คุณแนะนำ ลูกค้า · 10%" });
   if ((await page.getByLabel("Rate (%)").inputValue()) !== "10") fail("picking a payee should fill the default rate");
   if (!(await page.getByLabel("Payee bank account").inputValue()).includes("9876543210")) fail("picking a payee should fill the account");
@@ -530,6 +535,8 @@ try {
   await page.getByText("คุณแนะนำ ลูกค้า").first().waitFor();
   await page.getByRole("button", { name: "Mark transferred" }).click();
   await page.getByText(/^Transferred \d{4}-\d{2}-\d{2}/).waitFor();
+  await page.goto(qUrl);
+  await page.getByRole("button", { name: /1 recorded · to transfer ฿0\.00/ }).waitFor(); // collapsed again, summary in the header
   const printed = await (await ctx.request.get(`${BASE}/print/documents/${qUrl.split("/").pop()}`)).text();
   if (printed.includes("คุณแนะนำ") || /commission/i.test(printed)) fail("commission must not appear on the printed quotation");
   await shot("11-quotation-installments-commission");
