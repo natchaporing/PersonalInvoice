@@ -44,26 +44,6 @@
   --chart-5: #b3312a;
 }
 
-/* ── Palettes ─────────────────────────────────────────────────────────────────────────────────
-   Cobalt (above) is the default. Each palette overrides only colour tokens; every pairing was
-   checked: brand text ≥7:1 on white and page, white on header ≥7:1, accent on header ≥4.5:1,
-   brand on tint chip ≥4.5:1. Gold stays reserved for primary actions in all palettes. */
-[data-palette="jade"] {
-  --background: #f6faf8; --secondary: #edf2ef; --muted: #edf2ef; --border: #dbe4df; --paper: #fdfdf6;
-  --accent: #dcf0e7; --accent-foreground: #066044; --ring: #066044;
-  --cobalt: #066044; --cobalt-deep: #04432f; --amber: #f5b544;
-}
-[data-palette="amethyst"] {
-  --background: #faf8fd; --secondary: #f0edf5; --muted: #f0edf5; --border: #e2dee9; --paper: #fdfbff;
-  --accent: #ebe4f7; --accent-foreground: #5b3a9a; --ring: #5b3a9a;
-  --cobalt: #5b3a9a; --cobalt-deep: #3f2570; --amber: #ffb854;
-}
-[data-palette="bronze"] {
-  --background: #faf7f2; --secondary: #f2eee6; --muted: #f2eee6; --border: #e6dfd3; --paper: #fffaf0;
-  --accent: #f3e8d8; --accent-foreground: #6f420f; --ring: #6f420f;
-  --cobalt: #6f420f; --cobalt-deep: #4d2c06; --amber: #6cc4b9;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

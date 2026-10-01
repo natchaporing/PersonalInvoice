@@ -273,17 +273,11 @@ try {
   // 8. Totals were computed server-side: 50,000 + 7% VAT = 53,500; WHT 3% = 1,500; net 52,000
   for (const t of ["53,500.00", "52,000.00", "1,500.00"]) await page.getByText(t, { exact: false }).first().waitFor();
 
-  // 8b. Light palettes: switch to Jade; it applies instantly, persists across reload, and colours the document
-  await page.getByRole("button", { name: /Palette/ }).click();
-  await page.getByRole("option", { name: /Jade/ }).click();
-  const readPalette = () => page.evaluate(() => ({ attr: document.documentElement.dataset.palette, brand: getComputedStyle(document.documentElement).getPropertyValue("--cobalt").trim(), scheme: getComputedStyle(document.documentElement).colorScheme }));
-  let pal = await readPalette();
-  if (pal.attr !== "jade" || pal.brand !== "#066044") fail(`palette not applied: ${JSON.stringify(pal)}`);
-  await shot("03b-jade");
-  await page.reload();
-  pal = await readPalette();
-  if (pal.attr !== "jade") fail("palette should persist after reload");
-  log("palette switched to jade and persisted");
+  // 8b. One fixed theme: no palette switcher, brand colour is Cobalt
+  if ((await page.getByRole("button", { name: /Palette/ }).count()) !== 0) fail("the palette button should be gone");
+  const brand = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--cobalt").trim());
+  if (brand !== "#0047ab") fail(`brand colour should be Cobalt, got ${brand}`);
+  log("theme fixed to Cobalt, no palette switcher");
 
   // 9. Issue & sign
   page.once("dialog", (d) => d.accept());

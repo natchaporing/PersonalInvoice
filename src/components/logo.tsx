@@ -1,7 +1,7 @@
 import { petalBand, wovenRing } from "@/lib/banknote/geometry";
 
 // Circle seal mark: a guilloche ring around a page with a folded corner and a baht coin.
-// Colours follow the active palette, so the mark recolours with it.
+// Colours come from the app's brand tokens.
 const RING = wovenRing({ r: 89, a: 3, n: 60, strands: 4 });
 const PETALS = petalBand({ r0: 66, r1: 84, n: 26, strands: 8, p: 1.3 });
 

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 // Document layout used for previews, the print view and signed PDFs ("clean"). /preview/styles compares the variants
 // and the earlier Banknote layout (InvoiceDocument).
-// Same data as InvoiceDocument (DocumentView), same A4 size, colours from the active palette.
+// Same data as InvoiceDocument (DocumentView), same A4 size, colours from the brand tokens.
 
 export type ModernVariant = "clean" | "band" | "mono";
 

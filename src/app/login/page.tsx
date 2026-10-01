@@ -1,8 +1,5 @@
 import { LogoMark } from "@/components/logo";
-import { cookies } from "next/headers";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette } from "@/components/banknote";
-import { PalettePicker } from "@/components/palette-picker";
-import { DEFAULT_PALETTE, isPalette, PALETTE_COOKIE } from "@/lib/palettes";
 import { LoginForm } from "./login-form";
 
 export const metadata = { title: "Sign in · Tra" };
@@ -11,7 +8,6 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
   const next = typeof sp.next === "string" ? sp.next : "/";
   const linkFailed = sp.error === "confirm_failed";
-  const saved = (await cookies()).get(PALETTE_COOKIE)?.value;
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="relative overflow-hidden bg-cobalt-deep px-6 py-4 text-white">
@@ -21,7 +17,6 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <LogoMark size={42} title="" />
             <span className="display text-[24px] tracking-tight">Tra<span className="ml-1.5 font-sans text-[15px] text-amber">ตรา</span></span>
           </span>
-          <PalettePicker initial={isPalette(saved) ? saved : DEFAULT_PALETTE} />
         </div>
       </header>
       <GuillocheBand tone="amber" height={10} opacity={1} />

@@ -22,7 +22,7 @@ Next.js 16 · Supabase (Postgres, auth, private storage) · shadcn/ui · deploye
 - **Signatories**: Settings holds people with a name, title and optional signature image. Pick an issuer and an approver per document; they are frozen onto it at issue, printed with the date, and named in the PDF's digital signature (the PDF itself is signed with your certificate).
 - **Open online**: issued documents carry a QR code (vector, in the PDF) that opens the public verification page.
 - **Bank list**: Settings has a searchable list of Thai banks (Thai/English name, short name or code) that fills the bank name fields; the bank codes beyond BBL/KBANK/KTB/TTB/SCB should be double-checked against the BOT list.
-- **Look**: light theme only. Pick a palette (Cobalt, Jade, Amethyst, Bronze) from the header; it is stored in a cookie and also colours documents and PDFs rendered afterwards.
+- **Look**: one light theme, Cobalt (banknote blue with amber and gold), used by the app and every document and PDF.
 - **Sign-up**: the email must be typed twice and is confirmed through an emailed link (`/auth/callback`); the login page can resend it.
 - **e-Tax package** (phase 2): for issued tax invoices, receipts/tax invoices, credit and debit notes, one click builds the ETDA-standard XML and a signed PDF/A-3 that carries it. Signing with a CA-issued certificate, emailing for the ETDA time stamp and RD registration are still to do; see [docs/PHASE2-ETAX.md](docs/PHASE2-ETAX.md). Needs Ghostscript (in the Docker image) and, to validate locally, `xmllint` and `pip install lxml` (`npm run etax:validate -- file.xml`).
 - **Tax**: `/tax` shows output VAT for PP30 and the sales tax report, with CSV export.

@@ -10,8 +10,7 @@ import { formatDateEN, formatDateTH } from "@/lib/thai/thai-date";
 
 export const A4 = { width: 794, height: 1123 } as const; // px at 96dpi
 
-// Paper is always light. Colours come from the active palette, so an issued PDF carries the palette
-// that was selected when it was signed.
+// Paper is always light. Colours come from the app's brand tokens (Cobalt).
 const COBALT = "var(--cobalt)";
 const AMBER = "var(--amber)";
 const INK = "#1a2536";
