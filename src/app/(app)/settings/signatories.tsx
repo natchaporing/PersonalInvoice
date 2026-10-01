@@ -1,9 +1,9 @@
 "use client";
 
-import { PenLine, Trash2, Upload } from "lucide-react";
+import { PenLine, Trash2, Upload, X } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { Field, FormMessage, SubmitButton } from "@/components/form";
-import { SignaturePad } from "@/components/signature-pad";
+import { SignatureDialog } from "@/components/signature-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,10 +25,9 @@ function SignatureThumb({ p }: { p: Tables<"signatories"> }) {
   );
 }
 
-/** One person in the list, with an inline pad to draw a new signature. */
+/** One person in the list; drawing a new signature happens in a popup. */
 function Person({ p }: { p: Tables<"signatories"> }) {
   const [drawing, setDrawing] = useState(false);
-  const [png, setPng] = useState<string | null>(null);
   const [state, setState] = useState<FormState>({});
   const [pending, start] = useTransition();
   return (
@@ -39,11 +38,9 @@ function Person({ p }: { p: Tables<"signatories"> }) {
           <div className="font-medium">{p.name_th}{p.name_en ? <span className="font-normal text-muted-foreground"> · {p.name_en}</span> : null}</div>
           <div className="text-[13px] text-muted-foreground">{[p.title_th, p.title_en].filter(Boolean).join(" · ") || "No title"}</div>
         </div>
-        {!drawing && (
-          <Button type="button" variant="outline" size="sm" onClick={() => { setDrawing(true); setState({}); }}>
-            <PenLine /> {p.signature_image ? "Redraw signature" : "Draw signature"}
-          </Button>
-        )}
+        <Button type="button" variant="outline" size="sm" onClick={() => { setDrawing(true); setState({}); }}>
+          <PenLine /> {p.signature_image ? "Redraw signature" : "Draw signature"}
+        </Button>
         <Button
           type="button"
           variant="ghost"
@@ -56,20 +53,17 @@ function Person({ p }: { p: Tables<"signatories"> }) {
         </Button>
       </div>
       {drawing && (
-        <div className="space-y-2">
-          <SignaturePad onChange={setPng} label={`Signature of ${p.name_th}`} />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" size="sm" disabled={!png || pending}
-              onClick={() => start(async () => {
-                const r = await updateSignature(p.id, png!);
-                setState(r);
-                if (!r.error) setDrawing(false);
-              })}>
-              {pending ? "Saving…" : "Save signature"}
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setDrawing(false)}>Cancel</Button>
-          </div>
-        </div>
+        <SignatureDialog
+          title={`Signature of ${p.name_th}`}
+          label={`Signature of ${p.name_th}`}
+          confirmLabel="Save signature"
+          onClose={() => setDrawing(false)}
+          onConfirm={async (png) => {
+            const r = await updateSignature(p.id, png);
+            setState(r);
+            return r.error;
+          }}
+        />
       )}
       <FormMessage state={state} />
     </li>
@@ -81,6 +75,7 @@ function AddSignatory() {
   const [state, action] = useActionState<FormState, FormData>(addSignatory, {});
   const [mode, setMode] = useState<"draw" | "upload">("draw");
   const [png, setPng] = useState<string | null>(null);
+  const [drawing, setDrawing] = useState(false);
   const e = state.fieldErrors ?? {};
   const dv = (k: string) => state.values?.[k] ?? "";
   return (
@@ -110,7 +105,21 @@ function AddSignatory() {
         </div>
         {mode === "draw" ? (
           <>
-            <SignaturePad onChange={setPng} />
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex h-16 w-44 items-center justify-center rounded-md border border-input bg-white">
+                {png ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={png} alt="Drawn signature" className="max-h-14 max-w-full object-contain" />
+                ) : (
+                  <span className="text-[12px] text-muted-foreground">No signature yet</span>
+                )}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => setDrawing(true)}>
+                <PenLine /> {png ? "Redraw" : "Draw signature"}
+              </Button>
+              {png && <Button type="button" variant="ghost" size="sm" onClick={() => setPng(null)}><X /> Remove</Button>}
+            </div>
+            {drawing && <SignatureDialog title="Draw your signature" onConfirm={setPng} onClose={() => setDrawing(false)} />}
             <input type="hidden" name="signature_drawn" value={png ?? ""} />
             <p className="text-[12px] text-muted-foreground">Saved as a transparent PNG and printed above the signer&apos;s name. Optional.</p>
           </>

@@ -142,10 +142,54 @@ try {
     for (let i = 1; i <= 24; i++) await page.mouse.move(box.x + box.width * (0.15 + i * 0.03), box.y + box.height * (0.6 - 0.25 * Math.sin(i / 2.5)));
     await page.mouse.up();
   };
+  /** What the page does with text selection, copy, cut, the context menu and drag right now. */
+  const pageGuards = () => page.evaluate(() => {
+    const fire = (e) => (document.querySelector("h1, h2") ?? document.body).dispatchEvent(e) === false;
+    return {
+      userSelect: getComputedStyle(document.body).userSelect,
+      overflow: document.body.style.overflow,
+      copy: fire(new ClipboardEvent("copy", { bubbles: true, cancelable: true })),
+      cut: fire(new ClipboardEvent("cut", { bubbles: true, cancelable: true })),
+      selectstart: fire(new Event("selectstart", { bubbles: true, cancelable: true })),
+      contextmenu: fire(new MouseEvent("contextmenu", { bubbles: true, cancelable: true })),
+      dragstart: fire(new DragEvent("dragstart", { bubbles: true, cancelable: true })),
+    };
+  });
+  const normal = await pageGuards();
+  const isNormal = (g) => g.userSelect === normal.userSelect && g.overflow === normal.overflow && !g.copy && !g.cut && !g.selectstart && !g.contextmenu && !g.dragstart;
+  if (!isNormal(normal)) fail(`page should start with selection and copy working: ${JSON.stringify(normal)}`);
+  /** Text selection with the mouse must work once the popup is closed. */
+  const canSelectText = async () => {
+    await page.evaluate(() => window.getSelection().removeAllRanges());
+    await page.getByText("People who issue or approve documents").click({ clickCount: 3 });
+    return page.evaluate(() => window.getSelection().toString().length > 0);
+  };
+  if (!(await canSelectText())) fail("text should be selectable before signing");
+
   await page.getByLabel("Name (Thai)").last().fill("ณัฐชา ผู้ออกเอกสาร");
   await page.getByLabel("Name (English)").last().fill("Natcha Issuer");
   await page.getByLabel("Title (English)").fill("Owner");
-  await scribble(page.getByRole("img", { name: "Draw your signature" }));
+  await page.getByRole("button", { name: "Draw signature" }).click();
+  const sigDialog = page.getByRole("dialog", { name: "Draw your signature" });
+  await sigDialog.waitFor();
+  const blocked = await pageGuards();
+  if (blocked.userSelect !== "none" || blocked.overflow !== "hidden" || !blocked.copy || !blocked.cut || !blocked.selectstart || !blocked.contextmenu || !blocked.dragstart)
+    fail(`while signing, selection/copy/menu should be blocked: ${JSON.stringify(blocked)}`);
+  await scribble(sigDialog.getByRole("img", { name: "Draw your signature" }));
+  await sigDialog.getByRole("button", { name: "Use signature" }).click();
+  await sigDialog.waitFor({ state: "detached" });
+  if (!isNormal(await pageGuards())) fail(`after the popup closes everything should work again: ${JSON.stringify(await pageGuards())}`);
+  if (!(await canSelectText())) fail("text should be selectable again after signing");
+  // Cancel and Esc also restore the page
+  await page.getByRole("button", { name: "Redraw", exact: true }).click();
+  await sigDialog.getByRole("button", { name: "Cancel" }).click();
+  await sigDialog.waitFor({ state: "detached" });
+  if (!isNormal(await pageGuards())) fail("Cancel should restore the page");
+  await page.getByRole("button", { name: "Redraw", exact: true }).click();
+  await sigDialog.waitFor();
+  await page.keyboard.press("Escape");
+  await sigDialog.waitFor({ state: "detached" });
+  if (!isNormal(await pageGuards())) fail("Esc should restore the page");
   await page.waitForFunction(() => document.querySelector('input[name="signature_drawn"]')?.value.startsWith("data:image/png;base64,"), null, { timeout: 5000 }).catch(() => fail("drawing should produce a PNG"));
   await page.getByRole("button", { name: "Add signatory" }).click();
   await page.getByRole("img", { name: /Signature of ณัฐชา/ }).waitFor();
@@ -159,9 +203,12 @@ try {
   // Redraw an existing signature
   const before = await page.getByRole("img", { name: /Signature of สมชาย/ }).getAttribute("src");
   await page.getByRole("button", { name: "Redraw signature" }).nth(1).click();
-  await scribble(page.getByRole("img", { name: "Signature of สมชาย ผู้อนุมัติ" }).and(page.locator("canvas")));
-  await page.getByRole("button", { name: "Save signature" }).click();
+  const redraw = page.getByRole("dialog", { name: "Signature of สมชาย ผู้อนุมัติ" });
+  await scribble(redraw.getByRole("img", { name: "Signature of สมชาย ผู้อนุมัติ" }));
+  await redraw.getByRole("button", { name: "Save signature" }).click();
   await page.getByText("Signature updated.").waitFor();
+  await redraw.waitFor({ state: "detached" });
+  if (!isNormal(await pageGuards()) || !(await canSelectText())) fail("selection and copy should work after saving a redrawn signature");
   await page.waitForFunction((b) => document.querySelector('img[alt^="Signature of สมชาย"]')?.getAttribute("src") !== b, before);
   log("signatories: drawn, uploaded and redrawn signatures saved");
 
