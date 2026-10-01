@@ -21,6 +21,8 @@ export const DOC_TYPE_LABEL: Record<DocType, { en: string; th: string }> = {
 const PAYABLE: DocType[] = ["invoice", "tax_invoice", "debit_note"];
 /** Documents that ask the customer for money: they show bank details, take payments and can be overdue. */
 export const isPayable = (t: DocType) => PAYABLE.includes(t);
+/** Documents that print the seller's bank-transfer details: anything payable, plus quotations so a client can pay a deposit from them. */
+export const showsBankDetails = (t: DocType) => isPayable(t) || t === "quotation";
 /** Documents that are tax documents under Revenue Code s.86 (count towards output VAT). */
 export const isTaxDocument = (t: DocType) => t === "tax_invoice" || t === "receipt_tax_invoice" || t === "credit_note" || t === "debit_note";
 /** Credit/debit notes must reference an original document and give a reason. */

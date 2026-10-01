@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Qr } from "@/components/qr";
 import type { DocumentView, Lang, Party, Signatory } from "@/lib/document-view";
-import { DOC_TYPE_LABEL, isPayable } from "@/lib/domain/documents";
+import { DOC_TYPE_LABEL, showsBankDetails } from "@/lib/domain/documents";
 import { bahtText } from "@/lib/thai/baht-text";
 import { formatBankAccount } from "@/lib/thai/bank";
 import { computeTotals, formatTHB, lineNet } from "@/lib/thai/money";
@@ -76,7 +76,7 @@ export function InvoiceModern({ doc, variant = "clean", verifyBaseUrl }: { doc: 
   const hasDiscount = doc.lines.some((l) => l.discount > 0);
   const mixedVat = new Set(doc.lines.map((l) => l.vatBps)).size > 1;
   const totalDiscount = t.lineDiscount + t.discount;
-  const bank = isPayable(doc.type) && t.netReceivable > 0 ? doc.seller.bank : undefined;
+  const bank = showsBankDetails(doc.type) && t.netReceivable > 0 ? doc.seller.bank : undefined;
   const verifyUrl = doc.verifyCode && verifyBaseUrl ? `${verifyBaseUrl.replace(/\/$/, "")}/verify/${doc.verifyCode}` : undefined;
   const sub = lang === "bilingual" ? "th" : lang;
   const copy = doc.copy === "copy" ? pair("สำเนา", "Copy", lang) : pair("ต้นฉบับ", "Original", lang);

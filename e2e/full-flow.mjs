@@ -466,6 +466,9 @@ try {
   const qNumber = (await page.locator("h1").textContent())?.trim();
   if (!/^QT\d{4}-0001$/.test(qNumber ?? "")) fail(`unexpected quotation number ${qNumber}`);
   await page.getByRole("img", { name: "Open this document online" }).waitFor();
+  // Quotations carry the bank-transfer details so the client can pay a deposit from them
+  const qPrint = await (await ctx.request.get(`${BASE}/print/documents/${page.url().split("/").pop()}`)).text();
+  if (!qPrint.includes("123-4-56789-0") || !qPrint.includes("ชำระโดยโอนเงิน")) fail("quotation should print the bank-transfer details");
   await shot("10-quotation");
   const [qDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Signed PDF" }).click()]);
   const { readFileSync: readQ } = await import("node:fs");

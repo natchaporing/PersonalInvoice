@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette, Seal, SerialNumber } from "@/components/banknote";
 import { Qr } from "@/components/qr";
 import type { DocumentView, Lang, Party, Signatory } from "@/lib/document-view";
-import { DOC_TYPE_LABEL, isPayable } from "@/lib/domain/documents";
+import { DOC_TYPE_LABEL, showsBankDetails } from "@/lib/domain/documents";
 import { bahtText } from "@/lib/thai/baht-text";
 import { computeTotals, formatTHB, lineNet } from "@/lib/thai/money";
 import { formatBankAccount } from "@/lib/thai/bank";
@@ -99,7 +99,7 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
   const totalDiscount = t.lineDiscount + t.discount;
   const verifyUrl = doc.verifyCode && verifyBaseUrl ? `${verifyBaseUrl.replace(/\/$/, "")}/verify/${doc.verifyCode}` : undefined;
   const date = (iso: string) => (lang === "en" ? formatDateEN(iso) : formatDateTH(iso));
-  const bank = isPayable(doc.type) && t.netReceivable > 0 ? doc.seller.bank : undefined;
+  const bank = showsBankDetails(doc.type) && t.netReceivable > 0 ? doc.seller.bank : undefined;
   const copyLabel = doc.copy === "copy" ? { th: "สำเนา", en: "COPY" } : { th: "ต้นฉบับ", en: "ORIGINAL" };
   const micro = `${label.en.toUpperCase()} · ${label.th} · ${doc.number ?? "DRAFT"} · ${doc.seller.taxId} · `;
 
