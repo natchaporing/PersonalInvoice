@@ -5,12 +5,13 @@ import { z } from "zod";
 import { branchCode, formObject, type FormState, invalid, optText, reqText, submitted, taxId } from "@/lib/domain/forms";
 import { isValidGeo } from "@/lib/etax/geo";
 import { requireUser } from "@/lib/supabase/server";
+import { isJuristicTaxId } from "@/lib/thai/tax-id";
 
 const Profile = z
   .object({
     name_th: reqText("Business name (Thai)", 200),
     name_en: optText(200),
-    tax_id: taxId,
+    tax_id: taxId.refine((v) => !isJuristicTaxId(v), "Tra is for individuals for now: use your personal 13-digit tax ID"),
     branch_code: branchCode,
     address_th: reqText("Address (Thai)", 500),
     address_en: optText(500),

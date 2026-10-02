@@ -14,18 +14,21 @@ import { districtsOf, subdistrictsOf } from "./geo-actions";
 
 export function ProfileForm({
   profile,
+  defaults,
   provinces,
   initialDistricts,
   initialSubdistricts,
 }: {
   profile: Tables<"business_profiles"> | null;
+  /** Prefill for a new profile, from what was given at sign-up. */
+  defaults?: Partial<Record<keyof Tables<"business_profiles">, string>>;
   provinces: GeoOption[];
   initialDistricts: GeoOption[];
   initialSubdistricts: GeoOption[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(saveProfile, {});
   const e = state.fieldErrors ?? {};
-  const v = (k: keyof Tables<"business_profiles">) => state.values?.[k] ?? (profile?.[k] as string | null | undefined) ?? "";
+  const v = (k: keyof Tables<"business_profiles">) => state.values?.[k] ?? (profile?.[k] as string | null | undefined) ?? (profile ? "" : defaults?.[k]) ?? "";
   const [bankTh, setBankTh] = useState(v("bank_name_th"));
   const [bankEn, setBankEn] = useState(v("bank_name_en"));
   const picked = findBankByName(bankTh, bankEn);

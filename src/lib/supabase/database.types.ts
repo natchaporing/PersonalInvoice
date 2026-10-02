@@ -135,6 +135,78 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_charges: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          owner_id: string
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          plan: string
+          provider: string
+          provider_ref: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          method: string
+          owner_id: string
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          plan: string
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          owner_id?: string
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          plan?: string
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          owner_id: string
+          plan: string | null
+          trial_ends_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          owner_id: string
+          plan?: string | null
+          trial_ends_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          owner_id?: string
+          plan?: string | null
+          trial_ends_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       commission_payees: {
         Row: {
           address: string | null
@@ -731,6 +803,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_test_charge: {
+        Args: { p_charge: string; p_secret: string }
+        Returns: string
+      }
+      start_checkout: {
+        Args: { p_method: string; p_plan: string }
+        Returns: string
+      }
       issue_document: {
         Args: { p_customer: Json; p_document_id: string; p_seller: Json; p_signers?: Json }
         Returns: string

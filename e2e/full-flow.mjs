@@ -47,21 +47,37 @@ try {
   if (!page.url().includes("/login")) fail(`expected redirect to /login, got ${page.url()}`);
   await shot("01-login");
 
-  // 2. Register: retype-email guard, confirmation email, sign-in blocked until confirmed
-  await page.getByRole("button", { name: /create the owner account/i }).click();
+  // 2. Register (individuals only, 15-day trial): company IDs, bad checksums and missing consent are refused
+  await page.getByRole("link", { name: "Start a 15-day free trial" }).click();
+  await page.waitForURL(/\/register/);
+  const submit = page.getByRole("button", { name: "Start my 15-day free trial" });
+  const fillRegister = async (taxId, terms) => {
+    await page.getByLabel("Your name").fill("ณัฐชา ใจดี");
+    await page.getByLabel("Personal tax ID").fill(taxId);
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Confirm email").fill(email);
+    await page.getByLabel("Password").fill(password);
+    if (terms) await page.getByLabel(/I agree to the terms/).check();
+    await submit.click();
+  };
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Confirm email").fill(email.replace("owner-", "ownr-"));
   await page.getByText("The two email addresses don't match").waitFor();
-  if (!(await page.getByRole("button", { name: "Create account" }).isDisabled())) fail("submit should be disabled while emails differ");
-  await page.getByLabel("Confirm email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Create account" }).click();
+  if (!(await submit.isDisabled())) fail("submit should be disabled while emails differ");
+  await shot("01a-register");
+  await fillRegister("0105561000001", true);
+  await page.getByText("Tra is for individuals for now. Company accounts are coming later.").waitFor();
+  await fillRegister("1101700123457", true);
+  await page.getByText("That tax ID doesn't look right. Check the 13 digits.").waitFor();
+  await fillRegister("1-1017-00123-45-6", false);
+  await page.getByText("Please accept the terms and privacy notice").waitFor();
+  await fillRegister("1-1017-00123-45-6", true);
   await page.getByText(`We sent a confirmation link to ${email}`).waitFor();
-  if (!page.url().includes("/login")) fail("should stay on /login until confirmed");
+  if (!page.url().includes("/register")) fail("should stay on /register until confirmed");
   await shot("01b-check-your-email");
 
   // Sign in before confirming is refused with a resend option
-  await page.getByRole("button", { name: /already have an account/i }).click();
+  await page.getByRole("link", { name: "Back to sign in" }).click();
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -77,6 +93,11 @@ try {
   await page.waitForURL(/\/settings\?confirmed=1/);
   await page.getByText("Email confirmed. Welcome!").waitFor();
   log("registered, confirmed by the resent email link", email);
+  // The trial starts at sign-up, and Settings is prefilled from the registration
+  await page.getByText("Free trial: 15 days left").waitFor();
+  if ((await page.getByLabel("Name (Thai)").first().inputValue()) !== "ณัฐชา ใจดี") fail("profile name should be prefilled from sign-up");
+  if ((await page.getByLabel("Tax ID", { exact: true }).first().inputValue()) !== "1101700123456") fail("profile tax ID should be prefilled from sign-up");
+  log("15-day trial started; profile prefilled from sign-up");
 
   // The original link (PKCE, already used or superseded) in a fresh browser: clear message, no crash
   const stale = await browser.newContext();
@@ -546,13 +567,15 @@ try {
   // 19. Row-level security: a second user cannot see the first user's document or PDF
   const other = await browser.newContext();
   const op = await other.newPage();
-  await op.goto(`${BASE}/login`);
-  await op.getByRole("button", { name: /create the owner account/i }).click();
+  await op.goto(`${BASE}/register`);
   const otherEmail = `other-${randomBytes(4).toString("hex")}@example.com`;
+  await op.getByLabel("Your name").fill("สมศรี ทดสอบ");
+  await op.getByLabel("Personal tax ID").fill("1234567890121");
   await op.getByLabel("Email", { exact: true }).fill(otherEmail);
   await op.getByLabel("Confirm email").fill(otherEmail);
   await op.getByLabel("Password").fill(password);
-  await op.getByRole("button", { name: "Create account" }).click();
+  await op.getByLabel(/I agree to the terms/).check();
+  await op.getByRole("button", { name: "Start my 15-day free trial" }).click();
   await op.getByText(/We sent a confirmation link/).waitFor();
   await op.goto(await confirmationLink(otherEmail));
   await op.waitForURL(/\/settings/);
@@ -560,10 +583,39 @@ try {
   if (resp?.status() !== 404) fail(`other user got ${resp?.status()} for someone else's document`);
   await op.goto(`${BASE}/documents`);
   await op.getByText("No documents yet").waitFor();
-  await other.close();
   log("RLS isolates users");
 
-  // 20. Sign out
+  // 19b. When the trial is over the app says so (the database guard is tested in SQL)
+  const psql = (sql) => spawnSync("docker", ["exec", "-e", `PGPASSWORD=${process.env.LOCAL_DB_PASSWORD ?? ""}`, "personalinvoice-local-db-1", "psql", "-h", "127.0.0.1", "-U", "supabase_admin", "-d", "postgres", "-Atc", sql], { encoding: "utf8" });
+  const expired = psql(`update subscriptions set trial_ends_at = now() - interval '1 day' where owner_id = (select id from auth.users where email = '${otherEmail}') returning owner_id`);
+  if (expired.status === 0 && expired.stdout.trim()) {
+    await op.goto(`${BASE}/documents`);
+    await op.getByText("Your free trial has ended.").waitFor();
+    log("expired trial shows the subscribe banner");
+  } else {
+    log("SKIPPED expiry check: no docker access to the local database");
+  }
+  await other.close();
+
+  // 20. Billing: choose yearly during the trial, pay in test mode, plan active from the trial's end
+  await page.goto(`${BASE}/billing`);
+  await page.getByText("Free trial: 15 days left", { exact: false }).first().waitFor();
+  await page.getByRole("link", { name: "Choose yearly" }).click();
+  await page.waitForURL(/\/billing\/checkout\?plan=pro_year/);
+  for (const t of ["฿2,327.10", "฿162.90", "฿2,490.00"]) await page.getByText(t, { exact: true }).first().waitFor();
+  await page.getByText("It starts when your free trial ends").waitFor();
+  await page.getByLabel(/Credit or debit card/).check();
+  await shot("12-checkout");
+  await page.getByRole("button", { name: "Pay ฿2,490.00 (test)" }).click();
+  await page.waitForURL(/\/billing\?paid=/);
+  await page.getByText("Payment received. Thank you!").waitFor();
+  await page.getByText(/Pro · yearly, paid until/).first().waitFor();
+  await page.getByText("Paid (test)").waitFor();
+  if (await page.getByText(/Free trial: \d+ days? left/).count()) fail("the trial banner should go once a plan is paid");
+  await shot("13-billing-paid");
+  log("test-mode checkout: yearly plan paid, period starts after the trial");
+
+  // 21. Sign out
   await page.getByRole("button", { name: "Sign out" }).click();
   await page.waitForURL(/\/login/);
   log("signed out");
