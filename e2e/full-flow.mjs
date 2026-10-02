@@ -42,6 +42,16 @@ page.on("response", (r) => { if (r.status() >= 500) errors.push(`${r.status()} $
 const shot = async (name) => SHOTS && page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true });
 
 try {
+  // 0. The bare address shows the landing page; its trial button leads to registration
+  await page.goto(`${BASE}/`);
+  await page.waitForURL(/\/welcome$/);
+  await page.getByRole("heading", { level: 1, name: /ใบกำกับภาษี/ }).waitFor();
+  if (await page.getByText(/e-Tax Invoice by Email|รับรองโดยกรมสรรพากร/).count()) fail("landing page must not claim e-Tax or RD approval");
+  await shot("00-welcome");
+  await page.getByRole("link", { name: /ทดลองใช้ฟรี 15 วัน/ }).first().click();
+  await page.waitForURL(/\/register$/);
+  log("landing page shows the positioning and leads to the trial");
+
   // 1. Signed-out visitors are sent to /login
   await page.goto(`${BASE}/documents`);
   if (!page.url().includes("/login")) fail(`expected redirect to /login, got ${page.url()}`);

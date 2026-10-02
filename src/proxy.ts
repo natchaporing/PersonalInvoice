@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 // Routes that work without a session.
-const PUBLIC = [/^\/login(\/|$)/, /^\/register(\/|$)/, /^\/terms(\/|$)/, /^\/auth\//, /^\/verify(\/|$)/, /^\/art\//];
+const PUBLIC = [/^\/login(\/|$)/, /^\/register(\/|$)/, /^\/welcome(\/|$)/, /^\/terms(\/|$)/, /^\/auth\//, /^\/verify(\/|$)/, /^\/art\//];
 
 /** Refreshes the Supabase session on every request and sends signed-out visitors to /login. */
 export async function proxy(request: NextRequest) {
@@ -28,7 +28,8 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (!data.user && !PUBLIC.some((re) => re.test(path))) {
     const to = request.nextUrl.clone();
-    to.pathname = "/login";
+    // The bare address shows the product to visitors; deeper links go to sign-in and come back.
+    to.pathname = path === "/" ? "/welcome" : "/login";
     to.search = path === "/" ? "" : `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
     return NextResponse.redirect(to);
   }

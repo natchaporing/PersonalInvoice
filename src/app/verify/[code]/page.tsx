@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LogoMark } from "@/components/logo";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette, SerialNumber } from "@/components/banknote";
 import { DOC_TYPE_LABEL } from "@/lib/domain/documents";
@@ -54,6 +55,9 @@ export default async function Verify({ params }: PageProps<"/verify/[code]">) {
             <Microprint className="relative border-t border-cobalt/15 px-8 py-1" />
           </section>
         )}
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Issued with Tra · <Link href="/welcome" className="text-cobalt underline underline-offset-4">สร้างเอกสารแบบนี้ด้วย Tra · Make documents like this</Link>
+        </p>
       </main>
     </div>
   );

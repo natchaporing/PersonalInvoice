@@ -8,7 +8,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const next = typeof sp.next === "string" ? sp.next : "/";
   const linkFailed = sp.error === "confirm_failed";
   return (
-    <AuthShell eyebrow="ใบกำกับภาษี · Thai tax invoicing" title="Sign in" subtitle="Your invoices, tax invoices and receipts.">
+    <AuthShell eyebrow="เอกสารภาษีของคนทำงานคนเดียว" title="Sign in" subtitle="Your invoices, tax invoices and receipts.">
       <LoginForm next={next} linkFailed={linkFailed} />
     </AuthShell>
   );

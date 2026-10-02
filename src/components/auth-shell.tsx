@@ -1,6 +1,7 @@
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette } from "@/components/banknote";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 /** The signed-out frame shared by sign-in and register: brand header, then one engraved card. */
 export function AuthShell({ eyebrow, title, subtitle, wide, children }: { eyebrow: string; title: string; subtitle: string; wide?: boolean; children: React.ReactNode }) {
@@ -9,10 +10,10 @@ export function AuthShell({ eyebrow, title, subtitle, wide, children }: { eyebro
       <header className="relative overflow-hidden bg-cobalt-deep px-6 py-4 text-white">
         <GuillocheBackground tone="white" opacity={0.16} />
         <div className="relative flex items-center justify-between">
-          <span className="flex items-center gap-3">
+          <Link href="/welcome" className="flex items-center gap-3">
             <LogoMark size={42} title="" />
             <span className="display text-[24px] tracking-tight">Tra<span className="ml-1.5 font-sans text-[15px] text-amber">ตรา</span></span>
-          </span>
+          </Link>
         </div>
       </header>
       <GuillocheBand tone="amber" height={10} opacity={1} />
