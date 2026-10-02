@@ -25,5 +25,5 @@ export async function checkout(_: FormState, form: FormData): Promise<FormState>
   const paid = await supabase.rpc("complete_test_charge", { p_charge: chargeId, p_secret: process.env.BILLING_TEST_SECRET! });
   if (paid.error) return { error: paid.error.message };
   revalidatePath("/", "layout"); // the trial banner lives in the shared layout
-  redirect(`/billing?paid=${chargeId}`);
+  redirect(`/settings/billing?paid=${chargeId}`);
 }

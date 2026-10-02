@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type Access, isPlanKey, type PlanKey, PLANS, yearlySavingPct } from "@/lib/domain/billing";
@@ -40,7 +39,7 @@ function Status({ access }: { access: Access }) {
   }
 }
 
-export default async function BillingPage({ searchParams }: PageProps<"/billing">) {
+export default async function BillingPage({ searchParams }: PageProps<"/settings/billing">) {
   const { supabase } = await requireUser();
   const { access } = await getAccess();
   const paid = typeof (await searchParams).paid === "string";
@@ -49,7 +48,6 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
 
   return (
     <>
-      <PageHeader eyebrow="แพ็กเกจและการชำระเงิน" title="Billing" subtitle="Your plan, payments and receipts." />
       {paid && (
         <p role="status" className="mb-5 max-w-4xl rounded-md border border-ok/40 bg-ok/5 px-4 py-3 text-sm text-ok">
           Payment received. Thank you! Your plan is active.
@@ -85,7 +83,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
                       <p className="text-muted-foreground">
                         {best ? `Works out at ${baht(Math.round(p.price / 12))} a month.` : "Pay month by month."} Everything in Pro: unlimited documents, signed PDFs, instalments, withholding and VAT reports.
                       </p>
-                      <Link href={`/billing/checkout?plan=${k}`} className={buttonVariants({ variant: best ? "default" : "outline" })}>
+                      <Link href={`/settings/billing/checkout?plan=${k}`} className={buttonVariants({ variant: best ? "default" : "outline" })}>
                         Choose {best ? "yearly" : "monthly"}
                       </Link>
                     </CardContent>

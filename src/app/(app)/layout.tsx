@@ -46,13 +46,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               <span>
                 <span className="font-medium">Free trial:</span> {access.daysLeft} {access.daysLeft === 1 ? "day" : "days"} left
               </span>
-              <Link href="/billing" className="font-medium text-cobalt underline underline-offset-4">Choose a plan</Link>
+              <Link href="/settings/billing" className="font-medium text-cobalt underline underline-offset-4">Choose a plan</Link>
             </aside>
           )}
           {access.kind === "expired" && (
             <aside aria-label="Subscription" className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber bg-amber/10 px-4 py-3 text-sm">
               <span>Your free trial has ended. Your documents are safe to view and download; subscribe to issue new ones.</span>
-              <Link href="/billing" className="font-medium text-cobalt underline underline-offset-4">Subscribe</Link>
+              <Link href="/settings/billing" className="font-medium text-cobalt underline underline-offset-4">Subscribe</Link>
             </aside>
           )}
           {!profile && (

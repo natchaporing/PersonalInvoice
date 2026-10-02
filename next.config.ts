@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: { "/**": ["./node_modules/playwright-core/**/*"] },
   // Uploads (payment slips, 50 Tawi scans) go through server actions.
   experimental: { serverActions: { bodySizeLimit: "12mb" } },
+  // Billing moved under Settings; keep old links working.
+  async redirects() {
+    return [
+      { source: "/billing", destination: "/settings/billing", permanent: true },
+      { source: "/billing/checkout", destination: "/settings/billing/checkout", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/app-ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isPlanKey, nextPeriod, PLANS, vatInclusive } from "@/lib/domain/billing";
 import { bkkDate, getAccess, testPaymentsEnabled } from "@/lib/billing/access";
@@ -9,19 +8,19 @@ import { CheckoutForm } from "./checkout-form";
 
 export const metadata = { title: "Checkout · Tra" };
 
-export default async function CheckoutPage({ searchParams }: PageProps<"/billing/checkout">) {
+export default async function CheckoutPage({ searchParams }: PageProps<"/settings/billing/checkout">) {
   const plan = (await searchParams).plan;
-  if (!isPlanKey(plan)) redirect("/billing");
+  if (!isPlanKey(plan)) redirect("/settings/billing");
   const p = PLANS[plan];
   const { sub, access } = await getAccess();
-  if (access.kind === "comp") redirect("/billing");
+  if (access.kind === "comp") redirect("/settings/billing");
   const { net, vat } = vatInclusive(p.price);
 
   const { start: starts, end: ends } = nextPeriod(sub, plan);
 
   return (
     <>
-      <PageHeader eyebrow="ชำระเงิน" title="Checkout" subtitle="Review your plan, then pay." />
+      <h2 className="mb-4 text-lg font-semibold">Checkout · ชำระเงิน</h2>
       <div className="grid max-w-4xl gap-6 md:grid-cols-[1fr_320px]">
         <Card>
           <CardHeader>
@@ -49,7 +48,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/billing
               {access.kind === "trial" && " It starts when your free trial ends, so you keep your remaining trial days."}
             </p>
             <p className="text-muted-foreground">The plan doesn&apos;t renew by itself.</p>
-            <Link href="/billing" className="text-cobalt underline-offset-4 hover:underline">Change plan</Link>
+            <Link href="/settings/billing" className="text-cobalt underline-offset-4 hover:underline">Change plan</Link>
           </CardContent>
         </Card>
       </div>
