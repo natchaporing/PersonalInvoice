@@ -160,7 +160,7 @@ export const en = {
   },
   billing: {
     metaTitle: "Billing · Tra",
-    paid: "Payment received. Thank you! Your plan is active.",
+    paid: "Payment received. Thank you! Your plan is active, and your receipt/tax invoice is in the payment history below.",
     yourPlan: "Your plan",
     comp: "Your account is complimentary. Everything is included, with no payment needed.",
     trialStatus: (days: number, until: string) => `Free trial: ${plural(days, "day", "days")} left, until ${until}.`,
@@ -235,6 +235,14 @@ export const en = {
     statusPending: "Pending",
     statusFailed: "Failed",
     statusExpired: "Expired",
+    colReceipt: "Receipt",
+    receipt: "Receipt / tax invoice",
+    receiptView: "View",
+    receiptTitle: (n: string) => `Receipt / tax invoice ${n}`,
+    receiptNote: "Issued by Tra for your subscription payment. Keep it with your purchase tax records to claim the VAT.",
+    downloadPdf: "Download signed PDF",
+    needProfile: "Your receipt/tax invoice needs your name, address and tax ID. Add your address in your business profile before paying.",
+    goProfile: "Complete business profile",
   },
 };
 

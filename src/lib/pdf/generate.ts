@@ -9,7 +9,10 @@ import { sha256, signingIdentityFromEnv, signPdf } from "./sign";
 const internalBaseUrl = () => process.env.INTERNAL_APP_URL ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
 
 /** Render the print view of a document to PDF, using the caller's session so RLS still applies. */
-export async function renderDocumentPdf(documentId: string): Promise<Buffer> {
+export const renderDocumentPdf = (documentId: string) => renderPrintPdf(`/print/documents/${documentId}`);
+
+/** Render one of this app's bare print pages to PDF with the caller's session. */
+export async function renderPrintPdf(path: string): Promise<Buffer> {
   const base = internalBaseUrl();
   const jar = (await cookies()).getAll();
   const browser = await chromium.launch({
@@ -20,9 +23,9 @@ export async function renderDocumentPdf(documentId: string): Promise<Buffer> {
     const context = await browser.newContext();
     await context.addCookies(jar.map((c) => ({ name: c.name, value: c.value, url: base })));
     const page = await context.newPage();
-    const res = await page.goto(`${base}/print/documents/${documentId}`, { waitUntil: "networkidle", timeout: 30_000 });
+    const res = await page.goto(`${base}${path}`, { waitUntil: "networkidle", timeout: 30_000 });
     if (!res || !res.ok()) throw new Error(`print view returned ${res?.status() ?? "no response"}`);
-    if (!page.url().includes(`/print/documents/${documentId}`)) throw new Error("print view redirected (session not accepted)");
+    if (!page.url().includes(path)) throw new Error("print view redirected (session not accepted)");
     await page.evaluate(() => document.fonts.ready);
     return await page.pdf({ printBackground: true, preferCSSPageSize: true });
   } finally {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isPlanKey, nextPeriod, PLANS, withVat } from "@/lib/domain/billing";
@@ -6,6 +7,7 @@ import { bkkDate, getAccess, testPaymentsEnabled } from "@/lib/billing/access";
 import { planLabel } from "@/lib/billing/labels";
 import { omiseEnabled, omisePublicKey, omiseTestMode } from "@/lib/billing/omise";
 import { getLocale, getMessages } from "@/lib/i18n/server";
+import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 import { CheckoutForm } from "./checkout-form";
 
@@ -17,7 +19,9 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/setting
   const plan = (await searchParams).plan;
   if (!isPlanKey(plan)) redirect("/settings/billing");
   const p = PLANS[plan];
-  const [{ sub, access }, m, locale] = await Promise.all([getAccess(), getMessages(), getLocale()]);
+  const [{ sub, access }, m, locale, { supabase }] = await Promise.all([getAccess(), getMessages(), getLocale(), requireUser()]);
+  const { data: profile } = await supabase.from("business_profiles").select("name_th, address_th, tax_id").maybeSingle();
+  const profileReady = !!(profile?.name_th && profile.address_th && profile.tax_id);
   if (access.kind === "comp") redirect("/settings/billing");
   const { net, vat, total } = withVat(p.price);
   const { start, end } = nextPeriod(sub, plan);
@@ -31,13 +35,20 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/setting
             <CardTitle>{m.billing.payment}</CardTitle>
           </CardHeader>
           <CardContent>
-            <CheckoutForm
+            {profileReady ? (
+              <CheckoutForm
               plan={plan}
               total={`฿${formatTHB(total)}`}
               mode={omiseEnabled() ? "omise" : testPaymentsEnabled() ? "test" : "off"}
               omiseKey={omiseEnabled() ? omisePublicKey() : ""}
               omiseTest={omiseTestMode()}
             />
+            ) : (
+              <div className="grid gap-3 text-sm">
+                <p role="alert" className="rounded-md border border-amber/60 bg-amber/10 px-3 py-2">{m.billing.needProfile}</p>
+                <Link href="/settings" className={buttonVariants({ className: "w-fit" })}>{m.billing.goProfile}</Link>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card className="h-fit">

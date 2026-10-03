@@ -26,13 +26,13 @@ const EN: ValidationMessages = {
 /** Field parsers whose error messages are in the given language. */
 export function formHelpers(v: ValidationMessages = EN) {
   return {
-    /** Optional trimmed text: empty string becomes null. */
+    /** Optional trimmed text: empty or missing becomes null (disabled inputs are not submitted at all). */
     optText: (max = 500) =>
-      z.preprocess((x) => (typeof x === "string" && x.trim() === "" ? null : typeof x === "string" ? x.trim() : x), z.string().max(max).nullable()),
+      z.preprocess((x) => (x == null ? null : typeof x === "string" && x.trim() === "" ? null : typeof x === "string" ? x.trim() : x), z.string().max(max).nullable()),
     reqText: (label: string, max = 500) =>
       z.preprocess((x) => (typeof x === "string" ? x.trim() : x), z.string().min(1, v.required(label)).max(max)),
     taxId: z.preprocess((x) => (typeof x === "string" ? x.replace(/[\s-]/g, "") : x), z.string().regex(/^\d{13}$/, v.taxId13)),
-    optTaxId: z.preprocess((x) => (typeof x === "string" ? (x.replace(/[\s-]/g, "") || null) : x), z.string().regex(/^\d{13}$/, v.taxId13).nullable()),
+    optTaxId: z.preprocess((x) => (x == null ? null : typeof x === "string" ? (x.replace(/[\s-]/g, "") || null) : x), z.string().regex(/^\d{13}$/, v.taxId13).nullable()),
     branchCode: z.preprocess(
       (x) => (typeof x === "string" ? (x.trim() === "" ? "00000" : x.trim().padStart(5, "0")) : x),
       z.string().regex(/^\d{5}$/, v.branch5),
@@ -44,14 +44,14 @@ export function formHelpers(v: ValidationMessages = EN) {
         const n = Number(x.replace(/,/g, "").trim() || "0");
         return Number.isFinite(n) ? thbToSatang(n) : NaN;
       }, z.number({ message: v.number(label) }).int().min(0, v.negative(label))),
-    postcode: z.preprocess((x) => (typeof x === "string" ? x.replace(/\D/g, "") || null : x), z.string().regex(/^\d{5}$/, v.postcode5).nullable()),
+    postcode: z.preprocess((x) => (x == null ? null : typeof x === "string" ? x.replace(/\D/g, "") || null : x), z.string().regex(/^\d{5}$/, v.postcode5).nullable()),
     v,
   };
 }
 
 // English defaults for code that has not moved to formHelpers(m.validation) yet.
 const en = formHelpers();
-export const { optText, reqText, taxId, optTaxId, branchCode, money } = en;
+export const { optText, reqText, taxId, optTaxId, branchCode, money, postcode } = en;
 
 export const checkbox = z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean());
 

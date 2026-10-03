@@ -112,6 +112,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/settings
                     <th className="py-2 font-medium">{m.billing.colPeriod}</th>
                     <th className="py-2 text-right font-medium">{m.billing.colAmount}</th>
                     <th className="py-2 text-right font-medium">{m.billing.colStatus}</th>
+                    <th className="py-2 text-right font-medium">{m.billing.colReceipt}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -123,6 +124,13 @@ export default async function BillingPage({ searchParams }: PageProps<"/settings
                       <td className="num py-2 text-right">฿{formatTHB(c.amount)}</td>
                       <td className="py-2 text-right">
                         {c.status === "paid" ? <span className="text-ok">{m.billing.statusPaid}{c.provider === "test" ? ` ${m.billing.statusTest}` : ""}</span> : c.status === "pending" ? <Link href={`/settings/billing/pay/${c.id}`} className="text-cobalt underline-offset-4 hover:underline">{m.billing.statusPending}</Link> : c.status === "failed" ? m.billing.statusFailed : c.status === "expired" ? m.billing.statusExpired : c.status}
+                      </td>
+                      <td className="py-2 text-right">
+                        {c.receipt_document_id ? (
+                          <Link href={`/settings/billing/receipts/${c.id}`} className="text-cobalt underline-offset-4 hover:underline">{m.billing.receiptView}</Link>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
                   ))}

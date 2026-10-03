@@ -148,6 +148,7 @@ export type Database = {
           plan: string
           provider: string
           provider_ref: string | null
+          receipt_document_id: string | null
           status: string
         }
         Insert: {
@@ -162,6 +163,7 @@ export type Database = {
           plan: string
           provider?: string
           provider_ref?: string | null
+          receipt_document_id?: string | null
           status?: string
         }
         Update: {
@@ -176,6 +178,7 @@ export type Database = {
           plan?: string
           provider?: string
           provider_ref?: string | null
+          receipt_document_id?: string | null
           status?: string
         }
         Relationships: []
@@ -803,6 +806,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      subscription_receipt: {
+        Args: { p_charge: string }
+        Returns: Json
+      }
       attach_provider_charge: {
         Args: { p_charge: string; p_provider: string; p_ref: string }
         Returns: undefined

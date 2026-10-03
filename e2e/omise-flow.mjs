@@ -62,6 +62,24 @@ try {
   await page.waitForURL(/\/settings/);
   log("registered", email);
 
+  // 0. A tax invoice needs the buyer's address: checkout waits for the business profile
+  await page.goto(`${BASE}/settings/billing/checkout?plan=pro_month`);
+  await page.getByText(/needs your name, address and tax ID/).waitFor();
+  if (await page.getByRole("button", { name: /^Pay/ }).count()) fail("checkout should not offer payment before the profile is complete");
+  await page.getByRole("link", { name: "Complete business profile" }).click();
+  await page.waitForURL(/\/settings$/);
+  await page.getByLabel("Name (English)", { exact: true }).first().fill("Natcha Payer");
+  await page.getByLabel("Address (Thai)", { exact: true }).first().fill("9 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await page.getByText("Business profile saved.").waitFor(); // e-Tax address left empty: its disabled selects aren't submitted
+  log("checkout asks for the business profile first");
+
+  // Tra's seller: another account with a complete profile, complimentary so it can always issue
+  const seller = psql(`select owner_id from business_profiles bp where owner_id <> (select id from auth.users where email = '${email}') and coalesce(address_th, '') <> '' and tax_id <> '1234567890121' order by created_at desc limit 1`);
+  if (!seller) fail("no seller account with a business profile in the local database (run e2e/full-flow.mjs once)");
+  psql(`update subscriptions set plan = 'comp' where owner_id = '${seller}'`);
+  psql(`insert into private.billing_config (id, seller_owner_id) values (1, '${seller}') on conflict (id) do update set seller_owner_id = excluded.seller_owner_id`);
+
   // 1. PromptPay: QR page, then the payment arrives (simulated in test mode) and the plan is active
   await page.goto(`${BASE}/settings/billing/checkout?plan=pro_month`);
   await page.getByText(/Opn Payments test mode/).waitFor();
@@ -77,6 +95,23 @@ try {
   await page.getByText("Payment received. Thank you!").waitFor();
   await page.getByText(/Pro · monthly, paid until/).first().waitFor();
   log("PromptPay: QR shown, payment settles the plan");
+
+  // 1b. The payment came with a receipt/tax invoice from the seller: numbered, VAT split out, buyer details on it
+  const receipt = psql(`select d.number || '|' || d.subtotal || '|' || d.vat || '|' || d.total || '|' || d.status || '|' || (d.owner_id = '${seller}') || '|' || (d.customer_snapshot->>'tax_id') from billing_charges c join documents d on d.id = c.receipt_document_id where c.owner_id = (select id from auth.users where email = '${email}')`);
+  const [rnum, rnet, rvat, rtotal, rstatus, rseller, rtax] = receipt.split("|");
+  if (!/^RTX\d{4}-\d{4}$/.test(rnum ?? "") || rnet !== "24900" || rvat !== "1743" || rtotal !== "26643" || rstatus !== "issued" || !["t", "true"].includes(rseller) || rtax !== "1234567890121") fail(`unexpected receipt: ${receipt}`);
+  await page.getByRole("link", { name: "View" }).first().click();
+  await page.waitForURL(/\/settings\/billing\/receipts\//);
+  await page.getByRole("heading", { name: `Receipt / tax invoice ${rnum}` }).waitFor();
+  for (const t of ["ใบเสร็จรับเงิน/ใบกำกับภาษี", "ณัฐชา ผู้ชำระ", "1234567890121", "266.43"]) await page.getByText(t, { exact: false }).first().waitFor();
+  await shot("o3-receipt");
+  const pdf = await page.request.get(page.url() + "/pdf");
+  const bytes = await pdf.body();
+  if (pdf.status() !== 200 || bytes.subarray(0, 5).toString() !== "%PDF-" || !bytes.includes("/ByteRange")) fail(`receipt PDF: ${pdf.status()}`);
+  // The buyer sees nothing else of the seller's account
+  const sellerDoc = psql(`select id from documents where owner_id = '${seller}' and number <> '${rnum}' order by created_at limit 1`);
+  if (sellerDoc && (await page.goto(`${BASE}/documents/${sellerDoc}`))?.status() !== 404) fail("buyer could open a seller document");
+  log("receipt/tax invoice", rnum, "issued in the seller's account; buyer can view and download it signed");
 
   // 2. PromptPay paid in the banking app while the page waits: the page's status check picks it up
   await page.goto(`${BASE}/settings/billing/checkout?plan=pro_month`);
@@ -138,6 +173,8 @@ try {
   // 7. The subscription adds up: 3 months + 2 years beyond the trial, nothing paid twice
   const summary = psql(`select string_agg(status, ',' order by created_at) from billing_charges where owner_id = (select id from auth.users where email = '${email}')`);
   if (summary !== "paid,paid,paid,paid,failed,paid") fail(`unexpected charges: ${summary}`);
+  const receipts = psql(`select count(*) from billing_charges where owner_id = (select id from auth.users where email = '${email}') and receipt_document_id is not null`);
+  if (receipts !== "5") fail(`expected a receipt for each of the 5 paid charges, got ${receipts}`);
   const months = psql(`select round(extract(epoch from current_period_end - trial_ends_at) / 86400 / 30.4) from subscriptions where owner_id = (select id from auth.users where email = '${email}')`);
   if (months !== "27") fail(`expected about 27 months paid after the trial, got ${months}`);
   log("charges:", summary, "· months paid after the trial:", months);
