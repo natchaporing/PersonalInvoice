@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { isPlanKey, nextPeriod, PLANS, vatInclusive } from "@/lib/domain/billing";
+import { isPlanKey, nextPeriod, PLANS, withVat } from "@/lib/domain/billing";
 import { bkkDate, getAccess, testPaymentsEnabled } from "@/lib/billing/access";
 import { planLabel } from "@/lib/billing/labels";
 import { omiseEnabled, omisePublicKey, omiseTestMode } from "@/lib/billing/omise";
@@ -19,7 +19,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/setting
   const p = PLANS[plan];
   const [{ sub, access }, m, locale] = await Promise.all([getAccess(), getMessages(), getLocale()]);
   if (access.kind === "comp") redirect("/settings/billing");
-  const { net, vat } = vatInclusive(p.price);
+  const { net, vat, total } = withVat(p.price);
   const { start, end } = nextPeriod(sub, plan);
 
   return (
@@ -33,7 +33,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/setting
           <CardContent>
             <CheckoutForm
               plan={plan}
-              total={`฿${formatTHB(p.price)}`}
+              total={`฿${formatTHB(total)}`}
               mode={omiseEnabled() ? "omise" : testPaymentsEnabled() ? "test" : "off"}
               omiseKey={omiseEnabled() ? omisePublicKey() : ""}
               omiseTest={omiseTestMode()}
@@ -51,7 +51,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/setting
               <dt className="text-muted-foreground">{m.billing.vat}</dt>
               <dd className="text-right">฿{formatTHB(vat)}</dd>
               <dt className="border-t pt-1.5 font-semibold">{m.billing.total}</dt>
-              <dd className="border-t pt-1.5 text-right font-semibold">฿{formatTHB(p.price)}</dd>
+              <dd className="border-t pt-1.5 text-right font-semibold">฿{formatTHB(total)}</dd>
             </dl>
             <p>
               <span className="font-medium">{m.billing.covers(bkkDate(start, locale), bkkDate(end, locale))}</span>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { isPlanKey, PLANS } from "@/lib/domain/billing";
+import { isPlanKey, PLANS, planTotal } from "@/lib/domain/billing";
 import type { FormState } from "@/lib/domain/forms";
 import { testPaymentsEnabled } from "@/lib/billing/access";
 import { createOmiseCharge, getOmiseCharge, markOmiseChargePaid, omiseEnabled, omiseTestMode, settleOmiseCharge, type SettleStatus } from "@/lib/billing/omise";
@@ -54,7 +54,7 @@ export async function checkout(_: FormState, form: FormData): Promise<FormState>
   try {
     const charge = await createOmiseCharge({
       chargeId,
-      amount: PLANS[plan].price,
+      amount: planTotal(plan),
       description: `Tra ${PLANS[plan].label}`,
       method,
       token,

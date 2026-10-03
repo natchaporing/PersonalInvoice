@@ -80,7 +80,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/settings
                         {best && <span className="rounded-sm bg-amber/25 px-2 py-0.5 text-[12px] font-medium">{m.welcome.save(saving)}</span>}
                       </CardTitle>
                       <CardDescription>
-                        <span className="num text-[26px] font-semibold text-foreground">{baht(p.price)}</span> / {best ? m.billing.perYear : m.billing.perMonth} · {m.common.vatIncluded}
+                        <span className="num text-[26px] font-semibold text-foreground">{baht(p.price)}</span> / {best ? m.billing.perYear : m.billing.perMonth} · {m.common.plusVat}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-3 text-sm">

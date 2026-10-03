@@ -18,7 +18,7 @@ export const en = {
     trialShort: "Free trial",
     noCard: "No card needed",
     language: "Language",
-    vatIncluded: "VAT included",
+    plusVat: "+ VAT 7%",
     perYear: "a year",
     perMonth: "a month",
     saving: "Saving…",
@@ -66,7 +66,7 @@ export const en = {
     metaTitle: "Tra · Tax documents for people who work alone",
     headline: ["Quotations,", "invoices,", "tax invoices,", "done right", "for VAT-registered freelancers"],
     lead: "Bill in instalments the correct way, give clients documents they can verify by QR, and skip the accounting jargon.",
-    afterTrial: (price: string) => `then ${price} a year, VAT included`,
+    afterTrial: (price: string) => `then ${price} a year + VAT`,
     sampleAlt: "A sample tax invoice made with Tra",
     whyTitle: "Why Tra",
     messages: [
@@ -89,7 +89,7 @@ export const en = {
     faq: (yearly: string, monthly: string) => [
       { q: "Is a PDF tax invoice legal?", a: "Yes. Tra's documents carry everything Revenue Code s.86/4 requires. e-Tax invoicing is optional, not compulsory." },
       { q: "Who is Tra for?", a: "Individuals registered for VAT, such as freelancers and sole proprietors. Company accounts come later." },
-      { q: "What happens after the trial?", a: `Choose ${yearly} a year or ${monthly} a month. If you don't, your documents stay yours to view and download; you just can't issue new ones.` },
+      { q: "What happens after the trial?", a: `Choose ${yearly} a year or ${monthly} a month, plus 7% VAT. If you don't, your documents stay yours to view and download; you just can't issue new ones.` },
       { q: "Do you do e-Tax invoices?", a: "Not yet. Tra issues standard tax invoices, which are fully valid." },
     ],
     footer: "For individuals registered for VAT",
@@ -134,7 +134,7 @@ export const en = {
       "Withholding certificates and the VAT report",
     ],
     asideAfter: "After the trial",
-    asidePrices: (yearly: string, pct: number, monthly: string) => `${yearly} a year (save ${pct}%) or ${monthly} a month, VAT included.`,
+    asidePrices: (yearly: string, pct: number, monthly: string) => `${yearly} a year (save ${pct}%) or ${monthly} a month, plus 7% VAT.`,
     asideKeep: "Don't subscribe and your documents stay yours to view and download. You just can't issue new ones.",
     asideWho: "For individuals: freelancers and sole proprietors. Company accounts are coming later.",
     // Server action messages

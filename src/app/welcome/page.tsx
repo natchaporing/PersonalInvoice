@@ -132,12 +132,12 @@ export default async function WelcomePage() {
                   <span className="rounded-sm bg-amber/25 px-2 py-0.5 text-[12px] font-medium">{w.save(yearlySavingPct())}</span>
                 </div>
                 <div className="num mt-2 text-[30px] font-semibold">{baht(PLANS.pro_year.price)}</div>
-                <div className="text-sm text-muted-foreground">{m.common.perYear} · {m.common.vatIncluded}</div>
+                <div className="text-sm text-muted-foreground">{m.common.perYear} · {m.common.plusVat}</div>
               </div>
               <div className="rounded-md border bg-background p-5">
                 <span className="font-semibold">{w.monthly}</span>
                 <div className="num mt-2 text-[30px] font-semibold">{baht(PLANS.pro_month.price)}</div>
-                <div className="text-sm text-muted-foreground">{m.common.perMonth} · {m.common.vatIncluded}</div>
+                <div className="text-sm text-muted-foreground">{m.common.perMonth} · {m.common.plusVat}</div>
               </div>
               <TrialButton label={trial} className="sm:col-span-2" />
             </div>

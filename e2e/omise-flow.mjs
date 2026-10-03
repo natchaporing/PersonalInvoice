@@ -65,7 +65,7 @@ try {
   // 1. PromptPay: QR page, then the payment arrives (simulated in test mode) and the plan is active
   await page.goto(`${BASE}/settings/billing/checkout?plan=pro_month`);
   await page.getByText(/Opn Payments test mode/).waitFor();
-  await page.getByRole("button", { name: "Pay ฿249.00" }).click();
+  await page.getByRole("button", { name: "Pay ฿266.43" }).click();
   await page.waitForURL(/\/settings\/billing\/pay\//);
   await page.getByText("Scan to pay with PromptPay", { exact: true }).waitFor();
   await page.getByRole("img", { name: "Scan to pay with PromptPay" }).waitFor();
@@ -80,7 +80,7 @@ try {
 
   // 2. PromptPay paid in the banking app while the page waits: the page's status check picks it up
   await page.goto(`${BASE}/settings/billing/checkout?plan=pro_month`);
-  await page.getByRole("button", { name: "Pay ฿249.00" }).click();
+  await page.getByRole("button", { name: "Pay ฿266.43" }).click();
   await page.waitForURL(/\/settings\/billing\/pay\//);
   const ref = psql(`select provider_ref from billing_charges where owner_id = (select id from auth.users where email = '${email}') and status = 'pending'`);
   await fetch(`${OMISE}/charges/${ref}/mark_as_paid`, { method: "POST", headers: { Authorization: `Basic ${Buffer.from("skey_test_x:").toString("base64")}` } });
@@ -97,7 +97,7 @@ try {
     await page.getByLabel("Card number").fill(number);
     await page.getByLabel("Expiry (MM/YY)").fill("12/30");
     await page.getByLabel("CVC").fill("123");
-    await page.getByRole("button", { name: "Pay ฿2,490.00" }).click();
+    await page.getByRole("button", { name: "Pay ฿2,664.30" }).click();
   };
   await payByCard("4242424242424242");
   await page.waitForURL(/\/settings\/billing\?paid=/);
@@ -118,7 +118,7 @@ try {
 
   // 6. Webhook: settles a charge by fetching it from Opn; a forged or unknown charge changes nothing
   await page.goto(`${BASE}/settings/billing/checkout?plan=pro_month`);
-  await page.getByRole("button", { name: "Pay ฿249.00" }).click();
+  await page.getByRole("button", { name: "Pay ฿266.43" }).click();
   await page.waitForURL(/\/settings\/billing\/pay\//);
   const chargeId = page.url().split("/").pop();
   await page.close(); // nobody is watching the page now

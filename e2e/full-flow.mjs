@@ -632,11 +632,11 @@ try {
   await page.getByText("Free trial: 15 days left", { exact: false }).first().waitFor();
   await page.getByRole("link", { name: "Choose yearly" }).click();
   await page.waitForURL(/\/settings\/billing\/checkout\?plan=pro_year/);
-  for (const t of ["฿2,327.10", "฿162.90", "฿2,490.00"]) await page.getByText(t, { exact: true }).first().waitFor();
+  for (const t of ["฿2,490.00", "฿174.30", "฿2,664.30"]) await page.getByText(t, { exact: true }).first().waitFor();
   await page.getByText("It starts when your free trial ends").waitFor();
   await page.getByLabel(/Credit or debit card/).check();
   await shot("12-checkout");
-  await page.getByRole("button", { name: "Pay ฿2,490.00 (test)" }).click();
+  await page.getByRole("button", { name: "Pay ฿2,664.30 (test)" }).click();
   await page.waitForURL(/\/settings\/billing\?paid=/);
   await page.getByText("Payment received. Thank you!").waitFor();
   await page.getByText(/Pro · yearly, paid until/).first().waitFor();

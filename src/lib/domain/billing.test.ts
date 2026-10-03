@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { taxIdChecksumOk, isJuristicTaxId } from "@/lib/thai/tax-id";
-import { accessFor, canIssue, nextPeriod, PLANS, vatInclusive, yearlySavingPct } from "./billing";
+import { accessFor, canIssue, nextPeriod, PLANS, planTotal, withVat, yearlySavingPct } from "./billing";
 
 const now = new Date("2026-10-02T12:00:00Z");
 const sub = (o: Partial<{ plan: string | null; trial_ends_at: string; current_period_end: string | null }>) => ({
@@ -36,9 +36,11 @@ describe("accessFor", () => {
 });
 
 describe("prices", () => {
-  it("splits VAT out of the inclusive price", () => {
-    expect(vatInclusive(PLANS.pro_year.price)).toEqual({ net: 232710, vat: 16290 });
-    expect(vatInclusive(PLANS.pro_month.price)).toEqual({ net: 23271, vat: 1629 });
+  it("adds 7% VAT on top of the plan price", () => {
+    expect(withVat(PLANS.pro_year.price)).toEqual({ net: 249000, vat: 17430, total: 266430 });
+    expect(withVat(PLANS.pro_month.price)).toEqual({ net: 24900, vat: 1743, total: 26643 });
+    // Must match plan_price() in the database
+    expect([planTotal("pro_year"), planTotal("pro_month")]).toEqual([266430, 26643]);
   });
   it("yearly saves about 17% over monthly", () => expect(yearlySavingPct()).toBe(17));
 });

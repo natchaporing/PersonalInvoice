@@ -4,7 +4,10 @@ export const TRIAL_DAYS = 15;
 
 export type PlanKey = "pro_year" | "pro_month";
 
-/** Prices in satang, VAT included. The database's plan_price() is the source of truth for charges; keep in step. */
+/**
+ * Prices in satang before VAT; customers pay the price plus 7% VAT (they are VAT-registered and claim it back).
+ * The database's plan_price() holds the VAT-inclusive amount actually charged and is the source of truth; keep in step.
+ */
 export const PLANS: Record<PlanKey, { label: string; th: string; price: number; period: string; periodTh: string }> = {
   pro_year: { label: "Pro · yearly", th: "รายปี", price: 249000, period: "year", periodTh: "ปี" },
   pro_month: { label: "Pro · monthly", th: "รายเดือน", price: 24900, period: "month", periodTh: "เดือน" },
@@ -15,11 +18,14 @@ export const isPlanKey = (v: unknown): v is PlanKey => v === "pro_year" || v ===
 /** Yearly saving against paying monthly for twelve months, in whole percent. */
 export const yearlySavingPct = () => Math.round((1 - PLANS.pro_year.price / (PLANS.pro_month.price * 12)) * 100);
 
-/** Splits a VAT-inclusive price into net + 7% VAT, rounding the VAT to the satang. */
-export function vatInclusive(amount: number, vatBps = 700) {
-  const vat = Math.round((amount * vatBps) / (10000 + vatBps));
-  return { net: amount - vat, vat };
+/** Adds 7% VAT to a price, rounding the VAT to the satang. */
+export function withVat(net: number, vatBps = 700) {
+  const vat = Math.round((net * vatBps) / 10000);
+  return { net, vat, total: net + vat };
 }
+
+/** What a plan actually charges, VAT included. */
+export const planTotal = (plan: PlanKey) => withVat(PLANS[plan].price).total;
 
 export type Access =
   | { kind: "comp" }

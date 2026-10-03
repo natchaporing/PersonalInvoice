@@ -22,7 +22,7 @@ export default function TermsPage() {
       <h2 className="mt-6 text-lg font-semibold">Free trial and payment</h2>
       <p>
         A new account gets {TRIAL_DAYS} days of Pro free, with no card needed. After that, issuing documents needs a paid plan: ฿{formatTHB(PLANS.pro_year.price)} a year or ฿
-        {formatTHB(PLANS.pro_month.price)} a month, VAT included. A paid period starts when your trial or current period ends, so paying early never loses days. We
+        {formatTHB(PLANS.pro_month.price)} a month, plus 7% VAT. A paid period starts when your trial or current period ends, so paying early never loses days. We
         issue a receipt/tax invoice for every payment. [Refund policy.]
       </p>
 
