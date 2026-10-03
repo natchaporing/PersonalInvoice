@@ -803,6 +803,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      attach_provider_charge: {
+        Args: { p_charge: string; p_provider: string; p_ref: string }
+        Returns: undefined
+      }
+      settle_provider_charge: {
+        Args: { p_amount: number; p_charge: string; p_provider: string; p_ref: string; p_secret: string; p_status: string }
+        Returns: string
+      }
       complete_test_charge: {
         Args: { p_charge: string; p_secret: string }
         Returns: string

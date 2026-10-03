@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isPlanKey, nextPeriod, PLANS, vatInclusive } from "@/lib/domain/billing";
 import { bkkDate, getAccess, testPaymentsEnabled } from "@/lib/billing/access";
 import { planLabel } from "@/lib/billing/labels";
+import { omiseEnabled, omisePublicKey, omiseTestMode } from "@/lib/billing/omise";
 import { getLocale, getMessages } from "@/lib/i18n/server";
 import { formatTHB } from "@/lib/thai/money";
 import { CheckoutForm } from "./checkout-form";
@@ -30,7 +31,13 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/setting
             <CardTitle>{m.billing.payment}</CardTitle>
           </CardHeader>
           <CardContent>
-            <CheckoutForm plan={plan} total={`฿${formatTHB(p.price)}`} testMode={testPaymentsEnabled()} />
+            <CheckoutForm
+              plan={plan}
+              total={`฿${formatTHB(p.price)}`}
+              mode={omiseEnabled() ? "omise" : testPaymentsEnabled() ? "test" : "off"}
+              omiseKey={omiseEnabled() ? omisePublicKey() : ""}
+              omiseTest={omiseTestMode()}
+            />
           </CardContent>
         </Card>
         <Card className="h-fit">

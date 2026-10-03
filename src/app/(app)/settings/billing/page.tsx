@@ -122,7 +122,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/settings
                       <td className="py-2">{c.period_start && c.period_end ? `${d(c.period_start)} – ${d(c.period_end)}` : "—"}</td>
                       <td className="num py-2 text-right">฿{formatTHB(c.amount)}</td>
                       <td className="py-2 text-right">
-                        {c.status === "paid" ? <span className="text-ok">{m.billing.statusPaid}{c.provider === "test" ? ` ${m.billing.statusTest}` : ""}</span> : c.status}
+                        {c.status === "paid" ? <span className="text-ok">{m.billing.statusPaid}{c.provider === "test" ? ` ${m.billing.statusTest}` : ""}</span> : c.status === "pending" ? <Link href={`/settings/billing/pay/${c.id}`} className="text-cobalt underline-offset-4 hover:underline">{m.billing.statusPending}</Link> : c.status === "failed" ? m.billing.statusFailed : c.status === "expired" ? m.billing.statusExpired : c.status}
                       </td>
                     </tr>
                   ))}
