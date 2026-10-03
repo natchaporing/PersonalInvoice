@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { type AuthState, signUp } from "@/app/login/actions";
 import { ResendConfirmation } from "@/app/login/resend";
 import { TRIAL_DAYS } from "@/lib/domain/billing";
+import { useMessages } from "@/lib/i18n/client";
 
 function FieldError({ id, state }: { id: string; state: AuthState }) {
   if (state.field !== id || !state.error) return null;
@@ -16,6 +17,7 @@ function FieldError({ id, state }: { id: string; state: AuthState }) {
 
 export function RegisterForm() {
   const [state, action, pending] = useActionState<AuthState, FormData>(signUp, {});
+  const m = useMessages();
   const [email, setEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
   const mismatch = confirmEmail !== "" && email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase();
@@ -27,7 +29,7 @@ export function RegisterForm() {
       <div className="grid h-fit gap-3">
         <p role="status" className="rounded-md border border-ok/40 bg-ok/5 px-3 py-3 text-sm text-ok">{state.message}</p>
         {state.pendingEmail && <ResendConfirmation email={state.pendingEmail} />}
-        <Link href="/login" className="text-sm text-cobalt underline-offset-4 hover:underline">Back to sign in</Link>
+        <Link href="/login" className="text-sm text-cobalt underline-offset-4 hover:underline">{m.auth.backToSignIn}</Link>
       </div>
     );
   }
@@ -35,24 +37,24 @@ export function RegisterForm() {
   return (
     <form action={action} className="grid h-fit gap-4" noValidate>
       <div className="grid gap-1.5">
-        <Label htmlFor="name">Your name</Label>
-        <Input id="name" name="name" autoComplete="name" defaultValue={v("name")} placeholder="ณัฐชา ใจดี" required {...invalid("name")} />
-        <p className="text-[12px] text-muted-foreground">As it should appear on your documents. You can add an English name later.</p>
+        <Label htmlFor="name">{m.auth.name}</Label>
+        <Input id="name" name="name" autoComplete="name" defaultValue={v("name")} placeholder={m.auth.namePlaceholder} required {...invalid("name")} />
+        <p className="text-[12px] text-muted-foreground">{m.auth.nameHint}</p>
         <FieldError id="name" state={state} />
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor="taxId">Personal tax ID</Label>
-        <Input id="taxId" name="taxId" inputMode="numeric" autoComplete="off" maxLength={17} className="num" defaultValue={v("taxId")} placeholder="13 digits" required {...invalid("taxId")} />
-        <p className="text-[12px] text-muted-foreground">Your 13-digit national ID number, the one you registered for VAT with.</p>
+        <Label htmlFor="taxId">{m.auth.taxId}</Label>
+        <Input id="taxId" name="taxId" inputMode="numeric" autoComplete="off" maxLength={17} className="num" defaultValue={v("taxId")} placeholder={m.auth.taxIdPlaceholder} required {...invalid("taxId")} />
+        <p className="text-[12px] text-muted-foreground">{m.auth.taxIdHint}</p>
         <FieldError id="taxId" state={state} />
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{m.auth.email}</Label>
         <Input id="email" name="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required {...invalid("email")} />
         <FieldError id="email" state={state} />
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor="confirmEmail">Confirm email</Label>
+        <Label htmlFor="confirmEmail">{m.auth.confirmEmail}</Label>
         <Input
           id="confirmEmail"
           name="confirmEmail"
@@ -65,29 +67,29 @@ export function RegisterForm() {
           aria-describedby={mismatch ? "confirmEmail-mismatch" : undefined}
           required
         />
-        {mismatch && <p id="confirmEmail-mismatch" className="text-[12px] text-destructive">The two email addresses don&apos;t match</p>}
+        {mismatch && <p id="confirmEmail-mismatch" className="text-[12px] text-destructive">{m.auth.emailsDiffer}</p>}
         {!mismatch && <FieldError id="confirmEmail" state={state} />}
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{m.auth.password}</Label>
         <Input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required {...invalid("password")} />
-        <p className="text-[12px] text-muted-foreground">At least 8 characters.</p>
+        <p className="text-[12px] text-muted-foreground">{m.auth.passwordHint}</p>
         <FieldError id="password" state={state} />
       </div>
       <div className="grid gap-1">
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" name="terms" className="mt-0.5 size-4 accent-[var(--cobalt)]" {...invalid("terms")} />
           <span>
-            I agree to the <Link href="/terms" target="_blank" className="text-cobalt underline">terms of service</Link> and the{" "}
-            <Link href="/terms#privacy" target="_blank" className="text-cobalt underline">privacy notice</Link>.
+            {m.auth.agreeBefore} <Link href="/terms" target="_blank" className="text-cobalt underline">{m.auth.termsLink}</Link> {m.auth.agreeAnd}{" "}
+            <Link href="/terms#privacy" target="_blank" className="text-cobalt underline">{m.auth.privacyLink}</Link>
           </span>
         </label>
         <FieldError id="terms" state={state} />
       </div>
       {state.error && !state.field && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
-      <Button type="submit" disabled={pending || mismatch} className="mt-1">{pending ? "Please wait…" : `Start my ${TRIAL_DAYS}-day free trial`}</Button>
+      <Button type="submit" disabled={pending || mismatch} className="mt-1">{pending ? m.auth.wait : m.common.startTrial(TRIAL_DAYS)}</Button>
       <p className="text-sm text-muted-foreground">
-        Already have an account? <Link href="/login" className="font-medium text-cobalt underline-offset-4 hover:underline">Sign in</Link>
+        {m.auth.haveAccount} <Link href="/login" className="font-medium text-cobalt underline-offset-4 hover:underline">{m.common.signIn}</Link>
       </p>
     </form>
   );

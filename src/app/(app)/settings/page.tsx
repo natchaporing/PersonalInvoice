@@ -1,4 +1,5 @@
 import { listDistricts, listProvinces, listSubdistricts } from "@/lib/etax/geo";
+import { getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
 import { ProfileForm } from "./profile-form";
 import { Signatories } from "./signatories";
@@ -8,13 +9,14 @@ const str = (v: unknown) => (typeof v === "string" ? v : "");
 export default async function Settings({ searchParams }: PageProps<"/settings">) {
   const { supabase, user } = await requireUser();
   const confirmed = (await searchParams).confirmed === "1";
+  const m = await getMessages();
   const { data: profile } = await supabase.from("business_profiles").select("*").eq("owner_id", user.id).maybeSingle();
   const { data: people } = await supabase.from("signatories").select("*").order("created_at");
   return (
     <>
       {confirmed && (
         <p role="status" className="mb-5 max-w-4xl rounded-md border border-ok/40 bg-ok/5 px-4 py-3 text-sm text-ok">
-          Email confirmed. Welcome! Start by filling in your business profile.
+          {m.settings.confirmed}
         </p>
       )}
       <ProfileForm

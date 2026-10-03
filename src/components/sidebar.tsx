@@ -3,25 +3,28 @@
 import { FileText, HandCoins, LayoutDashboard, Package, Receipt, Settings, Users, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMessages } from "@/lib/i18n/client";
+import type { Messages } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/", label: "Dashboard", th: "ภาพรวม", icon: LayoutDashboard },
-  { href: "/documents", label: "Documents", th: "เอกสาร", icon: FileText },
-  { href: "/customers", label: "Customers", th: "ลูกค้า", icon: Users },
-  { href: "/items", label: "Items", th: "สินค้า/บริการ", icon: Package },
-  { href: "/payments", label: "Payments", th: "การรับชำระ", icon: Wallet },
-  { href: "/payees", label: "Payees", th: "ค่านายหน้า", icon: HandCoins },
-  { href: "/tax", label: "Tax & VAT", th: "ภาษี", icon: Receipt },
-  { href: "/settings", label: "Settings", th: "ตั้งค่า", icon: Settings },
+const NAV: { href: string; key: keyof Messages["nav"]; icon: typeof FileText }[] = [
+  { href: "/", key: "dashboard", icon: LayoutDashboard },
+  { href: "/documents", key: "documents", icon: FileText },
+  { href: "/customers", key: "customers", icon: Users },
+  { href: "/items", key: "items", icon: Package },
+  { href: "/payments", key: "payments", icon: Wallet },
+  { href: "/payees", key: "payees", icon: HandCoins },
+  { href: "/tax", key: "tax", icon: Receipt },
+  { href: "/settings", key: "settings", icon: Settings },
 ];
 
 export function Sidebar() {
   const path = usePathname();
+  const m = useMessages();
   return (
     <nav aria-label="Main" className="flex gap-1 overflow-x-auto px-3 py-3 md:sticky md:top-4 md:flex-col md:gap-0.5 md:overflow-visible md:px-4 md:py-6">
-      <div className="eyebrow mb-2 hidden px-2 md:block">Menu · เมนู</div>
-      {NAV.map(({ href, label, th, icon: Icon }) => {
+      <div className="eyebrow mb-2 hidden px-2 md:block">{m.nav.menu}</div>
+      {NAV.map(({ href, key, icon: Icon }) => {
         const active = href === "/" ? path === "/" : path.startsWith(href);
         return (
           <Link
@@ -35,8 +38,7 @@ export function Sidebar() {
           >
             {active && <span aria-hidden className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-amber" />}
             <Icon className={cn("size-4", active ? "text-cobalt" : "text-muted-foreground group-hover:text-foreground")} aria-hidden />
-            <span>{label}</span>
-            <span className="ml-auto hidden text-[11px] font-normal text-muted-foreground lg:inline">{th}</span>
+            <span>{m.nav[key]}</span>
           </Link>
         );
       })}

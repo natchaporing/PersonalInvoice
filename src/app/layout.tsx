@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans_Thai, Noto_Serif_Thai, Source_Serif_4 } from "next/font/google";
+import { LocaleProvider } from "@/lib/i18n/client";
+import { getLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 // Body: IBM Plex Sans Thai. Display (engraved feel): Source Serif 4 + Noto Serif Thai. Serials & money: IBM Plex Mono.
@@ -13,10 +15,13 @@ export const metadata: Metadata = {
   description: "Thai invoice and tax-document backoffice",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = await getLocale();
   return (
-    <html lang="en" className={`${plex.variable} ${serif.variable} ${serifTh.variable} ${mono.variable} h-full antialiased`}>
-      <body className="min-h-full">{children}</body>
+    <html lang={locale} className={`${plex.variable} ${serif.variable} ${serifTh.variable} ${mono.variable} h-full antialiased`}>
+      <body className="min-h-full">
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

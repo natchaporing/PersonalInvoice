@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isPlanKey } from "@/lib/domain/billing";
 import type { FormState } from "@/lib/domain/forms";
 import { testPaymentsEnabled } from "@/lib/billing/access";
+import { getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
 
 /**
@@ -13,15 +14,16 @@ import { requireUser } from "@/lib/supabase/server";
  * provider, send the customer to its PromptPay QR or card page, and let its webhook call apply_paid_charge.
  */
 export async function checkout(_: FormState, form: FormData): Promise<FormState> {
+  const m = await getMessages();
   const plan = form.get("plan");
   const method = form.get("method");
-  if (!isPlanKey(plan)) return { error: "Choose a plan." };
-  if (method !== "promptpay" && method !== "card") return { error: "Choose how to pay." };
-  if (!testPaymentsEnabled()) return { error: "Online payment isn't switched on yet." };
+  if (!isPlanKey(plan)) return { error: m.billing.errPlan };
+  if (method !== "promptpay" && method !== "card") return { error: m.billing.errMethod };
+  if (!testPaymentsEnabled()) return { error: m.billing.notYet };
 
   const { supabase } = await requireUser();
   const { data: chargeId, error } = await supabase.rpc("start_checkout", { p_plan: plan, p_method: method });
-  if (error || !chargeId) return { error: error?.message ?? "Could not start the payment." };
+  if (error || !chargeId) return { error: error?.message ?? m.billing.errStart };
   const paid = await supabase.rpc("complete_test_charge", { p_charge: chargeId, p_secret: process.env.BILLING_TEST_SECRET! });
   if (paid.error) return { error: paid.error.message };
   revalidatePath("/", "layout"); // the trial banner lives in the shared layout

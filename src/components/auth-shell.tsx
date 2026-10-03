@@ -1,4 +1,5 @@
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette } from "@/components/banknote";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -14,6 +15,7 @@ export function AuthShell({ eyebrow, title, subtitle, wide, children }: { eyebro
             <LogoMark size={42} title="" />
             <span className="display text-[24px] tracking-tight">Tra<span className="ml-1.5 font-sans text-[15px] text-amber">ตรา</span></span>
           </Link>
+          <LanguageSwitcher />
         </div>
       </header>
       <GuillocheBand tone="amber" height={10} opacity={1} />

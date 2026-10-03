@@ -3,6 +3,8 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import type { Messages } from "@/lib/i18n/messages";
+import { getMessages } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { isJuristicTaxId, taxIdChecksumOk } from "@/lib/thai/tax-id";
 
@@ -18,28 +20,31 @@ export interface AuthState {
   values?: Record<string, string>;
 }
 
-const Email = z.string().trim().toLowerCase().email("Enter a valid email");
-const Password = z.string().min(8, "Password must be at least 8 characters");
-
-const SignIn = z.object({ email: Email, password: Password });
-
-const TaxId = z
-  .string()
-  .transform((v) => v.replace(/[\s-]/g, ""))
-  .refine((v) => /^\d{13}$/.test(v), "Your tax ID is 13 digits")
-  .refine((v) => !isJuristicTaxId(v), "Tra is for individuals for now. Company accounts are coming later.")
-  .refine(taxIdChecksumOk, "That tax ID doesn't look right. Check the 13 digits.");
-
-const SignUp = z
-  .object({
-    name: z.string().trim().min(2, "Enter your name as it should appear on documents").max(200),
-    taxId: TaxId,
-    email: Email,
-    confirmEmail: z.string().trim().toLowerCase(),
-    password: Password,
-    terms: z.literal("on", { message: "Please accept the terms and privacy notice" }),
-  })
-  .refine((v) => v.email === v.confirmEmail, { path: ["confirmEmail"], message: "The two email addresses don't match" });
+/** Validation schemas with messages in the visitor's language. */
+function schemas(m: Messages) {
+  const Email = z.string().trim().toLowerCase().email(m.auth.errEmail);
+  const Password = z.string().min(8, m.auth.errPassword);
+  const TaxId = z
+    .string()
+    .transform((v) => v.replace(/[\s-]/g, ""))
+    .refine((v) => /^\d{13}$/.test(v), m.auth.errTaxIdDigits)
+    .refine((v) => !isJuristicTaxId(v), m.auth.errTaxIdCompany)
+    .refine(taxIdChecksumOk, m.auth.errTaxIdChecksum);
+  return {
+    Email,
+    SignIn: z.object({ email: Email, password: Password }),
+    SignUp: z
+      .object({
+        name: z.string().trim().min(2, m.auth.errName).max(200),
+        taxId: TaxId,
+        email: Email,
+        confirmEmail: z.string().trim().toLowerCase(),
+        password: Password,
+        terms: z.literal("on", { message: m.auth.errTerms }),
+      })
+      .refine((v) => v.email === v.confirmEmail, { path: ["confirmEmail"], message: m.auth.emailsDiffer }),
+  };
+}
 
 /** Only allow same-site relative redirects. */
 const safeNext = (v: FormDataEntryValue | null) => {
@@ -57,29 +62,31 @@ async function siteUrl(): Promise<string> {
 }
 
 export async function signIn(_: AuthState, form: FormData): Promise<AuthState> {
+  const m = await getMessages();
   const raw = { email: form.get("email"), password: form.get("password") };
-  const parsed = SignIn.safeParse(raw);
+  const parsed = schemas(m).SignIn.safeParse(raw);
   if (!parsed.success) return { error: parsed.error.issues[0].message, email: String(raw.email ?? "") };
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
     if (error.code === "email_not_confirmed") {
-      return { error: "Please confirm your email first. Open the link we sent you, or request a new one.", email: parsed.data.email, pendingEmail: parsed.data.email };
+      return { error: m.auth.errConfirmFirst, email: parsed.data.email, pendingEmail: parsed.data.email };
     }
-    return { error: error.message === "Invalid login credentials" ? "Email or password is incorrect" : error.message, email: parsed.data.email };
+    return { error: error.message === "Invalid login credentials" ? m.auth.errLogin : error.message, email: parsed.data.email };
   }
   redirect(safeNext(form.get("next")));
 }
 
 /** Creates the account with a 15-day trial (started by the database). Individuals only: a company tax ID is refused. */
 export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
+  const m = await getMessages();
   const values = {
     name: String(form.get("name") ?? ""),
     taxId: String(form.get("taxId") ?? ""),
     email: String(form.get("email") ?? ""),
     confirmEmail: String(form.get("confirmEmail") ?? ""),
   };
-  const parsed = SignUp.safeParse({ ...values, password: form.get("password"), terms: form.get("terms") ?? undefined });
+  const parsed = schemas(m).SignUp.safeParse({ ...values, password: form.get("password"), terms: form.get("terms") ?? undefined });
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     return { error: issue.message, field: String(issue.path[0] ?? ""), values };
@@ -97,16 +104,17 @@ export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
   });
   if (error) return { error: error.message, values };
   if (data.session) redirect("/settings"); // project has email confirmation switched off
-  return { message: `We sent a confirmation link to ${email}. Open it to activate your account and start your trial.`, email, pendingEmail: email };
+  return { message: m.auth.sentConfirm(email), email, pendingEmail: email };
 }
 
 export async function resendConfirmation(_: AuthState, form: FormData): Promise<AuthState> {
-  const parsed = Email.safeParse(form.get("email"));
-  if (!parsed.success) return { error: "Enter your email address first." };
+  const m = await getMessages();
+  const parsed = schemas(m).Email.safeParse(form.get("email"));
+  if (!parsed.success) return { error: m.auth.errEmailFirst };
   const supabase = await createClient();
   const { error } = await supabase.auth.resend({ type: "signup", email: parsed.data, options: { emailRedirectTo: `${await siteUrl()}/auth/callback` } });
   if (error) return { error: error.message, email: parsed.data, pendingEmail: parsed.data };
-  return { message: `Confirmation link sent again to ${parsed.data}. It can take a minute to arrive; check your spam folder too.`, email: parsed.data, pendingEmail: parsed.data };
+  return { message: m.auth.resent(parsed.data), email: parsed.data, pendingEmail: parsed.data };
 }
 
 export async function signOut() {

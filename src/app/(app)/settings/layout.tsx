@@ -1,10 +1,12 @@
 import { PageHeader } from "@/components/app-ui";
+import { getMessages } from "@/lib/i18n/server";
 import { SettingsTabs } from "./settings-tabs";
 
-export default function SettingsLayout({ children }: LayoutProps<"/settings">) {
+export default async function SettingsLayout({ children }: LayoutProps<"/settings">) {
+  const m = await getMessages();
   return (
     <>
-      <PageHeader eyebrow="ตั้งค่า" title="Settings" subtitle="Your business profile, signatories and plan." />
+      <PageHeader title={m.settings.title} subtitle={m.settings.subtitle} />
       <SettingsTabs />
       {children}
     </>

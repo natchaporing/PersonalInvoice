@@ -35,6 +35,8 @@ const confirmationLink = async (to, count = 1) => (await confirmationLinks(to, c
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ["--no-proxy-server"] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
+// The flow below reads English labels; the Thai UI is checked explicitly where the language is switched.
+await ctx.addCookies([{ name: "lang", value: "en", url: BASE }]);
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
@@ -45,10 +47,18 @@ try {
   // 0. The bare address shows the landing page; its trial button leads to registration
   await page.goto(`${BASE}/`);
   await page.waitForURL(/\/welcome$/);
+  await page.getByRole("heading", { level: 1, name: /tax invoices/ }).waitFor();
+  // Switch to Thai: the page, its <html lang> and the choice survive a reload
+  await page.getByRole("button", { name: /TH/ }).click();
   await page.getByRole("heading", { level: 1, name: /ใบกำกับภาษี/ }).waitFor();
-  if (await page.getByText(/e-Tax Invoice by Email|รับรองโดยกรมสรรพากร/).count()) fail("landing page must not claim e-Tax or RD approval");
+  await page.reload();
+  if ((await page.evaluate(() => document.documentElement.lang)) !== "th") fail("html lang should follow the chosen language");
+  if (await page.getByText(/e-Tax Invoice by Email|รับรองโดยกรมสรรพากร|approved by the Revenue/).count()) fail("landing page must not claim e-Tax or RD approval");
+  await shot("00-welcome-th");
+  await page.getByRole("button", { name: /EN/ }).click();
+  await page.getByRole("heading", { level: 1, name: /tax invoices/ }).waitFor();
   await shot("00-welcome");
-  await page.getByRole("link", { name: /ทดลองใช้ฟรี 15 วัน/ }).first().click();
+  await page.getByRole("link", { name: /Start your 15-day free trial/ }).first().click();
   await page.waitForURL(/\/register$/);
   log("landing page shows the positioning and leads to the trial");
 
@@ -60,7 +70,7 @@ try {
   // 2. Register (individuals only, 15-day trial): company IDs, bad checksums and missing consent are refused
   await page.getByRole("link", { name: "Start a 15-day free trial" }).click();
   await page.waitForURL(/\/register/);
-  const submit = page.getByRole("button", { name: "Start my 15-day free trial" });
+  const submit = page.getByRole("button", { name: "Start your 15-day free trial" });
   const fillRegister = async (taxId, terms) => {
     await page.getByLabel("Your name").fill("ณัฐชา ใจดี");
     await page.getByLabel("Personal tax ID").fill(taxId);
@@ -309,6 +319,14 @@ try {
   const brand = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--cobalt").trim());
   if (brand !== "#0047ab") fail(`brand colour should be Cobalt, got ${brand}`);
   log("theme fixed to Cobalt, no palette switcher");
+  // The signed-in app switches to Thai and back
+  await page.getByRole("button", { name: /TH/ }).click();
+  await page.getByRole("link", { name: "ภาพรวม" }).waitFor();
+  await page.getByRole("button", { name: "ออกจากระบบ" }).waitFor();
+  await shot("03c-app-thai");
+  await page.getByRole("button", { name: /EN/ }).click();
+  await page.getByRole("link", { name: "Dashboard" }).waitFor();
+  log("app switches between Thai and English");
 
   // 9. Issue & sign
   page.once("dialog", (d) => d.accept());
@@ -576,6 +594,7 @@ try {
 
   // 19. Row-level security: a second user cannot see the first user's document or PDF
   const other = await browser.newContext();
+  await other.addCookies([{ name: "lang", value: "en", url: BASE }]);
   const op = await other.newPage();
   await op.goto(`${BASE}/register`);
   const otherEmail = `other-${randomBytes(4).toString("hex")}@example.com`;
@@ -585,7 +604,7 @@ try {
   await op.getByLabel("Confirm email").fill(otherEmail);
   await op.getByLabel("Password").fill(password);
   await op.getByLabel(/I agree to the terms/).check();
-  await op.getByRole("button", { name: "Start my 15-day free trial" }).click();
+  await op.getByRole("button", { name: "Start your 15-day free trial" }).click();
   await op.getByText(/We sent a confirmation link/).waitFor();
   await op.goto(await confirmationLink(otherEmail));
   await op.waitForURL(/\/settings/);
