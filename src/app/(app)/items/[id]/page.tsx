@@ -10,7 +10,7 @@ export default async function EditItem({ params }: PageProps<"/items/[id]">) {
   if (!item) notFound();
   return (
     <>
-      <PageHeader eyebrow="สินค้า/บริการ" title={item.name_th} subtitle={item.name_en ?? undefined} />
+      <PageHeader title={item.name_th} subtitle={item.name_en ?? undefined} />
       <ItemForm item={item} />
     </>
   );

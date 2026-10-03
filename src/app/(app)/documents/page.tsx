@@ -5,10 +5,11 @@ import { SerialNumber } from "@/components/banknote";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DOC_TYPE_LABEL, DOC_TYPES, type DocStatus, type DocType, isOverdue, todayBangkok } from "@/lib/domain/documents";
+import { DOC_TYPES, type DocStatus, type DocType, isOverdue, todayBangkok } from "@/lib/domain/documents";
+import { docTypeLabel, formatDate } from "@/lib/i18n/format";
+import { getLocale, getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
-import { formatDateEN } from "@/lib/thai/thai-date";
 import { cn } from "@/lib/utils";
 
 const STATUSES: DocStatus[] = ["draft", "issued", "paid", "void"];
@@ -29,6 +30,8 @@ export default async function Documents({ searchParams }: PageProps<"/documents"
   if (status) q = q.eq("status", status);
   const { data: docs } = await q;
   const today = todayBangkok();
+  const [m, locale] = await Promise.all([getMessages(), getLocale()]);
+  const t = m.docs.list;
 
   const href = (t?: string, s?: string) => {
     const p = new URLSearchParams();
@@ -43,27 +46,26 @@ export default async function Documents({ searchParams }: PageProps<"/documents"
   return (
     <>
       <PageHeader
-        eyebrow="เอกสารทั้งหมด"
-        title="Documents"
-        subtitle="Quotations, invoices, tax invoices, receipts and notes."
-        actions={<Button asChild><Link href="/documents/new"><Plus /> New document</Link></Button>}
+        title={t.title}
+        subtitle={t.subtitle}
+        actions={<Button asChild><Link href="/documents/new"><Plus /> {t.newDocument}</Link></Button>}
       />
-      <nav aria-label="Filter by type" className="mb-2 flex flex-wrap gap-2">
-        <Link href={href(undefined, status)} className={chip(!type)} aria-current={!type ? "true" : undefined}>All types</Link>
+      <nav aria-label={t.filterType} className="mb-2 flex flex-wrap gap-2">
+        <Link href={href(undefined, status)} className={chip(!type)} aria-current={!type ? "true" : undefined}>{t.allTypes}</Link>
         {DOC_TYPES.map((t) => (
-          <Link key={t} href={href(t, status)} className={chip(type === t)} aria-current={type === t ? "true" : undefined}>{DOC_TYPE_LABEL[t].en}</Link>
+          <Link key={t} href={href(t, status)} className={chip(type === t)} aria-current={type === t ? "true" : undefined}>{docTypeLabel(t, locale)}</Link>
         ))}
       </nav>
-      <nav aria-label="Filter by status" className="mb-5 flex flex-wrap gap-2">
-        <Link href={href(type)} className={chip(!status)} aria-current={!status ? "true" : undefined}>Any status</Link>
+      <nav aria-label={t.filterStatus} className="mb-5 flex flex-wrap gap-2">
+        <Link href={href(type)} className={chip(!status)} aria-current={!status ? "true" : undefined}>{t.anyStatus}</Link>
         {STATUSES.map((s) => (
-          <Link key={s} href={href(type, s)} className={cn(chip(status === s), "capitalize")} aria-current={status === s ? "true" : undefined}>{s}</Link>
+          <Link key={s} href={href(type, s)} className={cn(chip(status === s), "capitalize")} aria-current={status === s ? "true" : undefined}>{m.common.status[s]}</Link>
         ))}
       </nav>
 
       {!docs?.length ? (
-        <EmptyState title={type || status ? "Nothing matches these filters" : "No documents yet"} action={<Button asChild><Link href="/documents/new"><Plus /> New document</Link></Button>}>
-          {type || status ? "Try another type or status." : "Create a quotation, invoice or tax invoice. It starts as a draft you can edit."}
+        <EmptyState title={type || status ? t.noMatch : t.noDocs} action={<Button asChild><Link href="/documents/new"><Plus /> {t.newDocument}</Link></Button>}>
+          {type || status ? t.noMatchBody : t.noDocsBody}
         </EmptyState>
       ) : (
         <Card className="py-2">
@@ -71,13 +73,13 @@ export default async function Documents({ searchParams }: PageProps<"/documents"
             <Table className="min-w-[760px]">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead>No.</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Issued</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Total ฿</TableHead>
-                  <TableHead className="text-right">Net receivable ฿</TableHead>
+                  <TableHead>{t.colNo}</TableHead>
+                  <TableHead>{t.colType}</TableHead>
+                  <TableHead>{t.colCustomer}</TableHead>
+                  <TableHead>{t.colIssued}</TableHead>
+                  <TableHead>{t.colStatus}</TableHead>
+                  <TableHead className="text-right">{t.colTotal}</TableHead>
+                  <TableHead className="text-right">{t.colNet}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -87,12 +89,12 @@ export default async function Documents({ searchParams }: PageProps<"/documents"
                     <TableRow key={d.id}>
                       <TableCell>
                         <Link href={`/documents/${d.id}`} className="hover:underline">
-                          {d.number ? <SerialNumber value={d.number} className="text-[12px]" /> : <span className="text-muted-foreground">Draft</span>}
+                          {d.number ? <SerialNumber value={d.number} className="text-[12px]" /> : <span className="text-muted-foreground">{m.common.draft}</span>}
                         </Link>
                       </TableCell>
-                      <TableCell>{DOC_TYPE_LABEL[d.doc_type].en}<div className="text-[12px] text-muted-foreground">{DOC_TYPE_LABEL[d.doc_type].th}</div></TableCell>
+                      <TableCell>{docTypeLabel(d.doc_type, locale)}</TableCell>
                       <TableCell><Link href={`/documents/${d.id}`} className="hover:underline">{name}</Link></TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">{formatDateEN(d.issue_date)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(d.issue_date, locale)}</TableCell>
                       <TableCell><StatusBadge status={d.status} overdue={isOverdue(d, today)} /></TableCell>
                       <TableCell className="num text-right">{formatTHB(d.total)}</TableCell>
                       <TableCell className="num text-right">{formatTHB(d.net_receivable)}</TableCell>

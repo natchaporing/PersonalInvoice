@@ -5,20 +5,22 @@ import { GuillocheBackground, GuillocheBand, Microprint, Rosette, SerialNumber }
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DOC_TYPE_LABEL, isOverdue, todayBangkok } from "@/lib/domain/documents";
+import { isOverdue, todayBangkok } from "@/lib/domain/documents";
 import { monthOf, pp30Deadlines, receivables, vatSummary } from "@/lib/domain/reports";
 import { VAT_REGISTRATION_THRESHOLD } from "@/lib/domain/tax";
 import { requireUser } from "@/lib/supabase/server";
 import { bahtText } from "@/lib/thai/baht-text";
 import { formatTHB } from "@/lib/thai/money";
+import { docTypeLabel, formatDate } from "@/lib/i18n/format";
+import { getLocale, getMessages } from "@/lib/i18n/server";
 import { formatDateEN, formatDateTH } from "@/lib/thai/thai-date";
 
-function Kpi({ label, th, value, hint, danger }: { label: string; th: string; value: number; hint: string; danger?: boolean }) {
+function Kpi({ label, value, hint, danger }: { label: string; value: number; hint: string; danger?: boolean }) {
   return (
     <Card className="gap-0 overflow-hidden py-0">
       <GuillocheBand tone={danger ? "red" : "brand"} height={8} opacity={0.55} />
       <div className="px-5 pt-4 pb-5">
-        <div className="eyebrow">{label} · <span className="normal-case tracking-normal">{th}</span></div>
+        <div className="eyebrow">{label}</div>
         <div className={`figure mt-1.5 text-[28px] leading-tight ${danger && value > 0 ? "text-destructive" : ""}`}>฿{formatTHB(value)}</div>
         <div className="mt-1 text-[13px] text-muted-foreground">{hint}</div>
       </div>
@@ -28,6 +30,8 @@ function Kpi({ label, th, value, hint, danger }: { label: string; th: string; va
 
 export default async function Dashboard() {
   const { supabase } = await requireUser();
+  const [m, locale] = await Promise.all([getMessages(), getLocale()]);
+  const t = m.dashboard;
   const today = todayBangkok();
   const month = monthOf(today);
   const year = today.slice(0, 4);
@@ -60,19 +64,19 @@ export default async function Dashboard() {
   return (
     <>
       <PageHeader
-        eyebrow={`${formatDateTH(today).replace(/^\d+ /, "")} · ${formatDateEN(today).replace(/^\d+ /, "")}`}
-        title="Dashboard"
-        subtitle="Where the money stands this month."
-        actions={<Button asChild><Link href="/documents/new"><Plus /> New document</Link></Button>}
+        eyebrow={(locale === "th" ? formatDateTH(today) : formatDateEN(today)).replace(/^\d+ /, "")}
+        title={t.title}
+        subtitle={t.subtitle}
+        actions={<Button asChild><Link href="/documents/new"><Plus /> {t.newDocument}</Link></Button>}
       />
 
-      <section aria-label="Outstanding receivables" className="relative overflow-hidden rounded-lg border border-cobalt/25 bg-paper">
+      <section aria-label={t.receivables} className="relative overflow-hidden rounded-lg border border-cobalt/25 bg-paper">
         <GuillocheBackground opacity={0.1} />
         <div aria-hidden className="pointer-events-none absolute inset-2 rounded-md border border-cobalt/20" />
         <Rosette size={280} opacity={0.55} className="absolute top-1/2 -right-12 hidden -translate-y-1/2 sm:block" />
         <div className="relative p-6 sm:p-8 sm:pr-72">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="eyebrow text-cobalt">Outstanding receivables · ยอดค้างรับ</span>
+            <span className="eyebrow text-cobalt">{t.receivables}</span>
             <SerialNumber value={`PI${Number(year) + 543}-${month.slice(5)}`} className="text-[12px]" />
           </div>
           <div className="figure mt-3 text-[52px] leading-none text-cobalt sm:text-[64px]">
@@ -80,29 +84,29 @@ export default async function Dashboard() {
           </div>
           <div className="mt-3 text-[15px] text-foreground">{bahtText(r.outstanding)}</div>
           <div className="mt-1 text-[13px] text-muted-foreground">
-            {r.openCount === 0 ? "Nothing outstanding." : `Across ${r.openCount} issued document${r.openCount > 1 ? "s" : ""}${r.overdueCount ? ` · ${r.overdueCount} overdue` : ""}`}
+            {r.openCount === 0 ? t.nothingOutstanding : t.across(r.openCount, r.overdueCount)}
           </div>
         </div>
         <Microprint className="relative border-t border-cobalt/15 px-8 py-1" />
       </section>
 
-      <section aria-label="Key figures" className="mt-6 grid gap-4 sm:grid-cols-3">
-        <Kpi label="Overdue" th="เกินกำหนด" value={r.overdue} hint={r.overdueCount ? `${r.overdueCount} past due date` : "Nothing past due"} danger />
-        <Kpi label="Revenue" th="รายได้เดือนนี้" value={thisMonth.sales} hint="This month, before VAT, net of credit notes" />
-        <Kpi label="Output VAT" th="ภาษีขาย" value={thisMonth.vat} hint={`PP30 due ${formatDateEN(deadline.efiling)} (e-filing)`} />
+      <section aria-label={t.keyFigures} className="mt-6 grid gap-4 sm:grid-cols-3">
+        <Kpi label={t.overdue} value={r.overdue} hint={t.overdueHint(r.overdueCount)} danger />
+        <Kpi label={t.revenue} value={thisMonth.sales} hint={t.revenueHint} />
+        <Kpi label={t.outputVat} value={thisMonth.vat} hint={t.pp30Due(formatDate(deadline.efiling, locale))} />
       </section>
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>VAT threshold · เกณฑ์จดทะเบียน VAT</CardTitle>
-          <CardDescription>Year-to-date revenue against ฿1.8M. You are VAT-registered, so this is informational.</CardDescription>
+          <CardTitle>{t.threshold}</CardTitle>
+          <CardDescription>{t.thresholdNote}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-baseline justify-between text-[13px]">
             <span className="num">฿{formatTHB(ytd.sales)}</span>
-            <span className="num text-muted-foreground">{pct}% of ฿{formatTHB(VAT_REGISTRATION_THRESHOLD)}</span>
+            <span className="num text-muted-foreground">{t.thresholdOf(pct, formatTHB(VAT_REGISTRATION_THRESHOLD))}</span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Share of VAT threshold reached">
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={t.thresholdAria}>
             <div className="h-full rounded-full bg-cobalt" style={{ width: `${pct}%` }} />
           </div>
         </CardContent>
@@ -110,25 +114,25 @@ export default async function Dashboard() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Recent documents · เอกสารล่าสุด</CardTitle>
+          <CardTitle>{t.recent}</CardTitle>
           <CardAction>
-            <Button asChild variant="link" size="sm"><Link href="/documents">All documents <ArrowRight /></Link></Button>
+            <Button asChild variant="link" size="sm"><Link href="/documents">{t.allDocuments} <ArrowRight /></Link></Button>
           </CardAction>
         </CardHeader>
         <CardContent className="px-2 sm:px-3">
           {!recent?.length ? (
-            <p className="px-3 pb-2 text-muted-foreground">No documents yet. <Link href="/documents/new" className="text-cobalt underline">Create your first one</Link>.</p>
+            <p className="px-3 pb-2 text-muted-foreground">{t.noDocuments} <Link href="/documents/new" className="text-cobalt underline">{t.createFirst}</Link></p>
           ) : (
             <>
               <div className="hidden sm:block">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead>No.</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Issued</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Total ฿</TableHead>
+                      <TableHead>{t.colNo}</TableHead>
+                      <TableHead>{t.colCustomer}</TableHead>
+                      <TableHead>{t.colIssued}</TableHead>
+                      <TableHead>{t.colStatus}</TableHead>
+                      <TableHead className="text-right">{t.colTotal}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -136,14 +140,14 @@ export default async function Dashboard() {
                       <TableRow key={d.id}>
                         <TableCell>
                           <Link href={`/documents/${d.id}`} className="hover:underline">
-                            {d.number ? <SerialNumber value={d.number} className="text-[12px]" /> : <span className="text-muted-foreground">Draft</span>}
+                            {d.number ? <SerialNumber value={d.number} className="text-[12px]" /> : <span className="text-muted-foreground">{m.common.draft}</span>}
                           </Link>
                         </TableCell>
                         <TableCell>
                           {(d.customer_snapshot as { name_th?: string } | null)?.name_th ?? d.customers?.name_th ?? "—"}
-                          <div className="text-[12px] text-muted-foreground">{DOC_TYPE_LABEL[d.doc_type].en}</div>
+                          <div className="text-[12px] text-muted-foreground">{docTypeLabel(d.doc_type, locale)}</div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-muted-foreground">{formatDateEN(d.issue_date)}</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(d.issue_date, locale)}</TableCell>
                         <TableCell><StatusBadge status={d.status} overdue={isOverdue(d, today)} /></TableCell>
                         <TableCell className="num text-right">{formatTHB(d.total)}</TableCell>
                       </TableRow>
@@ -156,12 +160,12 @@ export default async function Dashboard() {
                   <li key={d.id} className="px-3 py-3">
                     <Link href={`/documents/${d.id}`} className="block">
                       <div className="flex items-baseline justify-between gap-3">
-                        {d.number ? <SerialNumber value={d.number} className="text-[12px]" /> : <span className="text-muted-foreground">Draft</span>}
+                        {d.number ? <SerialNumber value={d.number} className="text-[12px]" /> : <span className="text-muted-foreground">{m.common.draft}</span>}
                         <span className="num">{formatTHB(d.total)}</span>
                       </div>
                       <div className="mt-1 truncate">{(d.customer_snapshot as { name_th?: string } | null)?.name_th ?? d.customers?.name_th ?? "—"}</div>
                       <div className="mt-1 flex items-center justify-between gap-3 text-[12px] text-muted-foreground">
-                        <span>{DOC_TYPE_LABEL[d.doc_type].en} · {formatDateEN(d.issue_date)}</span>
+                        <span>{docTypeLabel(d.doc_type, locale)} · {formatDate(d.issue_date, locale)}</span>
                         <StatusBadge status={d.status} overdue={isOverdue(d, today)} />
                       </div>
                     </Link>

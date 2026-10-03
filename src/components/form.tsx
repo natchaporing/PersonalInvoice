@@ -4,6 +4,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import type { FormState } from "@/lib/domain/forms";
+import { useMessages } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
 export function Field({
@@ -34,11 +35,12 @@ export function Field({
   );
 }
 
-export function SubmitButton({ children, pendingText = "Saving…", ...props }: React.ComponentProps<typeof Button> & { pendingText?: string }) {
+export function SubmitButton({ children, pendingText, ...props }: React.ComponentProps<typeof Button> & { pendingText?: string }) {
   const { pending } = useFormStatus();
+  const m = useMessages();
   return (
     <Button type="submit" disabled={pending || props.disabled} {...props}>
-      {pending ? pendingText : children}
+      {pending ? (pendingText ?? m.common.saving) : children}
     </Button>
   );
 }

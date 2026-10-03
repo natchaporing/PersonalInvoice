@@ -7,6 +7,7 @@ import { FormMessage } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import type { DocStatus, DocType } from "@/lib/domain/documents";
 import type { FormState } from "@/lib/domain/forms";
+import { useMessages } from "@/lib/i18n/client";
 import { deleteDraft, issueDocument, regeneratePdf, voidDocument } from "../actions";
 import { createReceiptFromInvoice } from "../installment-actions";
 
@@ -30,6 +31,7 @@ export function DocumentActions({
 }) {
   const [state, setState] = useState<FormState>({});
   const [pending, start] = useTransition();
+  const t = useMessages().docs.actions;
   const run = (fn: () => Promise<FormState | void>, confirmText?: string) => {
     if (confirmText && !confirm(confirmText)) return;
     setState({});
@@ -44,44 +46,44 @@ export function DocumentActions({
       <div className="flex flex-wrap gap-2">
         {status === "draft" && (
           <>
-            <Button disabled={pending} onClick={() => run(() => issueDocument(id), "Issue this document? It gets the next number and can no longer be edited.")}>
-              <Send /> {pending ? "Working…" : "Issue & sign"}
+            <Button disabled={pending} onClick={() => run(() => issueDocument(id), t.confirmIssue)}>
+              <Send /> {pending ? t.working : t.issue}
             </Button>
-            <Button asChild variant="outline"><Link href={`/documents/${id}/edit`}><FilePen /> Edit</Link></Button>
-            <Button variant="ghost" className="text-destructive hover:text-destructive" disabled={pending} onClick={() => run(() => deleteDraft(id), "Delete this draft?")}>
-              <Trash2 /> Delete draft
+            <Button asChild variant="outline"><Link href={`/documents/${id}/edit`}><FilePen /> {t.edit}</Link></Button>
+            <Button variant="ghost" className="text-destructive hover:text-destructive" disabled={pending} onClick={() => run(() => deleteDraft(id), t.confirmDeleteDraft)}>
+              <Trash2 /> {t.deleteDraft}
             </Button>
           </>
         )}
         {status !== "draft" && (
           <>
             {pdfUrl ? (
-              <Button asChild><a href={pdfUrl}><Download /> Signed PDF</a></Button>
+              <Button asChild><a href={pdfUrl}><Download /> {t.signedPdf}</a></Button>
             ) : (
-              <Button disabled={pending} onClick={() => run(() => regeneratePdf(id))}><RefreshCw /> {pending ? "Signing…" : "Generate signed PDF"}</Button>
+              <Button disabled={pending} onClick={() => run(() => regeneratePdf(id))}><RefreshCw /> {pending ? t.signing : t.generatePdf}</Button>
             )}
-            <Button asChild variant="outline"><a href={`/print/documents/${id}`} target="_blank" rel="noreferrer"><Printer /> Print</a></Button>
+            <Button asChild variant="outline"><a href={`/print/documents/${id}`} target="_blank" rel="noreferrer"><Printer /> {t.print}</a></Button>
             {receipt === null && (
               <Button variant="brand" disabled={pending}
-                onClick={() => run(() => createReceiptFromInvoice(id), status === "paid" ? undefined : "This invoice is not marked paid yet. Create the receipt/tax invoice anyway?")}>
-                <FileCheck2 /> Receipt / tax invoice
+                onClick={() => run(() => createReceiptFromInvoice(id), status === "paid" ? undefined : t.confirmReceipt)}>
+                <FileCheck2 /> {t.receipt}
               </Button>
             )}
             {canAdjust && status !== "void" && (
               <>
-                <Button asChild variant="outline"><Link href={`/documents/new?type=credit_note&ref=${id}`}><FileMinus /> Credit note</Link></Button>
-                <Button asChild variant="outline"><Link href={`/documents/new?type=debit_note&ref=${id}`}><FilePlus /> Debit note</Link></Button>
+                <Button asChild variant="outline"><Link href={`/documents/new?type=credit_note&ref=${id}`}><FileMinus /> {t.creditNote}</Link></Button>
+                <Button asChild variant="outline"><Link href={`/documents/new?type=debit_note&ref=${id}`}><FilePlus /> {t.debitNote}</Link></Button>
               </>
             )}
             {status === "issued" && !hasPayments && (
               <Button variant="ghost" className="text-destructive hover:text-destructive" disabled={pending}
-                onClick={() => run(() => voidDocument(id), "Void this document? The number stays used and the document is kept on record as void.")}>
-                <XCircle /> Void
+                onClick={() => run(() => voidDocument(id), t.confirmVoid)}>
+                <XCircle /> {t.void}
               </Button>
             )}
           </>
         )}
-        <Button asChild variant="ghost"><Link href={`/documents/new?copy=${id}&type=${type}`}><Copy /> Duplicate</Link></Button>
+        <Button asChild variant="ghost"><Link href={`/documents/new?copy=${id}&type=${type}`}><Copy /> {t.duplicate}</Link></Button>
       </div>
       <FormMessage state={state} />
     </div>

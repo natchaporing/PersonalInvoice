@@ -1,6 +1,12 @@
 // English UI text. This file defines the shape: every other language must provide the same keys (see th.ts).
 // Document content (quotations, invoices, PDFs) has its own per-document language and is not translated here.
 
+import { dashboard } from "./dashboard";
+import { docs } from "./docs";
+import { money } from "./money";
+import { profile } from "./profile";
+import { records } from "./records";
+
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export const en = {
@@ -15,7 +21,26 @@ export const en = {
     vatIncluded: "VAT included",
     perYear: "a year",
     perMonth: "a month",
+    saving: "Saving…",
+    draft: "Draft",
+    status: { draft: "draft", issued: "issued", paid: "paid", void: "void", overdue: "overdue" },
   },
+  dashboard: dashboard.en,
+  docs: docs.en,
+  ...records.en,
+  ...money.en,
+  ...profile.en,
+  validation: {
+    required: (label: string) => `${label} is required`,
+    taxId13: "Tax ID must be 13 digits",
+    branch5: "Branch number is 5 digits (00000 = head office)",
+    number: (label: string) => `${label} must be a number`,
+    negative: (label: string) => `${label} cannot be negative`,
+    postcode5: "Postcode is 5 digits",
+    fixFields: "Please fix the highlighted fields.",
+  },
+  wht: { 0: "None", 100: "1% · transport", 200: "2% · advertising", 300: "3% · services", 500: "5% · rent" } as Record<number, string>,
+  actions: { delete: "Delete", deleting: "Deleting…", confirmDelete: (name: string) => `Delete ${name}?`, cancel: "Cancel", remove: "Remove", undo: "Undo" },
   nav: {
     menu: "Menu",
     dashboard: "Dashboard",

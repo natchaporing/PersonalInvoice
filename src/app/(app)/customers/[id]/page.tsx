@@ -10,7 +10,7 @@ export default async function EditCustomer({ params }: PageProps<"/customers/[id
   if (!customer) notFound();
   return (
     <>
-      <PageHeader eyebrow="ลูกค้า" title={customer.name_th} subtitle={customer.name_en ?? undefined} />
+      <PageHeader title={customer.name_th} subtitle={customer.name_en ?? undefined} />
       <CustomerForm customer={customer} />
     </>
   );

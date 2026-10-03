@@ -3,6 +3,7 @@
 import { Check, ChevronDown, Search } from "lucide-react";
 import { useId, useMemo, useRef, useState } from "react";
 import { type Bank, searchBanks } from "@/lib/thai/banks";
+import { useMessages } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
 /**
@@ -10,6 +11,7 @@ import { cn } from "@/lib/utils";
  * Matches Thai name, English name, short name (e.g. KBANK) and the 3-digit bank code.
  */
 export function BankPicker({ selected, onSelect }: { selected?: Bank; onSelect: (bank: Bank) => void }) {
+  const t = useMessages().bankPicker;
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -51,9 +53,9 @@ export function BankPicker({ selected, onSelect }: { selected?: Bank; onSelect: 
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={open && results[active] ? `${listId}-${results[active].code}` : undefined}
-          aria-label="Search bank"
+          aria-label={t.search}
           autoComplete="off"
-          placeholder={selected ? `${selected.th} · ${selected.en}` : "Search bank · ค้นหาธนาคาร (name, KBANK, 004…)"}
+          placeholder={selected ? `${selected.th} · ${selected.en}` : t.placeholder}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -72,10 +74,10 @@ export function BankPicker({ selected, onSelect }: { selected?: Bank; onSelect: 
         <ul
           id={listId}
           role="listbox"
-          aria-label="Banks"
+          aria-label={t.list}
           className="absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-md border bg-popover py-1 text-popover-foreground shadow-lg"
         >
-          {results.length === 0 && <li className="px-3 py-2 text-sm text-muted-foreground">No bank matches “{query}”. Type the names below instead.</li>}
+          {results.length === 0 && <li className="px-3 py-2 text-sm text-muted-foreground">{t.none(query)}</li>}
           {results.map((b, i) => {
             const isSelected = selected?.code === b.code;
             return (
@@ -97,7 +99,7 @@ export function BankPicker({ selected, onSelect }: { selected?: Bank; onSelect: 
                   <span className="block truncate text-[12px] text-muted-foreground">{b.en}</span>
                 </span>
                 <span className="num text-[11px] text-muted-foreground">{b.code}</span>
-                {isSelected && <Check aria-label="Selected" className="size-4 text-cobalt" />}
+                {isSelected && <Check aria-label={t.selected} className="size-4 text-cobalt" />}
               </li>
             );
           })}

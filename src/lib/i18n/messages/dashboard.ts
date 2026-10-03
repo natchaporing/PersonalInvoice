@@ -1,0 +1,63 @@
+// Dashboard text. English defines the shape; Thai must match it.
+
+const en = {
+  title: "Dashboard",
+  subtitle: "Where the money stands this month.",
+  newDocument: "New document",
+  receivables: "Outstanding receivables",
+  nothingOutstanding: "Nothing outstanding.",
+  across: (n: number, overdue: number) => `Across ${n} issued document${n > 1 ? "s" : ""}${overdue ? ` · ${overdue} overdue` : ""}`,
+  keyFigures: "Key figures",
+  overdue: "Overdue",
+  overdueHint: (n: number) => (n ? `${n} past due date` : "Nothing past due"),
+  revenue: "Revenue",
+  revenueHint: "This month, before VAT, net of credit notes",
+  outputVat: "Output VAT",
+  pp30Due: (date: string) => `PP30 due ${date} (e-filing)`,
+  threshold: "VAT threshold",
+  thresholdNote: "Year-to-date revenue against ฿1.8M. You are VAT-registered, so this is informational.",
+  thresholdOf: (pct: number, of: string) => `${pct}% of ฿${of}`,
+  thresholdAria: "Share of VAT threshold reached",
+  recent: "Recent documents",
+  allDocuments: "All documents",
+  noDocuments: "No documents yet.",
+  createFirst: "Create your first one",
+  colNo: "No.",
+  colCustomer: "Customer",
+  colIssued: "Issued",
+  colStatus: "Status",
+  colTotal: "Total ฿",
+};
+
+export type DashboardMessages = typeof en;
+
+const th: DashboardMessages = {
+  title: "ภาพรวม",
+  subtitle: "สถานะการเงินของเดือนนี้",
+  newDocument: "สร้างเอกสาร",
+  receivables: "ยอดค้างรับ",
+  nothingOutstanding: "ไม่มียอดค้างรับ",
+  across: (n, overdue) => `จากเอกสารที่ออกแล้ว ${n} ฉบับ${overdue ? ` · เกินกำหนด ${overdue} ฉบับ` : ""}`,
+  keyFigures: "ตัวเลขสำคัญ",
+  overdue: "เกินกำหนด",
+  overdueHint: (n) => (n ? `เกินวันครบกำหนด ${n} ฉบับ` : "ไม่มีรายการเกินกำหนด"),
+  revenue: "รายได้เดือนนี้",
+  revenueHint: "เดือนนี้ ก่อน VAT หักใบลดหนี้แล้ว",
+  outputVat: "ภาษีขาย",
+  pp30Due: (date) => `ยื่น ภ.พ.30 ภายใน ${date} (ยื่นออนไลน์)`,
+  threshold: "เกณฑ์จดทะเบียน VAT",
+  thresholdNote: "รายได้สะสมตั้งแต่ต้นปีเทียบกับ 1.8 ล้านบาท คุณจดทะเบียน VAT แล้ว ตัวเลขนี้จึงไว้ดูประกอบเท่านั้น",
+  thresholdOf: (pct, of) => `${pct}% ของ ฿${of}`,
+  thresholdAria: "สัดส่วนที่ถึงเกณฑ์จดทะเบียน VAT",
+  recent: "เอกสารล่าสุด",
+  allDocuments: "เอกสารทั้งหมด",
+  noDocuments: "ยังไม่มีเอกสาร",
+  createFirst: "สร้างฉบับแรก",
+  colNo: "เลขที่",
+  colCustomer: "ลูกค้า",
+  colIssued: "วันที่ออก",
+  colStatus: "สถานะ",
+  colTotal: "ยอดรวม ฿",
+};
+
+export const dashboard = { en, th };

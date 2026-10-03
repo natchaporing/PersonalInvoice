@@ -3,6 +3,7 @@
 import { Eraser, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useMessages } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
 type Point = { x: number; y: number; w: number };
@@ -44,7 +45,8 @@ function drawStroke(ctx: CanvasRenderingContext2D, s: Stroke) {
  * Handwritten signature on a canvas. Calls `onChange` with a transparent PNG data URL, trimmed to the ink
  * (or null when empty). Works with mouse, finger and stylus.
  */
-export function SignaturePad({ onChange, className, label = "Draw your signature" }: { onChange: (png: string | null) => void; className?: string; label?: string }) {
+export function SignaturePad({ onChange, className, label }: { onChange: (png: string | null) => void; className?: string; label?: string }) {
+  const t = useMessages().pad;
   const canvas = useRef<HTMLCanvasElement>(null);
   const strokes = useRef<Stroke[]>([]);
   const current = useRef<Stroke | null>(null);
@@ -140,7 +142,7 @@ export function SignaturePad({ onChange, className, label = "Draw your signature
         <canvas
           ref={canvas}
           role="img"
-          aria-label={label}
+          aria-label={label ?? t.label}
           className="block aspect-[3/1] w-full cursor-crosshair touch-none"
           onPointerDown={down}
           onPointerMove={move}
@@ -148,11 +150,11 @@ export function SignaturePad({ onChange, className, label = "Draw your signature
           onPointerCancel={up}
         />
         <div aria-hidden className="pointer-events-none absolute inset-x-6 bottom-[28%] border-b border-dashed border-neutral-300" />
-        {count === 0 && <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-neutral-400">Sign here with mouse, finger or pen</div>}
+        {count === 0 && <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-neutral-400">{t.placeholder}</div>}
       </div>
       <div className="flex gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={undo} disabled={count === 0}><Undo2 /> Undo</Button>
-        <Button type="button" variant="ghost" size="sm" onClick={clear} disabled={count === 0}><Eraser /> Clear</Button>
+        <Button type="button" variant="outline" size="sm" onClick={undo} disabled={count === 0}><Undo2 /> {t.undo}</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={clear} disabled={count === 0}><Eraser /> {t.clear}</Button>
       </div>
     </div>
   );

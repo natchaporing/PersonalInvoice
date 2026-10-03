@@ -1,16 +1,6 @@
 import { GuillocheBackground } from "@/components/banknote";
-import { Badge } from "@/components/ui/badge";
-import type { DocStatus } from "@/lib/domain/documents";
 
-/** Status as an ink-stamp badge. The word is always shown, colour is secondary. */
-export function StatusBadge({ status, overdue }: { status: DocStatus; overdue?: boolean }) {
-  const key = overdue ? "overdue" : status;
-  return (
-    <Badge variant={key} className="uppercase tracking-[0.08em]">
-      {key}
-    </Badge>
-  );
-}
+export { StatusBadge } from "@/components/status-badge";
 
 /** Empty list placeholder on banknote paper. */
 export function EmptyState({ title, children, action }: { title: string; children?: React.ReactNode; action?: React.ReactNode }) {

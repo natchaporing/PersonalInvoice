@@ -560,7 +560,7 @@ try {
   log("installments: 50/50 plan, invoice → paid → receipt/tax invoice", instInv, rtx);
 
   // 18d. Commission payee profile, then commission on the quotation: recorded and transferred, never printed
-  const commissionToggle = page.getByRole("button", { name: /Commission · ค่านายหน้า/ });
+  const commissionToggle = page.getByRole("button", { name: /^Commission/ });
   if ((await commissionToggle.getAttribute("aria-expanded")) !== "false" || (await page.getByLabel("Saved payee").isVisible()))
     fail("commission section should start collapsed");
   await commissionToggle.click();
@@ -644,6 +644,27 @@ try {
   if (await page.getByText(/Free trial: \d+ days? left/).count()) fail("the trial banner should go once a plan is paid");
   await shot("13-billing-paid");
   log("test-mode checkout: yearly plan paid, period starts after the trial");
+
+  // 20b. Every main screen in Thai: Thai headings, none of the English ones
+  await ctx.addCookies([{ name: "lang", value: "th", url: BASE }]);
+  const thai = [
+    ["/", "ภาพรวม", "Dashboard"], ["/documents", "เอกสาร", "Documents"], ["/customers", "ลูกค้า", "Customers"],
+    ["/items", "สินค้า/บริการ", "Items"], ["/payments", "การรับชำระ", "Payments"], ["/payees", "ผู้รับค่านายหน้า", "Payees"],
+    ["/tax", "ภาษี", "Tax & VAT"], ["/settings", "ตั้งค่า", "Settings"], ["/settings/billing", "ตั้งค่า", "Settings"], ["/documents/new", "สร้างเอกสาร", "New document"],
+  ];
+  for (const [path, th, en] of thai) {
+    await page.goto(`${BASE}${path}`);
+    const h1 = (await page.locator("h1").first().textContent())?.trim();
+    if (h1 !== th) fail(`${path} should have the Thai heading "${th}", got "${h1}"`);
+    if (await page.getByRole("heading", { level: 1, name: en, exact: true }).count()) fail(`${path} still shows "${en}"`);
+  }
+  await page.goto(qUrl);
+  await page.getByText("สรุป", { exact: true }).waitFor();
+  await page.getByRole("link", { name: "ทำสำเนา" }).waitFor();
+  await shot("14-document-thai");
+  await ctx.addCookies([{ name: "lang", value: "en", url: BASE }]);
+  await page.reload();
+  log("main screens and a document page render in Thai");
 
   // 21. Sign out
   await page.getByRole("button", { name: "Sign out" }).click();

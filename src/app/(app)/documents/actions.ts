@@ -1,5 +1,7 @@
 "use server";
 
+import { getLocale } from "@/lib/i18n/server";
+import { localizeState } from "@/lib/i18n/server-text";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -18,7 +20,7 @@ const revalidateDocs = (id?: string) => {
 };
 
 /** Create or update a draft. Totals are always recomputed here from the lines. */
-export async function saveDocument(id: string | null, raw: unknown): Promise<FormState> {
+async function saveDocumentImpl(id: string | null, raw: unknown): Promise<FormState> {
   const { supabase, user } = await requireUser();
   const parsed = DocumentInput.safeParse(raw);
   if (!parsed.success) return { error: "Please fix the highlighted fields.", fieldErrors: fieldErrors(parsed.error.issues) };
@@ -92,7 +94,7 @@ export async function saveDocument(id: string | null, raw: unknown): Promise<For
   redirect(`/documents/${docId}`);
 }
 
-export async function deleteDraft(id: string): Promise<FormState> {
+async function deleteDraftImpl(id: string): Promise<FormState> {
   const { supabase } = await requireUser();
   const { error } = await supabase.from("documents").delete().eq("id", id).eq("status", "draft");
   if (error) return { error: error.message };
@@ -101,7 +103,7 @@ export async function deleteDraft(id: string): Promise<FormState> {
 }
 
 /** Assign the next number, freeze seller/buyer snapshots, then render and sign the PDF. */
-export async function issueDocument(id: string): Promise<FormState> {
+async function issueDocumentImpl(id: string): Promise<FormState> {
   const { supabase, user } = await requireUser();
   const bundle = await getDocumentBundle(supabase, id, user.id);
   if (!bundle) return { error: "Document not found." };
@@ -132,7 +134,7 @@ export async function issueDocument(id: string): Promise<FormState> {
   return { message: "Issued and signed." };
 }
 
-export async function regeneratePdf(id: string): Promise<FormState> {
+async function regeneratePdfImpl(id: string): Promise<FormState> {
   const { supabase, user } = await requireUser();
   const pdf = await generateSignedPdf(supabase, id, user.id).catch((e: unknown) => ({ error: e instanceof Error ? e.message : String(e) }));
   revalidateDocs(id);
@@ -140,7 +142,7 @@ export async function regeneratePdf(id: string): Promise<FormState> {
 }
 
 /** Build the e-Tax package (XML + signed PDF/A-3) for an issued tax document. */
-export async function generateEtax(id: string): Promise<FormState> {
+async function generateEtaxImpl(id: string): Promise<FormState> {
   const { supabase, user } = await requireUser();
   const res = await generateEtaxPackage(supabase, id, user.id);
   revalidateDocs(id);
@@ -152,7 +154,7 @@ export async function generateEtax(id: string): Promise<FormState> {
   };
 }
 
-export async function voidDocument(id: string): Promise<FormState> {
+async function voidDocumentImpl(id: string): Promise<FormState> {
   const { supabase, user } = await requireUser();
   const { data: payments } = await supabase.from("payments").select("amount").eq("document_id", id);
   if (payments?.length) return { error: "This document has payments recorded. Issue a credit note instead of voiding it." };
@@ -192,7 +194,7 @@ async function uploadFile(
   return error ? { path: null, error: error.message } : { path };
 }
 
-export async function recordPayment(documentId: string, _: FormState, form: FormData): Promise<FormState> {
+async function recordPaymentImpl(documentId: string, _: FormState, form: FormData): Promise<FormState> {
   const { supabase, user } = await requireUser();
   const parsed = Payment.safeParse(Object.fromEntries(form.entries()));
   if (!parsed.success) return invalid(form, parsed.error.issues);
@@ -225,7 +227,7 @@ const Certificate = z.object({
 });
 
 /** Record a 50 Tawi withholding-tax certificate received from the customer. */
-export async function addWhtCertificate(documentId: string | null, _: FormState, form: FormData): Promise<FormState> {
+async function addWhtCertificateImpl(documentId: string | null, _: FormState, form: FormData): Promise<FormState> {
   const { supabase, user } = await requireUser();
   const parsed = Certificate.safeParse(Object.fromEntries(form.entries()));
   if (!parsed.success) return invalid(form, parsed.error.issues);
@@ -245,4 +247,30 @@ export async function fileLink(path: string): Promise<string | null> {
   if (!path.startsWith(`${user.id}/`)) return null;
   const { data } = await supabase.storage.from("documents").createSignedUrl(path, 120);
   return data?.signedUrl ?? null;
+}
+
+// Exported actions return their messages in the visitor's language (see i18n/server-text).
+export async function saveDocument(...args: Parameters<typeof saveDocumentImpl>): Promise<FormState> {
+  return localizeState(await saveDocumentImpl(...args), await getLocale());
+}
+export async function deleteDraft(...args: Parameters<typeof deleteDraftImpl>): Promise<FormState> {
+  return localizeState(await deleteDraftImpl(...args), await getLocale());
+}
+export async function issueDocument(...args: Parameters<typeof issueDocumentImpl>): Promise<FormState> {
+  return localizeState(await issueDocumentImpl(...args), await getLocale());
+}
+export async function regeneratePdf(...args: Parameters<typeof regeneratePdfImpl>): Promise<FormState> {
+  return localizeState(await regeneratePdfImpl(...args), await getLocale());
+}
+export async function generateEtax(...args: Parameters<typeof generateEtaxImpl>): Promise<FormState> {
+  return localizeState(await generateEtaxImpl(...args), await getLocale());
+}
+export async function voidDocument(...args: Parameters<typeof voidDocumentImpl>): Promise<FormState> {
+  return localizeState(await voidDocumentImpl(...args), await getLocale());
+}
+export async function recordPayment(...args: Parameters<typeof recordPaymentImpl>): Promise<FormState> {
+  return localizeState(await recordPaymentImpl(...args), await getLocale());
+}
+export async function addWhtCertificate(...args: Parameters<typeof addWhtCertificateImpl>): Promise<FormState> {
+  return localizeState(await addWhtCertificateImpl(...args), await getLocale());
 }

@@ -4,23 +4,24 @@ import { EmptyState, PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 
 export default async function Items() {
   const { supabase } = await requireUser();
   const { data: items } = await supabase.from("items").select("*").order("name_th");
+  const t = (await getMessages()).items;
   return (
     <>
       <PageHeader
-        eyebrow="สินค้า/บริการ"
-        title="Items"
-        subtitle="Products and services you sell, reusable on any document."
-        actions={<Button asChild><Link href="/items/new"><Plus /> New item</Link></Button>}
+        title={t.title}
+        subtitle={t.subtitle}
+        actions={<Button asChild><Link href="/items/new"><Plus /> {t.newButton}</Link></Button>}
       />
       {!items?.length ? (
-        <EmptyState title="No items yet" action={<Button asChild><Link href="/items/new"><Plus /> Add an item</Link></Button>}>
-          Save what you sell with its price, unit and usual withholding rate, then add it to documents in one click.
+        <EmptyState title={t.emptyTitle} action={<Button asChild><Link href="/items/new"><Plus /> {t.emptyAction}</Link></Button>}>
+          {t.emptyBody}
         </EmptyState>
       ) : (
         <Card className="py-2">
@@ -28,10 +29,10 @@ export default async function Items() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead>Item</TableHead>
-                  <TableHead className="hidden sm:table-cell">Unit</TableHead>
-                  <TableHead className="hidden sm:table-cell">Withholding</TableHead>
-                  <TableHead className="text-right">Price ฿</TableHead>
+                  <TableHead>{t.colItem}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t.colUnit}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t.colWithholding}</TableHead>
+                  <TableHead className="text-right">{t.colPrice}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

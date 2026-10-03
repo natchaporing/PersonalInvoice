@@ -24,3 +24,24 @@ describe("dictionaries", () => {
     expect(empty(messages.th) || empty(messages.en)).toBe(false);
   });
 });
+
+describe("translateServerText", async () => {
+  const { localizeState, translateServerText } = await import("./server-text");
+  it("leaves English untouched and translates known messages to Thai", () => {
+    expect(translateServerText("Issued and signed.", "en")).toBe("Issued and signed.");
+    expect(translateServerText("Issued and signed.", "th")).toBe("ออกเอกสารและลงลายมือชื่อแล้ว");
+  });
+  it("handles messages with values in them", () => {
+    expect(translateServerText("Percentages add up to 90%, not 100%.", "th")).toBe("เปอร์เซ็นต์รวมได้ 90% ไม่ใช่ 100%");
+    expect(translateServerText("Amount is required", "th")).toBe("กรุณากรอกจำนวนเงิน");
+    expect(translateServerText('Issued. The signed PDF could not be generated yet (timeout); use "Generate signed PDF" to retry.', "th")).toContain("(timeout)");
+  });
+  it("passes unknown text through and translates every field error", () => {
+    expect(translateServerText("duplicate key value", "th")).toBe("duplicate key value");
+    expect(localizeState({ error: "Please fix the highlighted fields.", fieldErrors: { customerId: "Choose a customer" } }, "th")).toEqual({
+      error: "กรุณาแก้ไขช่องที่ไฮไลต์",
+      message: undefined,
+      fieldErrors: { customerId: "เลือกลูกค้า" },
+    });
+  });
+});

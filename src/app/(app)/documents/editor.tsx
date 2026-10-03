@@ -26,6 +26,7 @@ import {
   VAT_RATE_OPTIONS,
 } from "@/lib/domain/documents";
 import type { FormState } from "@/lib/domain/forms";
+import { useLocale, useMessages } from "@/lib/i18n/client";
 import { WHT_OPTIONS } from "@/lib/domain/tax";
 import type { Tables } from "@/lib/supabase/database.types";
 import { bahtText } from "@/lib/thai/baht-text";
@@ -108,6 +109,9 @@ export function DocumentEditor({
   const [v, setV] = useState<EditorValue>(initial);
   const [state, setState] = useState<FormState>({});
   const [saving, startSave] = useTransition();
+  const m = useMessages();
+  const t = m.docs.editor;
+  const locale = useLocale();
   const set = <K extends keyof EditorValue>(k: K, val: EditorValue[K]) => setV((p) => ({ ...p, [k]: val }));
   const setLine = (key: string, patch: Partial<EditorLine>) => setV((p) => ({ ...p, lines: p.lines.map((l) => (l.key === key ? { ...l, ...patch } : l)) }));
   const e = state.fieldErrors ?? {};
@@ -207,67 +211,67 @@ export function DocumentEditor({
       <form className="space-y-5" onSubmit={(ev) => { ev.preventDefault(); submit(); }} noValidate>
         {!seller && (
           <p role="status" className="rounded-md border border-amber bg-amber/10 px-4 py-3 text-sm">
-            Your business profile is empty, so the seller block is blank. <Link href="/settings" className="font-medium text-cobalt underline">Complete it in Settings</Link>.
+            {t.emptyProfile} <Link href="/settings" className="font-medium text-cobalt underline">{t.completeProfile}</Link>
           </p>
         )}
         <Card>
-          <CardHeader><CardTitle>Document · เอกสาร</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t.document}</CardTitle></CardHeader>
           <CardContent className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
-            <Field label="Document type" htmlFor="type" error={e.type}>
+            <Field label={t.type} htmlFor="type" error={e.type}>
               <NativeSelect id="type" value={v.type} onChange={(ev) => set("type", ev.target.value as DocType)} disabled={!!id && adjustment}>
-                {DOC_TYPES.map((k) => (<option key={k} value={k}>{DOC_TYPE_LABEL[k].en} · {DOC_TYPE_LABEL[k].th}</option>))}
+                {DOC_TYPES.map((k) => (<option key={k} value={k}>{DOC_TYPE_LABEL[k][locale]}</option>))}
               </NativeSelect>
             </Field>
             <Field
-              label="Customer"
+              label={t.customer}
               htmlFor="customer"
               error={e.customerId}
               hint={customer
-                ? <span className="tabular-nums">{customer.tax_id ? `Tax ID ${customer.tax_id}` : "No tax ID"} · {customer.is_juristic ? "Company (PND 53)" : "Individual (PND 3)"}</span>
-                : <Link href="/customers/new?next=/documents/new" className="text-cobalt underline">Add a customer</Link>}
+                ? <span className="tabular-nums">{customer.tax_id ? t.customerTaxId(customer.tax_id) : t.noTaxId} · {customer.is_juristic ? t.company : t.individual}</span>
+                : <Link href="/customers/new?next=/documents/new" className="text-cobalt underline">{t.addCustomer}</Link>}
             >
               <NativeSelect id="customer" value={v.customerId} onChange={(ev) => set("customerId", ev.target.value)}>
-                <option value="">Choose…</option>
+                <option value="">{t.choose}</option>
                 {customers.map((c) => (<option key={c.id} value={c.id}>{c.name_th}</option>))}
               </NativeSelect>
             </Field>
             {isTaxDocument(v.type) && customer && (!customer.tax_id || !customer.address_th) && (
               <p className="text-[13px] text-destructive sm:col-span-2">
-                Tax documents need the buyer&apos;s tax ID and address. <Link href={`/customers/${customer.id}`} className="underline">Edit this customer</Link>.
+                {t.needsTaxId} <Link href={`/customers/${customer.id}`} className="underline">{t.editCustomer}</Link>
               </p>
             )}
-            <Field label="Issue date" htmlFor="issue" error={e.issueDate}>
+            <Field label={t.issueDate} htmlFor="issue" error={e.issueDate}>
               <Input id="issue" type="date" value={v.issueDate} onChange={(ev) => set("issueDate", ev.target.value)} />
             </Field>
             {v.type === "quotation" ? (
               <>
-                <Field label="Valid until" htmlFor="valid" error={e.validUntil} hint="Leave empty to hide it on the document.">
+                <Field label={t.validUntil} htmlFor="valid" error={e.validUntil} hint={t.hideIfEmpty}>
                   <Input id="valid" type="date" value={v.validUntil} onChange={(ev) => set("validUntil", ev.target.value)} />
                 </Field>
-                <Field label="Reply by" htmlFor="reply" error={e.replyBy} hint="Leave empty to hide it on the document.">
+                <Field label={t.replyBy} htmlFor="reply" error={e.replyBy} hint={t.hideIfEmpty}>
                   <Input id="reply" type="date" value={v.replyBy} onChange={(ev) => set("replyBy", ev.target.value)} />
                 </Field>
               </>
             ) : (
-              <Field label="Due date" htmlFor="due" error={e.dueDate}>
+              <Field label={t.dueDate} htmlFor="due" error={e.dueDate}>
                 <Input id="due" type="date" value={v.dueDate} onChange={(ev) => set("dueDate", ev.target.value)} />
               </Field>
             )}
             {adjustment && (
               <>
-                <Field label="Original document" htmlFor="ref" error={e.refDocumentId} hint="The issued tax document this note adjusts.">
+                <Field label={t.original} htmlFor="ref" error={e.refDocumentId} hint={t.originalHint}>
                   <NativeSelect id="ref" value={v.refDocumentId} onChange={(ev) => set("refDocumentId", ev.target.value)}>
-                    <option value="">Choose…</option>
+                    <option value="">{t.choose}</option>
                     {refChoices.map((r) => (<option key={r.id} value={r.id}>{r.number} · {r.issue_date}</option>))}
                   </NativeSelect>
                 </Field>
-                <Field label="Reason" htmlFor="reason" error={e.reason} hint="Required by the Revenue Code, e.g. price reduction, returned goods.">
+                <Field label={t.reason} htmlFor="reason" error={e.reason} hint={t.reasonHint}>
                   <Input id="reason" value={v.reason} onChange={(ev) => set("reason", ev.target.value)} />
                 </Field>
               </>
             )}
             <fieldset className="grid gap-1.5 sm:col-span-2">
-              <legend className="mb-1.5 text-[13px] font-medium">Document language</legend>
+              <legend className="mb-1.5 text-[13px] font-medium">{t.language}</legend>
               <div className="inline-flex w-fit rounded-md border border-input bg-card p-0.5">
                 {LANG_OPTIONS.map((o) => (
                   <button key={o.key} type="button" aria-pressed={v.lang === o.key} onClick={() => set("lang", o.key)}
@@ -282,54 +286,54 @@ export function DocumentEditor({
 
         <Card>
           <CardHeader>
-            <CardTitle>Line items · รายการ</CardTitle>
-            {adjustment && <CardDescription>For a credit note, enter the amount being reduced; for a debit note, the amount being added.</CardDescription>}
+            <CardTitle>{t.lines}</CardTitle>
+            {adjustment && <CardDescription>{t.adjustNote}</CardDescription>}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               <Label className="font-normal">
                 <input type="checkbox" className="size-4 accent-[var(--cobalt)]" checked={v.showProductCode} onChange={(ev) => set("showProductCode", ev.target.checked)} />
-                Show product code
+                {t.showCode}
               </Label>
               <Label className="font-normal">
                 <input type="checkbox" className="size-4 accent-[var(--cobalt)]" checked={v.showUnit} onChange={(ev) => set("showUnit", ev.target.checked)} />
-                Show unit
+                {t.showUnit}
               </Label>
             </div>
             {v.lines.map((l, i) => (
               <div key={l.key} className="grid grid-cols-2 gap-x-3 gap-y-2 border-b border-dashed pb-4 sm:grid-cols-[repeat(auto-fit,minmax(104px,1fr))] sm:items-end">
-                <Field className="col-span-2 sm:col-span-full" htmlFor={`th-${l.key}`} label={`Description (Thai)${v.lines.length > 1 ? ` · ${i + 1}` : ""}`} error={e[`lines.${i}.descriptionTh`]}>
+                <Field className="col-span-2 sm:col-span-full" htmlFor={`th-${l.key}`} label={`${t.descTh}${v.lines.length > 1 ? ` · ${i + 1}` : ""}`} error={e[`lines.${i}.descriptionTh`]}>
                   <Input id={`th-${l.key}`} value={l.descriptionTh} onChange={(ev) => setLine(l.key, { descriptionTh: ev.target.value })} />
                 </Field>
-                <Field className="col-span-2 sm:col-span-full" htmlFor={`en-${l.key}`} label="Description (English)">
+                <Field className="col-span-2 sm:col-span-full" htmlFor={`en-${l.key}`} label={t.descEn}>
                   <Input id={`en-${l.key}`} value={l.descriptionEn} onChange={(ev) => setLine(l.key, { descriptionEn: ev.target.value })} />
                 </Field>
                 {v.showProductCode && (
-                  <Field label="Code" htmlFor={`c-${l.key}`} error={e[`lines.${i}.productCode`]}>
+                  <Field label={t.code} htmlFor={`c-${l.key}`} error={e[`lines.${i}.productCode`]}>
                     <Input id={`c-${l.key}`} value={l.productCode} onChange={(ev) => setLine(l.key, { productCode: ev.target.value })} />
                   </Field>
                 )}
-                <Field label="Qty" htmlFor={`q-${l.key}`} error={e[`lines.${i}.qtyMilli`]}>
+                <Field label={t.qty} htmlFor={`q-${l.key}`} error={e[`lines.${i}.qtyMilli`]}>
                   <Input id={`q-${l.key}`} inputMode="decimal" className="num text-right" value={l.qty} onChange={(ev) => setLine(l.key, { qty: ev.target.value })} />
                 </Field>
                 {v.showUnit && (
-                  <Field label="Unit" htmlFor={`u-${l.key}`}>
+                  <Field label={t.unit} htmlFor={`u-${l.key}`}>
                     <Input id={`u-${l.key}`} value={l.unit} onChange={(ev) => setLine(l.key, { unit: ev.target.value })} />
                   </Field>
                 )}
-                <Field label="Unit price (THB)" htmlFor={`p-${l.key}`} error={e[`lines.${i}.unitPrice`]}>
+                <Field label={t.unitPrice} htmlFor={`p-${l.key}`} error={e[`lines.${i}.unitPrice`]}>
                   <Input id={`p-${l.key}`} inputMode="decimal" className="num text-right" value={l.price} onChange={(ev) => setLine(l.key, { price: ev.target.value })} />
                 </Field>
-                <Field label="Discount (THB)" htmlFor={`d-${l.key}`} error={e[`lines.${i}.discount`]}>
+                <Field label={t.discount} htmlFor={`d-${l.key}`} error={e[`lines.${i}.discount`]}>
                   <Input id={`d-${l.key}`} inputMode="decimal" className="num text-right" value={l.discount} onChange={(ev) => setLine(l.key, { discount: ev.target.value })} />
                 </Field>
-                <Field label="VAT" htmlFor={`v-${l.key}`} error={e[`lines.${i}.vatBps`]}>
+                <Field label={t.vat} htmlFor={`v-${l.key}`} error={e[`lines.${i}.vatBps`]}>
                   <NativeSelect id={`v-${l.key}`} value={l.vatBps} onChange={(ev) => setLine(l.key, { vatBps: Number(ev.target.value) })}>
-                    {VAT_RATE_OPTIONS.map((b) => (<option key={b} value={b}>{b === 0 ? "0% / exempt" : `${b / 100}%`}</option>))}
+                    {VAT_RATE_OPTIONS.map((b) => (<option key={b} value={b}>{b === 0 ? t.exempt : `${b / 100}%`}</option>))}
                   </NativeSelect>
                 </Field>
                 <div className="num pb-2 text-right font-medium">฿{formatTHB(lineAmount(lines[i]) - Math.min(lines[i].discount, lineAmount(lines[i])))}</div>
-                <Button type="button" variant="ghost" size="icon" className="justify-self-end" aria-label={`Remove line ${i + 1}`} disabled={v.lines.length === 1}
+                <Button type="button" variant="ghost" size="icon" className="justify-self-end" aria-label={t.removeLine(i + 1)} disabled={v.lines.length === 1}
                   onClick={() => set("lines", v.lines.filter((x) => x.key !== l.key))}>
                   <X />
                 </Button>
@@ -337,10 +341,10 @@ export function DocumentEditor({
             ))}
             {e.lines && <p className="text-[12px] text-destructive">{e.lines}</p>}
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => set("lines", [...v.lines, newLine(vatBps === 0 ? 0 : 700)])}><Plus /> Add line</Button>
+              <Button type="button" variant="outline" onClick={() => set("lines", [...v.lines, newLine(vatBps === 0 ? 0 : 700)])}><Plus /> {t.addLine}</Button>
               {items.length > 0 && (
-                <NativeSelect aria-label="Add a saved item" className="w-auto" value="" onChange={(ev) => addItem(ev.target.value)}>
-                  <option value="">+ Add saved item…</option>
+                <NativeSelect aria-label={t.addSaved} className="w-auto" value="" onChange={(ev) => addItem(ev.target.value)}>
+                  <option value="">{t.addSavedOption}</option>
                   {items.map((it) => (<option key={it.id} value={it.id}>{it.name_th} · ฿{formatTHB(it.unit_price)}</option>))}
                 </NativeSelect>
               )}
@@ -349,21 +353,21 @@ export function DocumentEditor({
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Tax &amp; terms · ภาษีและเงื่อนไข</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t.taxTerms}</CardTitle></CardHeader>
           <CardContent className="grid gap-x-5 gap-y-4 sm:grid-cols-3">
-            <Field label="Discount (THB)" htmlFor="disc" error={e.discount}>
+            <Field label={t.discount} htmlFor="disc" error={e.discount}>
               <Input id="disc" inputMode="decimal" className="num text-right" value={v.discount} onChange={(ev) => set("discount", ev.target.value)} />
             </Field>
-            <Field label="Customer withholds" htmlFor="wht" error={e.whtBps}>
+            <Field label={t.customerWithholds} htmlFor="wht" error={e.whtBps}>
               <NativeSelect id="wht" value={v.whtBps} onChange={(ev) => set("whtBps", Number(ev.target.value))}>
-                {WHT_OPTIONS.map((o) => (<option key={o.bps} value={o.bps}>{o.label}</option>))}
+                {WHT_OPTIONS.map((o) => (<option key={o.bps} value={o.bps}>{m.wht[o.bps]}</option>))}
               </NativeSelect>
             </Field>
             <Label className="self-end pb-2.5 font-normal">
               <input type="checkbox" className="size-4 accent-[var(--cobalt)]" checked={v.pricesIncludeVat} onChange={(ev) => set("pricesIncludeVat", ev.target.checked)} />
-              Prices include VAT
+              {t.pricesIncludeVat}
             </Label>
-            <Field className="sm:col-span-3" label="Notes" htmlFor="notes">
+            <Field className="sm:col-span-3" label={t.notes} htmlFor="notes">
               <Textarea id="notes" rows={2} value={v.notes} onChange={(ev) => set("notes", ev.target.value)} />
             </Field>
           </CardContent>
@@ -371,42 +375,42 @@ export function DocumentEditor({
 
         <Card>
           <CardHeader>
-            <CardTitle>Signatures · ผู้ลงนาม</CardTitle>
+            <CardTitle>{t.signatures}</CardTitle>
             <CardDescription>
-              Printed on the document with their name, title and signature image. Manage people in <Link href="/settings" className="text-cobalt underline">Settings</Link>.
+              {t.signaturesNote} <Link href="/settings" className="text-cobalt underline">{t.settings}</Link>
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
-            <Field label="Issued by (signer)" htmlFor="signer" error={e.signerId}>
+            <Field label={t.signer} htmlFor="signer" error={e.signerId}>
               <NativeSelect id="signer" value={v.signerId} onChange={(ev) => set("signerId", ev.target.value)}>
-                <option value="">Blank signature line</option>
+                <option value="">{t.blankSigner}</option>
                 {signatories.map((x) => (<option key={x.id} value={x.id}>{x.name_th}{x.title_th ? ` · ${x.title_th}` : ""}</option>))}
               </NativeSelect>
             </Field>
-            <Field label="Approved by (approver)" htmlFor="approver" error={e.approverId} hint="Leave empty for no approver block.">
+            <Field label={t.approver} htmlFor="approver" error={e.approverId} hint={t.approverHint}>
               <NativeSelect id="approver" value={v.approverId} onChange={(ev) => set("approverId", ev.target.value)}>
-                <option value="">None</option>
+                <option value="">{t.none}</option>
                 {signatories.map((x) => (<option key={x.id} value={x.id}>{x.name_th}{x.title_th ? ` · ${x.title_th}` : ""}</option>))}
               </NativeSelect>
             </Field>
           </CardContent>
         </Card>
 
-        <section aria-label="Totals" className="relative overflow-hidden rounded-lg border border-cobalt/25 bg-paper">
+        <section aria-label={t.totals} className="relative overflow-hidden rounded-lg border border-cobalt/25 bg-paper">
           <GuillocheBackground opacity={0.09} />
           <div className="relative flex flex-wrap items-end justify-between gap-4 p-5">
             <div>
-              <div className="eyebrow text-cobalt">{totals.wht > 0 ? "Net receivable · ยอดรับสุทธิ" : "Total · ยอดรวม"}</div>
+              <div className="eyebrow text-cobalt">{totals.wht > 0 ? t.netReceivable : t.totalLabel}</div>
               <div className="figure text-[36px] leading-tight text-cobalt">฿{formatTHB(totals.netReceivable)}</div>
               <div className="text-[12px] text-muted-foreground">{bahtText(totals.netReceivable)}</div>
               <div className="num mt-1 text-[12px] text-muted-foreground">
-                Before VAT {formatTHB(totals.taxable)} · VAT {formatTHB(totals.vat)} · Total {formatTHB(totals.total)}
-                {totals.wht > 0 && ` · WHT −${formatTHB(totals.wht)}`}
+                {t.totalsLine(formatTHB(totals.taxable), formatTHB(totals.vat), formatTHB(totals.total))}
+                {totals.wht > 0 && t.whtLine(formatTHB(totals.wht))}
               </div>
             </div>
             <div className="flex gap-2">
-              {id && <Button asChild variant="outline"><Link href={`/documents/${id}`}>Cancel</Link></Button>}
-              <Button type="submit" disabled={saving}>{saving ? "Saving…" : id ? "Save draft" : "Save as draft"}</Button>
+              {id && <Button asChild variant="outline"><Link href={`/documents/${id}`}>{t.cancel}</Link></Button>}
+              <Button type="submit" disabled={saving}>{saving ? t.saving : id ? t.saveDraft : t.saveAsDraft}</Button>
             </div>
           </div>
           <Microprint className="relative border-t border-cobalt/15 px-5 py-0.5" />
@@ -414,9 +418,9 @@ export function DocumentEditor({
         <FormMessage state={state} />
       </form>
 
-      <aside aria-label="Live document preview" className="xl:sticky xl:top-6 xl:self-start">
-        <h2 className="display -mb-8 text-xl text-cobalt">Preview</h2>
-        <PreviewFrame width={A4.width} height={A4.height} title="Live document preview">
+      <aside aria-label={t.livePreview} className="xl:sticky xl:top-6 xl:self-start">
+        <h2 className="display -mb-8 text-xl text-cobalt">{t.preview}</h2>
+        <PreviewFrame width={A4.width} height={A4.height} title={t.livePreview}>
           <InvoiceModern doc={view} />
         </PreviewFrame>
       </aside>

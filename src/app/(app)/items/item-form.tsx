@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { WHT_OPTIONS } from "@/lib/domain/tax";
 import type { FormState } from "@/lib/domain/forms";
+import { useMessages } from "@/lib/i18n/client";
 import type { Tables } from "@/lib/supabase/database.types";
 import { deleteItem, saveItem } from "./actions";
 
@@ -15,6 +16,8 @@ export function ItemForm({ item }: { item?: Tables<"items"> }) {
   const [delState, setDelState] = useState<FormState>({});
   const [deleting, startDelete] = useTransition();
   const e = state.fieldErrors ?? {};
+  const m = useMessages();
+  const t = m.items;
   const dv = (k: string, fallback: string) => state.values?.[k] ?? fallback;
 
   return (
@@ -22,36 +25,36 @@ export function ItemForm({ item }: { item?: Tables<"items"> }) {
       {item && <input type="hidden" name="id" value={item.id} />}
       <Card>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Product code" htmlFor="code" error={e.code} hint="Optional. Printed when the document shows codes.">
+          <Field label={t.code} htmlFor="code" error={e.code} hint={t.codeHint}>
             <Input id="code" name="code" defaultValue={dv("code", item?.code ?? "")} />
           </Field>
-          <Field label="VAT rate" htmlFor="default_vat_bps" error={e.default_vat_bps}>
+          <Field label={t.vatRate} htmlFor="default_vat_bps" error={e.default_vat_bps}>
             <NativeSelect id="default_vat_bps" name="default_vat_bps" defaultValue={dv("default_vat_bps", String(item?.default_vat_bps ?? 700))}>
               <option value="700">7%</option>
-              <option value="0">0% / exempt</option>
+              <option value="0">{t.vatExempt}</option>
             </NativeSelect>
           </Field>
-          <Field label="Name (Thai)" htmlFor="name_th" error={e.name_th}>
+          <Field label={t.nameTh} htmlFor="name_th" error={e.name_th}>
             <Input id="name_th" name="name_th" defaultValue={dv("name_th", item?.name_th ?? "")} required />
           </Field>
-          <Field label="Name (English)" htmlFor="name_en" error={e.name_en}>
+          <Field label={t.nameEn} htmlFor="name_en" error={e.name_en}>
             <Input id="name_en" name="name_en" defaultValue={dv("name_en", item?.name_en ?? "")} />
           </Field>
-          <Field label="Unit price (THB)" htmlFor="unit_price" error={e.unit_price} hint="Before VAT">
+          <Field label={t.unitPrice} htmlFor="unit_price" error={e.unit_price} hint={t.unitPriceHint}>
             <Input id="unit_price" name="unit_price" inputMode="decimal" className="num text-right" defaultValue={dv("unit_price", item ? (item.unit_price / 100).toFixed(2) : "")} required />
           </Field>
-          <Field label="Unit" htmlFor="unit" error={e.unit} hint="e.g. งาน, ชม., เดือน">
+          <Field label={t.unit} htmlFor="unit" error={e.unit} hint={t.unitHint}>
             <Input id="unit" name="unit" defaultValue={dv("unit", item?.unit ?? "")} />
           </Field>
-          <Field label="Customer usually withholds" htmlFor="default_wht_bps" error={e.default_wht_bps}>
+          <Field label={t.usualWht} htmlFor="default_wht_bps" error={e.default_wht_bps}>
             <NativeSelect id="default_wht_bps" name="default_wht_bps" defaultValue={dv("default_wht_bps", String(item?.default_wht_bps ?? 0))}>
-              {WHT_OPTIONS.map((o) => <option key={o.bps} value={o.bps}>{o.label}</option>)}
+              {WHT_OPTIONS.map((o) => <option key={o.bps} value={o.bps}>{m.wht[o.bps]}</option>)}
             </NativeSelect>
           </Field>
         </CardContent>
       </Card>
       <div className="flex flex-wrap items-center gap-3">
-        <SubmitButton>{item ? "Save item" : "Add item"}</SubmitButton>
+        <SubmitButton>{item ? t.save : t.add}</SubmitButton>
         {item && (
           <Button
             type="button"
@@ -59,11 +62,11 @@ export function ItemForm({ item }: { item?: Tables<"items"> }) {
             className="text-destructive hover:text-destructive"
             disabled={deleting}
             onClick={() => {
-              if (!confirm(`Delete ${item.name_th}?`)) return;
+              if (!confirm(m.actions.confirmDelete(item.name_th))) return;
               startDelete(async () => setDelState(await deleteItem(item.id)));
             }}
           >
-            {deleting ? "Deleting…" : "Delete"}
+            {deleting ? m.actions.deleting : m.actions.delete}
           </Button>
         )}
         <FormMessage state={delState.error ? delState : state} />

@@ -46,7 +46,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </aside>
         <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8">
           {access.kind === "trial" && (
-            <aside aria-label="Subscription" className={cn("mb-6 flex flex-wrap items-center justify-between gap-2 rounded-md border px-4 py-2.5 text-sm", access.daysLeft <= 3 ? "border-amber bg-amber/10" : "bg-card")}>
+            <aside aria-label={m.billing.yourPlan} className={cn("mb-6 flex flex-wrap items-center justify-between gap-2 rounded-md border px-4 py-2.5 text-sm", access.daysLeft <= 3 ? "border-amber bg-amber/10" : "bg-card")}>
               <span>
                 <span className="font-medium">{m.common.trialShort}:</span> {m.shell.trialLeft(access.daysLeft)}
               </span>
@@ -54,7 +54,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             </aside>
           )}
           {access.kind === "expired" && (
-            <aside aria-label="Subscription" className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber bg-amber/10 px-4 py-3 text-sm">
+            <aside aria-label={m.billing.yourPlan} className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber bg-amber/10 px-4 py-3 text-sm">
               <span>{m.shell.trialEnded}</span>
               <Link href="/settings/billing" className="font-medium text-cobalt underline underline-offset-4">{m.shell.subscribe}</Link>
             </aside>

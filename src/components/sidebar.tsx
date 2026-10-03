@@ -22,7 +22,7 @@ export function Sidebar() {
   const path = usePathname();
   const m = useMessages();
   return (
-    <nav aria-label="Main" className="flex gap-1 overflow-x-auto px-3 py-3 md:sticky md:top-4 md:flex-col md:gap-0.5 md:overflow-visible md:px-4 md:py-6">
+    <nav aria-label={m.nav.menu} className="flex gap-1 overflow-x-auto px-3 py-3 md:sticky md:top-4 md:flex-col md:gap-0.5 md:overflow-visible md:px-4 md:py-6">
       <div className="eyebrow mb-2 hidden px-2 md:block">{m.nav.menu}</div>
       {NAV.map(({ href, key, icon: Icon }) => {
         const active = href === "/" ? path === "/" : path.startsWith(href);

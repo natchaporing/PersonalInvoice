@@ -7,10 +7,12 @@ import { InvoiceModern } from "@/components/invoice-modern";
 import { PreviewFrame } from "@/components/preview-frame";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocumentBundle, getProfile, paidAmount } from "@/lib/data/documents";
-import { DOC_TYPE_LABEL, isAdjustment, isOverdue, isPayable, isTaxDocument, todayBangkok } from "@/lib/domain/documents";
+import { isAdjustment, isOverdue, isPayable, isTaxDocument, todayBangkok } from "@/lib/domain/documents";
 import { installmentStage } from "@/lib/domain/installments";
 import { prepareEtaxInput } from "@/lib/etax/prepare";
 import { isEtaxDocType } from "@/lib/etax/xml";
+import { docTypeLabel } from "@/lib/i18n/format";
+import { getLocale, getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 import { DocumentActions } from "./document-actions";
@@ -71,12 +73,14 @@ export default async function DocumentPage({ params, searchParams }: PageProps<"
   const quotationDoc = parent.data?.find((d) => d.id === doc.quotation_id);
   const sourceDoc = parent.data?.find((d) => d.id === doc.source_document_id);
   const receipt = receipts.data?.[0];
+  const [m, locale] = await Promise.all([getMessages(), getLocale()]);
+  const t = m.docs.detail;
 
   return (
     <>
       <PageHeader
-        eyebrow={`${DOC_TYPE_LABEL[doc.doc_type].th} · ${DOC_TYPE_LABEL[doc.doc_type].en}`}
-        title={doc.number ?? "Draft"}
+        eyebrow={docTypeLabel(doc.doc_type, locale)}
+        title={doc.number ?? m.common.draft}
         subtitle={`${view.buyer.nameTh} · ฿${formatTHB(doc.total)}`}
         actions={<StatusBadge status={doc.status} overdue={isOverdue(doc, today)} />}
       />
@@ -94,32 +98,32 @@ export default async function DocumentPage({ params, searchParams }: PageProps<"
           />
 
           <Card>
-            <CardHeader><CardTitle>Summary</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t.summary}</CardTitle></CardHeader>
             <CardContent>
               <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
-                <dt className="text-muted-foreground">Issue date</dt><dd>{doc.issue_date}</dd>
-                {doc.due_date && (<><dt className="text-muted-foreground">Due date</dt><dd>{doc.due_date}</dd></>)}
-                <dt className="text-muted-foreground">Before VAT</dt><dd className="num">฿{formatTHB(doc.taxable)}</dd>
-                <dt className="text-muted-foreground">VAT {doc.vat_bps / 100}%</dt><dd className="num">฿{formatTHB(doc.vat)}</dd>
-                <dt className="text-muted-foreground">Total</dt><dd className="num font-semibold">฿{formatTHB(doc.total)}</dd>
-                {doc.wht > 0 && (<><dt className="text-muted-foreground">Withholding {doc.wht_bps / 100}%</dt><dd className="num">−฿{formatTHB(doc.wht)}</dd></>)}
-                {isPayable(doc.doc_type) && (<><dt className="text-muted-foreground">Net receivable</dt><dd className="num font-semibold text-cobalt">฿{formatTHB(doc.net_receivable)}</dd></>)}
-                {ref && (<><dt className="text-muted-foreground">Adjusts</dt><dd><Link href={`/documents/${ref.id}`} className="text-cobalt underline"><SerialNumber value={ref.number ?? "—"} /></Link></dd></>)}
-                {doc.reason && (<><dt className="text-muted-foreground">Reason</dt><dd>{doc.reason}</dd></>)}
+                <dt className="text-muted-foreground">{t.issueDate}</dt><dd>{doc.issue_date}</dd>
+                {doc.due_date && (<><dt className="text-muted-foreground">{t.dueDate}</dt><dd>{doc.due_date}</dd></>)}
+                <dt className="text-muted-foreground">{t.beforeVat}</dt><dd className="num">฿{formatTHB(doc.taxable)}</dd>
+                <dt className="text-muted-foreground">{t.vat(doc.vat_bps / 100)}</dt><dd className="num">฿{formatTHB(doc.vat)}</dd>
+                <dt className="text-muted-foreground">{t.total}</dt><dd className="num font-semibold">฿{formatTHB(doc.total)}</dd>
+                {doc.wht > 0 && (<><dt className="text-muted-foreground">{t.withholding(doc.wht_bps / 100)}</dt><dd className="num">−฿{formatTHB(doc.wht)}</dd></>)}
+                {isPayable(doc.doc_type) && (<><dt className="text-muted-foreground">{t.netReceivable}</dt><dd className="num font-semibold text-cobalt">฿{formatTHB(doc.net_receivable)}</dd></>)}
+                {ref && (<><dt className="text-muted-foreground">{t.adjusts}</dt><dd><Link href={`/documents/${ref.id}`} className="text-cobalt underline"><SerialNumber value={ref.number ?? "—"} /></Link></dd></>)}
+                {doc.reason && (<><dt className="text-muted-foreground">{t.reason}</dt><dd>{doc.reason}</dd></>)}
                 {quotationDoc && (
-                  <><dt className="text-muted-foreground">Quotation</dt><dd><Link href={`/documents/${quotationDoc.id}`} className="text-cobalt underline">{quotationDoc.number}</Link>{instInfo.data && ` · installment ${instInfo.data.position} · ${instInfo.data.label}`}</dd></>
+                  <><dt className="text-muted-foreground">{t.quotation}</dt><dd><Link href={`/documents/${quotationDoc.id}`} className="text-cobalt underline">{quotationDoc.number}</Link>{instInfo.data && t.installmentOf(instInfo.data.position, instInfo.data.label)}</dd></>
                 )}
-                {sourceDoc && (<><dt className="text-muted-foreground">Settles invoice</dt><dd><Link href={`/documents/${sourceDoc.id}`} className="text-cobalt underline">{sourceDoc.number}</Link></dd></>)}
-                {receipt && (<><dt className="text-muted-foreground">Receipt / tax invoice</dt><dd><Link href={`/documents/${receipt.id}`} className="text-cobalt underline">{receipt.number ?? "Draft"}</Link></dd></>)}
+                {sourceDoc && (<><dt className="text-muted-foreground">{t.settles}</dt><dd><Link href={`/documents/${sourceDoc.id}`} className="text-cobalt underline">{sourceDoc.number}</Link></dd></>)}
+                {receipt && (<><dt className="text-muted-foreground">{t.receipt}</dt><dd><Link href={`/documents/${receipt.id}`} className="text-cobalt underline">{receipt.number ?? m.common.draft}</Link></dd></>)}
                 {doc.pdf_sha256 && (<><dt className="text-muted-foreground">PDF SHA-256</dt><dd className="num break-all text-[12px]">{doc.pdf_sha256}</dd></>)}
-                {doc.verify_code && (<><dt className="text-muted-foreground">Verification</dt><dd><Link href={`/verify/${doc.verify_code}`} className="text-cobalt underline">/verify/{doc.verify_code}</Link></dd></>)}
+                {doc.verify_code && (<><dt className="text-muted-foreground">{t.verification}</dt><dd><Link href={`/verify/${doc.verify_code}`} className="text-cobalt underline">/verify/{doc.verify_code}</Link></dd></>)}
               </dl>
               {adjustments && adjustments.length > 0 && (
                 <div className="mt-4 border-t pt-3 text-sm">
-                  <div className="eyebrow mb-1">Adjusted by</div>
+                  <div className="eyebrow mb-1">{t.adjustedBy}</div>
                   {adjustments.map((a) => (
                     <div key={a.id} className="flex justify-between gap-3">
-                      <Link href={`/documents/${a.id}`} className="text-cobalt underline">{a.number ?? "Draft"} · {DOC_TYPE_LABEL[a.doc_type].en}</Link>
+                      <Link href={`/documents/${a.id}`} className="text-cobalt underline">{a.number ?? m.common.draft} · {docTypeLabel(a.doc_type, locale)}</Link>
                       <span className="num">฿{formatTHB(a.total)}</span>
                     </div>
                   ))}
@@ -154,8 +158,8 @@ export default async function DocumentPage({ params, searchParams }: PageProps<"
           )}
         </div>
 
-        <aside aria-label="Document" className="xl:sticky xl:top-6 xl:self-start">
-          <PreviewFrame width={A4.width} height={A4.height} title={doc.number ?? "Draft preview"}>
+        <aside aria-label={t.documentAside} className="xl:sticky xl:top-6 xl:self-start">
+          <PreviewFrame width={A4.width} height={A4.height} title={doc.number ?? t.draftPreview}>
             <InvoiceModern doc={view} verifyBaseUrl={process.env.APP_URL} />
           </PreviewFrame>
         </aside>

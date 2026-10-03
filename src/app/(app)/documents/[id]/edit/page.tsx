@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/app-ui";
-import { DOC_TYPE_LABEL } from "@/lib/domain/documents";
+import { docTypeLabel } from "@/lib/i18n/format";
+import { getLocale, getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
 import { DocumentEditor } from "../../editor";
 import { editorContext, valueFromDocument } from "../../editor-data";
@@ -17,7 +18,7 @@ export default async function EditDocument({ params }: PageProps<"/documents/[id
   const ctx = await editorContext(supabase, user.id);
   return (
     <>
-      <PageHeader eyebrow="แก้ไขฉบับร่าง" title={`Edit draft ${DOC_TYPE_LABEL[doc.doc_type].en.toLowerCase()}`} />
+      <PageHeader title={(await getMessages()).docs.editor.editTitle(docTypeLabel(doc.doc_type, await getLocale()))} />
       <DocumentEditor id={id} initial={valueFromDocument(doc, lines ?? [])} {...ctx} />
     </>
   );

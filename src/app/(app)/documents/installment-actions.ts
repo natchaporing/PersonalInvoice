@@ -1,5 +1,7 @@
 "use server";
 
+import { getLocale } from "@/lib/i18n/server";
+import { localizeState } from "@/lib/i18n/server-text";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -31,7 +33,7 @@ async function loadQuotation(supabase: Supa, id: string) {
 /* ------------------------------------------------------------------ plan */
 
 /** Save or replace the installment plan of an issued quotation. Locked once an installment has a document. */
-export async function saveInstallmentPlan(quotationId: string, rows: { label: string; pctBps: number }[]): Promise<FormState> {
+async function saveInstallmentPlanImpl(quotationId: string, rows: { label: string; pctBps: number }[]): Promise<FormState> {
   const { supabase } = await requireUser();
   const q = await loadQuotation(supabase, quotationId);
   if (!q || q.status === "draft" || q.status === "void") return { error: "Issue the quotation before planning installments." };
@@ -53,7 +55,7 @@ export async function saveInstallmentPlan(quotationId: string, rows: { label: st
   return { message: "Installment plan saved." };
 }
 
-export async function deleteInstallmentPlan(quotationId: string): Promise<FormState> {
+async function deleteInstallmentPlanImpl(quotationId: string): Promise<FormState> {
   const { supabase } = await requireUser();
   const { count } = await supabase.from("documents").select("id", { count: "exact", head: true }).eq("quotation_id", quotationId).neq("status", "void");
   if (count) return { error: "Installments already have invoices. Void those documents first." };
@@ -66,7 +68,7 @@ export async function deleteInstallmentPlan(quotationId: string): Promise<FormSt
 /* ------------------------------------------------------------------ documents */
 
 /** Create the draft invoice for one installment, then open it. */
-export async function createInstallmentInvoice(installmentId: string): Promise<FormState> {
+async function createInstallmentInvoiceImpl(installmentId: string): Promise<FormState> {
   const { supabase } = await requireUser();
   const { data: inst } = await supabase.from("installments").select("*").eq("id", installmentId).maybeSingle();
   if (!inst) return { error: "Installment not found." };
@@ -148,7 +150,7 @@ export async function createInstallmentInvoice(installmentId: string): Promise<F
 }
 
 /** Draft receipt/tax invoice for an issued invoice: same lines and totals, dated today (the VAT tax point for services). */
-export async function createReceiptFromInvoice(invoiceId: string): Promise<FormState> {
+async function createReceiptFromInvoiceImpl(invoiceId: string): Promise<FormState> {
   const { supabase } = await requireUser();
   const { data: inv } = await supabase.from("documents").select("*").eq("id", invoiceId).eq("doc_type", "invoice").maybeSingle();
   if (!inv || (inv.status !== "issued" && inv.status !== "paid")) return { error: "Only an issued invoice can get a receipt/tax invoice." };
@@ -226,7 +228,7 @@ const Commission = z
   });
 
 /** Record commission owed on a quotation. Internal only: it never appears on any document. */
-export async function addCommission(quotationId: string, _: FormState, form: FormData): Promise<FormState> {
+async function addCommissionImpl(quotationId: string, _: FormState, form: FormData): Promise<FormState> {
   const { supabase } = await requireUser();
   const parsed = Commission.safeParse(formObject(form));
   if (!parsed.success) return invalid(form, parsed.error.issues);
@@ -262,7 +264,7 @@ const Paid = z.object({
   paid_reference: optText(200),
 });
 
-export async function markCommissionPaid(commissionId: string, _: FormState, form: FormData): Promise<FormState> {
+async function markCommissionPaidImpl(commissionId: string, _: FormState, form: FormData): Promise<FormState> {
   const { supabase } = await requireUser();
   const parsed = Paid.safeParse(formObject(form));
   if (!parsed.success) return invalid(form, parsed.error.issues);
@@ -272,7 +274,7 @@ export async function markCommissionPaid(commissionId: string, _: FormState, for
   return { message: "Marked as transferred." };
 }
 
-export async function undoCommissionPaid(commissionId: string): Promise<FormState> {
+async function undoCommissionPaidImpl(commissionId: string): Promise<FormState> {
   const { supabase } = await requireUser();
   const { data, error } = await supabase.from("commissions").update({ paid_on: null, paid_reference: null }).eq("id", commissionId).select("quotation_id").single();
   if (error) return { error: error.message };
@@ -280,10 +282,36 @@ export async function undoCommissionPaid(commissionId: string): Promise<FormStat
   return { message: "Marked as not transferred." };
 }
 
-export async function deleteCommission(commissionId: string): Promise<FormState> {
+async function deleteCommissionImpl(commissionId: string): Promise<FormState> {
   const { supabase } = await requireUser();
   const { data, error } = await supabase.from("commissions").delete().eq("id", commissionId).select("quotation_id").single();
   if (error) return { error: error.message };
   refresh(data.quotation_id);
   return { message: "Commission removed." };
+}
+
+// Exported actions return their messages in the visitor's language (see i18n/server-text).
+export async function saveInstallmentPlan(...args: Parameters<typeof saveInstallmentPlanImpl>): Promise<FormState> {
+  return localizeState(await saveInstallmentPlanImpl(...args), await getLocale());
+}
+export async function deleteInstallmentPlan(...args: Parameters<typeof deleteInstallmentPlanImpl>): Promise<FormState> {
+  return localizeState(await deleteInstallmentPlanImpl(...args), await getLocale());
+}
+export async function createInstallmentInvoice(...args: Parameters<typeof createInstallmentInvoiceImpl>): Promise<FormState> {
+  return localizeState(await createInstallmentInvoiceImpl(...args), await getLocale());
+}
+export async function createReceiptFromInvoice(...args: Parameters<typeof createReceiptFromInvoiceImpl>): Promise<FormState> {
+  return localizeState(await createReceiptFromInvoiceImpl(...args), await getLocale());
+}
+export async function addCommission(...args: Parameters<typeof addCommissionImpl>): Promise<FormState> {
+  return localizeState(await addCommissionImpl(...args), await getLocale());
+}
+export async function markCommissionPaid(...args: Parameters<typeof markCommissionPaidImpl>): Promise<FormState> {
+  return localizeState(await markCommissionPaidImpl(...args), await getLocale());
+}
+export async function undoCommissionPaid(...args: Parameters<typeof undoCommissionPaidImpl>): Promise<FormState> {
+  return localizeState(await undoCommissionPaidImpl(...args), await getLocale());
+}
+export async function deleteCommission(...args: Parameters<typeof deleteCommissionImpl>): Promise<FormState> {
+  return localizeState(await deleteCommissionImpl(...args), await getLocale());
 }

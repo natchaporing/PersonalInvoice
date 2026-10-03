@@ -8,31 +8,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
 import type { FormState } from "@/lib/domain/forms";
+import { useMessages } from "@/lib/i18n/client";
 import { commissionFigures } from "@/lib/domain/installments";
 import type { Tables } from "@/lib/supabase/database.types";
 import { formatTHB, thbToSatang } from "@/lib/thai/money";
 import { cn } from "@/lib/utils";
 import { addCommission, deleteCommission, markCommissionPaid, undoCommissionPaid } from "../installment-actions";
 
-const WHT = [
-  { bps: 0, label: "No withholding" },
-  { bps: 300, label: "3% (individual, service/commission)" },
-  { bps: 100, label: "1%" },
-  { bps: 200, label: "2%" },
-  { bps: 500, label: "5%" },
-];
+/** Withholding rates offered for commission, most common first. Labels come from the dictionary. */
+const WHT = [0, 300, 100, 200, 500];
 
 function PaidForm({ id, today }: { id: string; today: string }) {
+  const t = useMessages().docs.commission;
   const [state, action] = useActionState<FormState, FormData>(markCommissionPaid.bind(null, id), {});
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
-      <Field label="Transferred on" htmlFor={`paid-${id}`} error={state.fieldErrors?.paid_on}>
+      <Field label={t.transferredOn} htmlFor={`paid-${id}`} error={state.fieldErrors?.paid_on}>
         <Input id={`paid-${id}`} name="paid_on" type="date" defaultValue={today} className="w-40" />
       </Field>
-      <Field label="Reference" htmlFor={`ref-${id}`}>
+      <Field label={t.reference} htmlFor={`ref-${id}`}>
         <Input id={`ref-${id}`} name="paid_reference" className="w-44" />
       </Field>
-      <SubmitButton variant="outline">Mark transferred</SubmitButton>
+      <SubmitButton variant="outline">{t.markTransferred}</SubmitButton>
       <FormMessage state={state} />
     </form>
   );
@@ -45,6 +42,8 @@ function PaidForm({ id, today }: { id: string; today: string }) {
 export function CommissionPanel({ quotationId, taxable, rows, today, payees, defaultOpen = false }: { quotationId: string; taxable: number; rows: Tables<"commissions">[]; today: string; payees: Tables<"commission_payees">[]; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   const [msg, setMsg] = useState<FormState>({});
+  const m = useMessages();
+  const t = m.docs.commission;
   const [pending, start] = useTransition();
   const owed = rows.filter((r) => !r.paid_on).reduce((s, r) => s + r.amount - r.wht, 0);
   const paid = rows.filter((r) => r.paid_on).reduce((s, r) => s + r.amount - r.wht, 0);
@@ -56,23 +55,23 @@ export function CommissionPanel({ quotationId, taxable, rows, today, payees, def
         <CardTitle>
           <button type="button" aria-expanded={open} aria-controls="commission-body" onClick={() => setOpen((o) => !o)}
             className="-mx-1 flex w-full items-center justify-between gap-3 rounded px-1 text-left hover:text-cobalt">
-            <span>Commission · ค่านายหน้า</span>
+            <span>{t.title}</span>
             <span className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
-              <span className="num">{rows.length ? `${rows.length} recorded · to transfer ฿${formatTHB(owed)}` : "None recorded"}</span>
+              <span className="num">{rows.length ? t.summary(rows.length, formatTHB(owed)) : t.none}</span>
               <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} aria-hidden />
             </span>
           </button>
         </CardTitle>
         {open && (
           <CardDescription>
-            For your records only. Nothing here appears on the quotation, invoices or PDFs. Transfer it yourself, then mark it transferred.
+            {t.note}
           </CardDescription>
         )}
       </CardHeader>
       <CardContent id="commission-body" hidden={!open} className="space-y-4 text-sm">
         {rows.length > 0 && (
           <>
-            <div className="num text-muted-foreground">To transfer ฿{formatTHB(owed)} · transferred ฿{formatTHB(paid)}</div>
+            <div className="num text-muted-foreground">{t.totals(formatTHB(owed), formatTHB(paid))}</div>
             <ul className="divide-y rounded-md border">
               {rows.map((r) => (
                 <li key={r.id} className="space-y-2 px-3 py-2.5">
@@ -80,25 +79,25 @@ export function CommissionPanel({ quotationId, taxable, rows, today, payees, def
                     <span>
                       {r.payee_id ? <Link href={`/payees/${r.payee_id}`} className="font-medium text-cobalt hover:underline">{r.payee_name}</Link> : <span className="font-medium">{r.payee_name}</span>}
                       {r.payee_account && <span className="text-muted-foreground"> · {r.payee_account}</span>}
-                      <span className="num text-muted-foreground"> · {r.basis === "percent" ? `${(r.rate_bps ?? 0) / 100}% of ฿${formatTHB(taxable)}` : "fixed"}</span>
+                      <span className="num text-muted-foreground"> · {r.basis === "percent" ? t.percentOf((r.rate_bps ?? 0) / 100, formatTHB(taxable)) : t.fixed}</span>
                     </span>
                     <span className="num">
                       ฿{formatTHB(r.amount)}
-                      {r.wht > 0 && <span className="text-muted-foreground"> − WHT ฿{formatTHB(r.wht)} = </span>}
+                      {r.wht > 0 && <span className="text-muted-foreground">{t.minusWht(formatTHB(r.wht))}</span>}
                       {r.wht > 0 && <span className="font-semibold">฿{formatTHB(r.amount - r.wht)}</span>}
                     </span>
                   </div>
                   {r.note && <div className="text-muted-foreground">{r.note}</div>}
                   {r.paid_on ? (
                     <div className="flex flex-wrap items-center gap-2 text-ok">
-                      Transferred {r.paid_on}{r.paid_reference && ` · ${r.paid_reference}`}
-                      <Button variant="ghost" size="sm" disabled={pending} onClick={() => run(() => undoCommissionPaid(r.id))}><Undo2 /> Undo</Button>
+                      {t.transferred(r.paid_on)}{r.paid_reference && ` · ${r.paid_reference}`}
+                      <Button variant="ghost" size="sm" disabled={pending} onClick={() => run(() => undoCommissionPaid(r.id))}><Undo2 /> {m.actions.undo}</Button>
                     </div>
                   ) : (
                     <div className="flex flex-wrap items-end justify-between gap-2">
                       <PaidForm id={r.id} today={today} />
-                      <Button variant="ghost" size="icon" aria-label={`Remove commission for ${r.payee_name}`} disabled={pending}
-                        onClick={() => confirm("Remove this commission?") && run(() => deleteCommission(r.id))}>
+                      <Button variant="ghost" size="icon" aria-label={t.removeAria(r.payee_name)} disabled={pending}
+                        onClick={() => confirm(t.confirmRemove) && run(() => deleteCommission(r.id))}>
                         <Trash2 />
                       </Button>
                     </div>
@@ -129,6 +128,7 @@ function CommissionForm({ quotationId, taxable, payees }: { quotationId: string;
   const [fixed, setFixed] = useState("");
   const [whtBps, setWhtBps] = useState(0);
   const e = state.fieldErrors ?? {};
+  const t = useMessages().docs.commission;
   const preview = commissionFigures({ basis, rateBps: Math.round(Number(rate || 0) * 100), fixed: thbToSatang(Number(fixed.replace(/,/g, "") || 0)), whtBps }, taxable);
   // Picking a saved payee fills in their details and usual terms; everything stays editable.
   const pick = (id: string) => {
@@ -146,47 +146,47 @@ function CommissionForm({ quotationId, taxable, payees }: { quotationId: string;
   return (
     <form action={action} className="grid gap-3 sm:grid-cols-2">
       <input type="hidden" name="payee_id" value={payeeId} />
-      <Field label="Saved payee" htmlFor="c_profile" className="sm:col-span-2"
-        hint={<Link href={`/payees/new?next=${encodeURIComponent(`/documents/${quotationId}?commission=open`)}`} className="text-cobalt underline">+ New payee profile</Link>}>
+      <Field label={t.savedPayee} htmlFor="c_profile" className="sm:col-span-2"
+        hint={<Link href={`/payees/new?next=${encodeURIComponent(`/documents/${quotationId}?commission=open`)}`} className="text-cobalt underline">{t.newPayee}</Link>}>
         <NativeSelect id="c_profile" value={payeeId} onChange={(ev) => pick(ev.target.value)}>
-          <option value="">One-off (not saved)</option>
+          <option value="">{t.oneOff}</option>
           {payees.map((p) => <option key={p.id} value={p.id}>{p.name}{p.default_rate_bps ? ` · ${p.default_rate_bps / 100}%` : ""}</option>)}
         </NativeSelect>
       </Field>
-      <Field label="Payee" htmlFor="c_payee" error={e.payee_name}>
+      <Field label={t.payee} htmlFor="c_payee" error={e.payee_name}>
         <Input id="c_payee" name="payee_name" value={name} onChange={(ev) => setName(ev.target.value)} />
       </Field>
-      <Field label="Payee bank account" htmlFor="c_account" hint="Optional, for your transfer">
+      <Field label={t.account} htmlFor="c_account" hint={t.accountHint}>
         <Input id="c_account" name="payee_account" value={account} onChange={(ev) => setAccount(ev.target.value)} />
       </Field>
-      <Field label="Commission is" htmlFor="c_basis">
+      <Field label={t.basis} htmlFor="c_basis">
         <NativeSelect id="c_basis" name="basis" value={basis} onChange={(ev) => setBasis(ev.target.value as "percent" | "fixed")}>
-          <option value="percent">% of amount before VAT</option>
-          <option value="fixed">Fixed amount</option>
+          <option value="percent">{t.percent}</option>
+          <option value="fixed">{t.fixedAmount}</option>
         </NativeSelect>
       </Field>
       {basis === "percent" ? (
-        <Field label="Rate (%)" htmlFor="c_rate" error={e.rate}>
+        <Field label={t.rate} htmlFor="c_rate" error={e.rate}>
           <Input id="c_rate" name="rate" inputMode="decimal" className="num text-right" value={rate} onChange={(ev) => setRate(ev.target.value)} />
         </Field>
       ) : (
-        <Field label="Amount (THB)" htmlFor="c_fixed" error={e.fixed}>
+        <Field label={t.amount} htmlFor="c_fixed" error={e.fixed}>
           <Input id="c_fixed" name="fixed" inputMode="decimal" className="num text-right" value={fixed} onChange={(ev) => setFixed(ev.target.value)} />
         </Field>
       )}
-      <Field label="Withhold when paying" htmlFor="c_wht" hint="Paying an individual a commission usually means withholding 3% and issuing a 50 Tawi.">
+      <Field label={t.withhold} htmlFor="c_wht" hint={t.withholdHint}>
         <NativeSelect id="c_wht" name="wht_bps" value={whtBps} onChange={(ev) => setWhtBps(Number(ev.target.value))}>
-          {WHT.map((w) => <option key={w.bps} value={w.bps}>{w.label}</option>)}
+          {WHT.map((bps) => <option key={bps} value={bps}>{t.wht[bps]}</option>)}
         </NativeSelect>
       </Field>
-      <Field label="Note" htmlFor="c_note">
+      <Field label={t.note2} htmlFor="c_note">
         <Input id="c_note" name="note" defaultValue={state.values?.note ?? ""} />
       </Field>
       <div className="num text-muted-foreground sm:col-span-2">
-        Commission ฿{formatTHB(preview.amount)}{preview.wht > 0 && ` − WHT ฿${formatTHB(preview.wht)}`} · transfer <span className="font-semibold text-foreground">฿{formatTHB(preview.net)}</span>
+        {t.preview(formatTHB(preview.amount), preview.wht > 0 ? formatTHB(preview.wht) : "")} <span className="font-semibold text-foreground">฿{formatTHB(preview.net)}</span>
       </div>
       <div className="flex items-center gap-3 sm:col-span-2">
-        <SubmitButton>Record commission</SubmitButton>
+        <SubmitButton>{t.record}</SubmitButton>
         <FormMessage state={state} />
       </div>
     </form>

@@ -1,3 +1,8 @@
+import { dashboard } from "./dashboard";
+import { docs } from "./docs";
+import { money } from "./money";
+import { profile } from "./profile";
+import { records } from "./records";
 import type { Messages } from "./en";
 
 // Thai UI text. Must provide every key of the English dictionary; TypeScript refuses a missing one.
@@ -14,7 +19,26 @@ export const th: Messages = {
     vatIncluded: "รวม VAT แล้ว",
     perYear: "ต่อปี",
     perMonth: "ต่อเดือน",
+    saving: "กำลังบันทึก…",
+    draft: "ฉบับร่าง",
+    status: { draft: "ร่าง", issued: "ออกแล้ว", paid: "ชำระแล้ว", void: "ยกเลิก", overdue: "เกินกำหนด" },
   },
+  dashboard: dashboard.th,
+  docs: docs.th,
+  ...records.th,
+  ...money.th,
+  ...profile.th,
+  validation: {
+    required: (label) => `กรุณากรอก${label}`,
+    taxId13: "เลขประจำตัวผู้เสียภาษีต้องมี 13 หลัก",
+    branch5: "เลขสาขามี 5 หลัก (00000 = สำนักงานใหญ่)",
+    number: (label) => `${label}ต้องเป็นตัวเลข`,
+    negative: (label) => `${label}ติดลบไม่ได้`,
+    postcode5: "รหัสไปรษณีย์มี 5 หลัก",
+    fixFields: "กรุณาแก้ไขช่องที่ไฮไลต์",
+  },
+  wht: { 0: "ไม่หัก", 100: "1% · ค่าขนส่ง", 200: "2% · ค่าโฆษณา", 300: "3% · ค่าบริการ", 500: "5% · ค่าเช่า" },
+  actions: { delete: "ลบ", deleting: "กำลังลบ…", confirmDelete: (name) => `ลบ ${name} ใช่ไหม`, cancel: "ยกเลิก", remove: "นำออก", undo: "ย้อนกลับ" },
   nav: {
     menu: "เมนู",
     dashboard: "ภาพรวม",

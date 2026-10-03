@@ -14,7 +14,7 @@ export function SettingsTabs() {
     { href: "/settings/billing", label: m.settings.tabBilling },
   ];
   return (
-    <nav aria-label="Settings" className="mb-6 flex gap-1 border-b">
+    <nav aria-label={m.settings.title} className="mb-6 flex gap-1 border-b">
       {TABS.map((t) => {
         const active = t.href === "/settings" ? path === "/settings" : path.startsWith(t.href);
         return (

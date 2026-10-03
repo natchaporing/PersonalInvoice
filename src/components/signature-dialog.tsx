@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { SignaturePad } from "@/components/signature-pad";
 import { Button } from "@/components/ui/button";
+import { useMessages } from "@/lib/i18n/client";
 
 /** Page behaviour that fights a pen or finger: text selection, copy/cut, the long-press menu, drag and pinch. */
 const BLOCKED_EVENTS = ["selectstart", "copy", "cut", "contextmenu", "dragstart", "gesturestart"] as const;
@@ -42,7 +43,7 @@ function useHandwritingGuard() {
 export function SignatureDialog({
   title,
   label,
-  confirmLabel = "Use signature",
+  confirmLabel,
   onConfirm,
   onClose,
 }: {
@@ -57,6 +58,7 @@ export function SignatureDialog({
   const [pending, start] = useTransition();
   const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const m = useMessages();
   const latest = useRef({ onClose, pending });
   useEffect(() => {
     latest.current = { onClose, pending };
@@ -110,13 +112,13 @@ export function SignatureDialog({
       >
         <div className="flex items-center justify-between gap-3">
           <h2 id={titleId} className="font-semibold">{title}</h2>
-          <Button type="button" variant="ghost" size="icon" aria-label="Close" onClick={onClose} disabled={pending}><X /></Button>
+          <Button type="button" variant="ghost" size="icon" aria-label={m.pad.close} onClick={onClose} disabled={pending}><X /></Button>
         </div>
         <SignaturePad onChange={(v) => { setPng(v); setError(null); }} label={label} />
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>Cancel</Button>
-          <Button type="button" onClick={confirm} disabled={!png || pending}>{pending ? "Saving…" : confirmLabel}</Button>
+          <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>{m.actions.cancel}</Button>
+          <Button type="button" onClick={confirm} disabled={!png || pending}>{pending ? m.common.saving : (confirmLabel ?? m.pad.use)}</Button>
         </div>
       </div>
     </div>,

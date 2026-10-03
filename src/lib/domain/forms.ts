@@ -2,33 +2,56 @@
 import { z } from "zod";
 import { thbToSatang } from "@/lib/thai/money";
 
-/** Optional trimmed text: empty string becomes null. */
-export const optText = (max = 500) =>
-  z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : typeof v === "string" ? v.trim() : v), z.string().max(max).nullable());
+/** Validation wording, supplied in the visitor's language (see i18n messages `validation`). */
+export interface ValidationMessages {
+  required: (label: string) => string;
+  taxId13: string;
+  branch5: string;
+  number: (label: string) => string;
+  negative: (label: string) => string;
+  postcode5: string;
+  fixFields: string;
+}
 
-export const reqText = (label: string, max = 500) =>
-  z.preprocess((v) => (typeof v === "string" ? v.trim() : v), z.string().min(1, `${label} is required`).max(max));
+const EN: ValidationMessages = {
+  required: (label) => `${label} is required`,
+  taxId13: "Tax ID must be 13 digits",
+  branch5: "Branch number is 5 digits (00000 = head office)",
+  number: (label) => `${label} must be a number`,
+  negative: (label) => `${label} cannot be negative`,
+  postcode5: "Postcode is 5 digits",
+  fixFields: "Please fix the highlighted fields.",
+};
 
-export const taxId = z.preprocess(
-  (v) => (typeof v === "string" ? v.replace(/[\s-]/g, "") : v),
-  z.string().regex(/^\d{13}$/, "Tax ID must be 13 digits"),
-);
-export const optTaxId = z.preprocess(
-  (v) => (typeof v === "string" ? (v.replace(/[\s-]/g, "") || null) : v),
-  z.string().regex(/^\d{13}$/, "Tax ID must be 13 digits").nullable(),
-);
-export const branchCode = z.preprocess(
-  (v) => (typeof v === "string" ? (v.trim() === "" ? "00000" : v.trim().padStart(5, "0")) : v),
-  z.string().regex(/^\d{5}$/, "Branch number is 5 digits (00000 = head office)"),
-);
+/** Field parsers whose error messages are in the given language. */
+export function formHelpers(v: ValidationMessages = EN) {
+  return {
+    /** Optional trimmed text: empty string becomes null. */
+    optText: (max = 500) =>
+      z.preprocess((x) => (typeof x === "string" && x.trim() === "" ? null : typeof x === "string" ? x.trim() : x), z.string().max(max).nullable()),
+    reqText: (label: string, max = 500) =>
+      z.preprocess((x) => (typeof x === "string" ? x.trim() : x), z.string().min(1, v.required(label)).max(max)),
+    taxId: z.preprocess((x) => (typeof x === "string" ? x.replace(/[\s-]/g, "") : x), z.string().regex(/^\d{13}$/, v.taxId13)),
+    optTaxId: z.preprocess((x) => (typeof x === "string" ? (x.replace(/[\s-]/g, "") || null) : x), z.string().regex(/^\d{13}$/, v.taxId13).nullable()),
+    branchCode: z.preprocess(
+      (x) => (typeof x === "string" ? (x.trim() === "" ? "00000" : x.trim().padStart(5, "0")) : x),
+      z.string().regex(/^\d{5}$/, v.branch5),
+    ),
+    /** "1,234.50" → 123450 satang. */
+    money: (label: string) =>
+      z.preprocess((x) => {
+        if (typeof x !== "string") return x;
+        const n = Number(x.replace(/,/g, "").trim() || "0");
+        return Number.isFinite(n) ? thbToSatang(n) : NaN;
+      }, z.number({ message: v.number(label) }).int().min(0, v.negative(label))),
+    postcode: z.preprocess((x) => (typeof x === "string" ? x.replace(/\D/g, "") || null : x), z.string().regex(/^\d{5}$/, v.postcode5).nullable()),
+    v,
+  };
+}
 
-/** "1,234.50" → 123450 satang. */
-export const money = (label: string) =>
-  z.preprocess((v) => {
-    if (typeof v !== "string") return v;
-    const n = Number(v.replace(/,/g, "").trim() || "0");
-    return Number.isFinite(n) ? thbToSatang(n) : NaN;
-  }, z.number({ message: `${label} must be a number` }).int().min(0, `${label} cannot be negative`));
+// English defaults for code that has not moved to formHelpers(m.validation) yet.
+const en = formHelpers();
+export const { optText, reqText, taxId, optTaxId, branchCode, money } = en;
 
 export const checkbox = z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean());
 
@@ -50,7 +73,7 @@ export function submitted(form: FormData): Record<string, string> {
 }
 
 /** An error result that keeps the user's input. */
-export function invalid(form: FormData, issues: { path: PropertyKey[]; message: string }[], error = "Please fix the highlighted fields."): FormState {
+export function invalid(form: FormData, issues: { path: PropertyKey[]; message: string }[], error = EN.fixFields): FormState {
   return { error, fieldErrors: fieldErrors(issues), values: submitted(form) };
 }
 
