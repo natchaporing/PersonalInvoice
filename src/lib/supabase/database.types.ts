@@ -465,6 +465,8 @@ export type Database = {
           created_at: string
           customer_id: string | null
           customer_snapshot: Json | null
+          delivered_at: string | null
+          delivered_via: string | null
           discount: number
           doc_type: Database["public"]["Enums"]["document_type"]
           due_date: string | null
@@ -514,6 +516,8 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           customer_snapshot?: Json | null
+          delivered_at?: string | null
+          delivered_via?: string | null
           discount?: number
           doc_type: Database["public"]["Enums"]["document_type"]
           due_date?: string | null
@@ -563,6 +567,8 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           customer_snapshot?: Json | null
+          delivered_at?: string | null
+          delivered_via?: string | null
           discount?: number
           doc_type?: Database["public"]["Enums"]["document_type"]
           due_date?: string | null
@@ -806,6 +812,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      log_access: {
+        Args: { p_ip: string; p_method: string; p_path: string; p_user_agent: string }
+        Returns: undefined
+      }
       subscription_receipt: {
         Args: { p_charge: string }
         Returns: Json

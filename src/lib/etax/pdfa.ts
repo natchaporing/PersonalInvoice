@@ -21,7 +21,7 @@ const pdfString = (s: string) => s.replace(/[\\()]/g, (c) => `\\${c}`).replace(/
  * Ghostscript runs unrestricted (-dNOSAFER) because its PDF/A prefix file has to read the colour profile. The input
  * is the PDF our own headless browser just rendered from our own data, never an uploaded file.
  */
-export async function toPdfA3(pdf: Uint8Array, xml: { name: string; content: string }, title: string): Promise<Buffer> {
+export async function toPdfA3(pdf: Uint8Array, xml: { name: string; content: string } | null, title: string): Promise<Buffer> {
   const dir = await mkdtemp(join(tmpdir(), "pdfa-"));
   try {
     const icc = join(dir, "srgb.icc");
@@ -40,6 +40,7 @@ export async function toPdfA3(pdf: Uint8Array, xml: { name: string; content: str
       { timeout: 90_000, maxBuffer: 10 * 1024 * 1024 },
     );
 
+    if (!xml) return await readFile(join(dir, "out.pdf")); // e-Tax Invoice by Email needs PDF/A-3 only, no XML
     const doc = await PDFDocument.load(await readFile(join(dir, "out.pdf")), { updateMetadata: false });
     const now = new Date();
     await doc.attach(Buffer.from(xml.content, "utf8"), xml.name, {

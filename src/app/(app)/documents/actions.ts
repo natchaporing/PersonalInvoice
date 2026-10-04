@@ -154,6 +154,19 @@ async function generateEtaxImpl(id: string): Promise<FormState> {
   };
 }
 
+/** Records how the original reached the buyer (paper or e-Tax Invoice by Email), or clears it. */
+async function markDeliveredImpl(id: string, via: "paper" | "etax_email" | null): Promise<FormState> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase
+    .from("documents")
+    .update({ delivered_via: via, delivered_at: via ? new Date().toISOString() : null })
+    .eq("id", id)
+    .in("status", ["issued", "paid"]);
+  if (error) return { error: error.message };
+  revalidateDocs(id);
+  return {};
+}
+
 async function voidDocumentImpl(id: string): Promise<FormState> {
   const { supabase, user } = await requireUser();
   const { data: payments } = await supabase.from("payments").select("amount").eq("document_id", id);
@@ -264,6 +277,9 @@ export async function regeneratePdf(...args: Parameters<typeof regeneratePdfImpl
 }
 export async function generateEtax(...args: Parameters<typeof generateEtaxImpl>): Promise<FormState> {
   return localizeState(await generateEtaxImpl(...args), await getLocale());
+}
+export async function markDelivered(...args: Parameters<typeof markDeliveredImpl>): Promise<FormState> {
+  return localizeState(await markDeliveredImpl(...args), await getLocale());
 }
 export async function voidDocument(...args: Parameters<typeof voidDocumentImpl>): Promise<FormState> {
   return localizeState(await voidDocumentImpl(...args), await getLocale());

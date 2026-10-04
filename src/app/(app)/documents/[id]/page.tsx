@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocumentBundle, getProfile, paidAmount } from "@/lib/data/documents";
 import { isAdjustment, isOverdue, isPayable, isTaxDocument, todayBangkok } from "@/lib/domain/documents";
 import { installmentStage } from "@/lib/domain/installments";
+import { etaxEmailSubject, isEtaxEmailType } from "@/lib/etax/email";
 import { prepareEtaxInput } from "@/lib/etax/prepare";
 import { isEtaxDocType } from "@/lib/etax/xml";
 import { docTypeLabel } from "@/lib/i18n/format";
@@ -17,6 +18,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 import { DocumentActions } from "./document-actions";
 import { CommissionPanel } from "./commission-panel";
+import { DeliveryPanel } from "./delivery-panel";
 import { EtaxPanel } from "./etax-panel";
 import { type InstallmentRow, InstallmentsPanel } from "./installments-panel";
 import { type CertRow, type PaymentRow, PaymentsPanel, WhtPanel } from "./panels";
@@ -137,6 +139,16 @@ export default async function DocumentPage({ params, searchParams }: PageProps<"
           )}
           {isQuotation && doc.status !== "void" && (
             <CommissionPanel quotationId={id} taxable={doc.taxable} rows={commissions.data ?? []} today={today} payees={payees.data ?? []} defaultOpen={commission === "open"} />
+          )}
+          {isEtaxEmailType(doc.doc_type) && doc.number && (doc.status === "issued" || doc.status === "paid") && (
+            <DeliveryPanel
+              id={id}
+              subject={etaxEmailSubject({ docType: doc.doc_type, issueDate: doc.issue_date, number: doc.number, refNumber: ref?.number })}
+              customerEmail={bundle.customer?.email ?? null}
+              pdfUrl={pdfUrl}
+              deliveredVia={doc.delivered_via}
+              deliveredAt={doc.delivered_at}
+            />
           )}
           {showEtax && (
             <EtaxPanel

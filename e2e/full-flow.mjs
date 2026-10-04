@@ -53,7 +53,7 @@ try {
   await page.getByRole("heading", { level: 1, name: /ใบกำกับภาษี/ }).waitFor();
   await page.reload();
   if ((await page.evaluate(() => document.documentElement.lang)) !== "th") fail("html lang should follow the chosen language");
-  if (await page.getByText(/e-Tax Invoice by Email|รับรองโดยกรมสรรพากร|approved by the Revenue/).count()) fail("landing page must not claim e-Tax or RD approval");
+  if (await page.getByText(/รับรองโดยกรมสรรพากร|approved by the Revenue|ใช้ได้ตามกฎหมายไหม|Is a PDF tax invoice legal|ใช้ได้ตามกฎหมาย$/).count()) fail("landing page must not claim RD approval or that a plain PDF tax invoice is valid");
   await shot("00-welcome-th");
   await page.getByRole("button", { name: /EN/ }).click();
   await page.getByRole("heading", { level: 1, name: /tax invoices/ }).waitFor();
@@ -357,7 +357,7 @@ try {
   await page.getByRole("button", { name: "Generate e-Tax package" }).click();
   await page.getByText(/e-Tax package generated/).waitFor({ timeout: 90_000 });
   const [xmlDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: /XML/ }).click()]);
-  const [pdfaDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: /PDF\/A-3/ }).click()]);
+  const [pdfaDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "PDF/A-3", exact: true }).click()]);
   const xmlBytes = readFileSync(await xmlDl.path());
   const pdfaBytes = readFileSync(await pdfaDl.path());
   const xmlText = xmlBytes.toString("utf8");
@@ -377,6 +377,24 @@ try {
   }
   await page.getByText(/TEST certificate|test certificate/).first().waitFor();
   log("e-Tax package: XML passes ETDA XSD + Schematron, PDF/A-3 signed" + (process.env.VERAPDF ? ", veraPDF compliant" : ""));
+
+  // 10c. Delivering the original: a plain PDF is a copy; paper or e-Tax Invoice by Email (CC the ETDA time stamp)
+  await page.getByText("Deliver the original", { exact: true }).waitFor();
+  await page.getByText(/only a copy/).first().waitFor();
+  const subject = new RegExp(`^\\[\\d{8}\\]\\[INV\\]\\[${number}\\]$`);
+  if (!(await page.getByText(subject).count())) fail("e-Tax email subject missing or wrong");
+  const mailto = await page.getByRole("link", { name: "Open in my email app" }).getAttribute("href");
+  if (!mailto?.startsWith("mailto:") || !mailto.includes("cc=csemail%40etax.teda.th") || !mailto.includes("subject=%5B")) fail(`bad mailto: ${mailto}`);
+  const emailPdf = await page.request.get(`${BASE}/documents/${docId}/etax-email`);
+  const emailBytes = await emailPdf.body();
+  const emailText = emailBytes.toString("latin1");
+  if (emailPdf.status() !== 200 || !/pdfaid:part=['"]3['"]/.test(emailText) || !emailText.includes("/ByteRange") || emailBytes.length > 3 * 1024 * 1024) fail(`e-Tax email PDF: ${emailPdf.status()} ${emailBytes.length} bytes`);
+  await page.getByRole("button", { name: "Mark as delivered on paper" }).click();
+  await page.getByText(/Delivered on paper ·/).waitFor();
+  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Mark as sent by e-Tax Invoice by Email" }).click();
+  await page.getByText(/Sent by e-Tax Invoice by Email ·/).waitFor();
+  log("delivery: e-Tax email prepared (To, CC, subject), PDF/A-3 under 3 MB, delivery recorded");
 
   // 11. Issued documents cannot be edited
   await page.goto(`${docUrl}/edit`);
@@ -644,6 +662,21 @@ try {
   if (await page.getByText(/Free trial: \d+ days? left/).count()) fail("the trial banner should go once a plan is paid");
   await shot("13-billing-paid");
   log("test-mode checkout: yearly plan paid, period starts after the trial");
+
+  // 20a. PDPA: download my data; access records kept; terms show who runs Tra
+  await page.goto(`${BASE}/settings`);
+  await page.getByText("Your data", { exact: true }).waitFor();
+  const exportRes = await page.request.get(`${BASE}/settings/data-export`);
+  const exported = JSON.parse((await exportRes.body()).toString());
+  if (exportRes.status() !== 200 || exported.account?.email !== email || !(exported.documents?.length > 0) || !(exported.customers?.length > 0)) fail("data export incomplete");
+  if (exported.documents.some((d) => d.owner_id !== exported.account.id)) fail("data export leaked someone else's rows");
+  const logged = psql(`select count(*) from access_log where user_id = (select id from auth.users where email = '${email}')`);
+  if (expired.status === 0 && !(Number(logged.stdout.trim()) > 10)) fail(`access log should record signed-in requests, got ${logged.stdout}`);
+  await page.goto(`${BASE}/terms`);
+  await page.getByRole("heading", { name: "Terms of service" }).waitFor();
+  await page.getByRole("heading", { name: "Privacy notice" }).waitFor();
+  await page.getByText(/in Singapore/).first().waitFor();
+  log("PDPA: data export complete and scoped; access log kept; terms + privacy notice published");
 
   // 20b. Every main screen in Thai: Thai headings, none of the English ones
   await ctx.addCookies([{ name: "lang", value: "th", url: BASE }]);

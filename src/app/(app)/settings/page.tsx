@@ -1,8 +1,10 @@
 import { listDistricts, listProvinces, listSubdistricts } from "@/lib/etax/geo";
 import { getMessages } from "@/lib/i18n/server";
+import { operator } from "@/lib/operator";
 import { requireUser } from "@/lib/supabase/server";
 import { ProfileForm } from "./profile-form";
 import { Signatories } from "./signatories";
+import { YourData } from "./your-data";
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
@@ -28,6 +30,9 @@ export default async function Settings({ searchParams }: PageProps<"/settings">)
       />
       <div className="mt-8 max-w-4xl">
         <Signatories people={people ?? []} />
+      </div>
+      <div className="mt-8 max-w-4xl">
+        <YourData m={m} contactEmail={operator().email} accountEmail={user.email ?? ""} />
       </div>
     </>
   );

@@ -50,9 +50,10 @@ export async function generateSignedPdf(
   const signerName = latin(people.signer) ?? latin(seller) ?? "Tra";
   const approverName = latin(people.approver);
   const pdf = await renderDocumentPdf(documentId);
+  // The certificate is Tra's, not the issuer's: the signature is Tra's integrity seal, naming who issued the document.
   const signed = await signPdf(pdf, identity, {
-    name: signerName,
-    reason: `Issued ${doc.number}${people.signer ? ` by ${signerName}` : ""}${approverName ? `; approved by ${approverName}` : ""}`,
+    name: "Tra (trasolutions.co)",
+    reason: `Sealed by Tra. Issued ${doc.number}${people.signer ? ` by ${signerName}` : ""}${approverName ? `; approved by ${approverName}` : ""}`,
     location: "Thailand",
     contactInfo: seller.email ?? "",
   });

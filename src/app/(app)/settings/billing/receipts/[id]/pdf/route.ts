@@ -12,8 +12,8 @@ export async function GET(_: Request, { params }: RouteContext<"/settings/billin
   const seller = receipt.view.seller;
   const pdf = await renderPrintPdf(`/print/receipts/${id}`);
   const signed = await signPdf(pdf, signingIdentityFromEnv(), {
-    name: seller.nameEn || "Tra",
-    reason: `Issued ${receipt.doc.number}`,
+    name: "Tra (trasolutions.co)",
+    reason: `Sealed by Tra. Issued ${receipt.doc.number}${seller.nameEn ? ` by ${seller.nameEn}` : ""}`,
     location: "Thailand",
     contactInfo: seller.email ?? "",
   });

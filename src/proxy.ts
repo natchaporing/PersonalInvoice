@@ -26,6 +26,13 @@ export async function proxy(request: NextRequest) {
   // Validates the token (not just decodes it) and refreshes it when needed.
   const { data } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
+  // Traffic data the Computer Crime Act asks service providers to keep (90 days minimum). Prefetches are not visits.
+  if (data.user && !request.headers.get("next-router-prefetch") && request.headers.get("purpose") !== "prefetch") {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? "";
+    await supabase
+      .rpc("log_access", { p_ip: ip, p_method: request.method, p_path: path, p_user_agent: request.headers.get("user-agent") ?? "" })
+      .then(({ error }) => error && console.error("access log", error.message), (e) => console.error("access log", e));
+  }
   if (!data.user && !PUBLIC.some((re) => re.test(path))) {
     const to = request.nextUrl.clone();
     // The bare address shows the product to visitors; deeper links go to sign-in and come back.
