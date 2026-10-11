@@ -138,6 +138,7 @@ export const en = {
     asideKeep: "Don't subscribe and your documents stay yours to view and download. You just can't issue new ones.",
     asideWho: "For individuals: freelancers and sole proprietors. Company accounts are coming later.",
     // Server action messages
+    signUpClosed: "Sign-up is closed. Tra is a private workspace.",
     errEmail: "Enter a valid email",
     errPassword: "Password must be at least 8 characters",
     errLogin: "Email or password is incorrect",

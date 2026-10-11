@@ -11,7 +11,7 @@ export function AuthShell({ eyebrow, title, subtitle, wide, children }: { eyebro
       <header className="relative overflow-hidden bg-cobalt-deep px-6 py-4 text-white">
         <GuillocheBackground tone="white" opacity={0.16} />
         <div className="relative flex items-center justify-between">
-          <Link href="/welcome" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <LogoMark size={42} title="" />
             <span className="display text-[24px] tracking-tight">Tra<span className="ml-1.5 font-sans text-[15px] text-amber">ตรา</span></span>
           </Link>

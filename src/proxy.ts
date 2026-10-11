@@ -1,11 +1,20 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { COMMERCIAL_ONLY, commercialMode } from "@/lib/mode";
 
 // Routes that work without a session.
 const PUBLIC = [/^\/login(\/|$)/, /^\/register(\/|$)/, /^\/welcome(\/|$)/, /^\/terms(\/|$)/, /^\/auth\//, /^\/verify(\/|$)/, /^\/art\//, /^\/api\/omise\/webhook$/];
 
 /** Refreshes the Supabase session on every request and sends signed-out visitors to /login. */
 export async function proxy(request: NextRequest) {
+  // Personal mode: the sign-up, landing, terms and billing pages don't exist.
+  if (!commercialMode() && COMMERCIAL_ONLY.some((re) => re.test(request.nextUrl.pathname))) {
+    if (request.nextUrl.pathname.startsWith("/api/")) return new NextResponse("not found", { status: 404 });
+    const to = request.nextUrl.clone();
+    to.pathname = request.nextUrl.pathname.startsWith("/settings/billing") ? "/settings" : "/login";
+    to.search = "";
+    return NextResponse.redirect(to);
+  }
   let response = NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -36,7 +45,8 @@ export async function proxy(request: NextRequest) {
   if (!data.user && !PUBLIC.some((re) => re.test(path))) {
     const to = request.nextUrl.clone();
     // The bare address shows the product to visitors; deeper links go to sign-in and come back.
-    to.pathname = path === "/" ? "/welcome" : "/login";
+    const landing = path === "/" && commercialMode();
+    to.pathname = landing ? "/welcome" : "/login";
     to.search = path === "/" ? "" : `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
     return NextResponse.redirect(to);
   }

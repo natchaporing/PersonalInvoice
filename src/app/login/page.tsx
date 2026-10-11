@@ -1,3 +1,4 @@
+import { commercialMode } from "@/lib/mode";
 import { AuthShell } from "@/components/auth-shell";
 import { getMessages } from "@/lib/i18n/server";
 import { LoginForm } from "./login-form";
@@ -13,7 +14,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const m = await getMessages();
   return (
     <AuthShell eyebrow={m.common.tagline} title={m.auth.signInTitle} subtitle={m.auth.signInSubtitle}>
-      <LoginForm next={next} linkFailed={linkFailed} />
+      <LoginForm next={next} linkFailed={linkFailed} signUp={commercialMode()} />
     </AuthShell>
   );
 }

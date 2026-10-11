@@ -1,5 +1,6 @@
 "use server";
 
+import { commercialMode } from "@/lib/mode";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -80,6 +81,7 @@ export async function signIn(_: AuthState, form: FormData): Promise<AuthState> {
 /** Creates the account with a 15-day trial (started by the database). Individuals only: a company tax ID is refused. */
 export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
   const m = await getMessages();
+  if (!commercialMode()) return { error: m.auth.signUpClosed };
   const values = {
     name: String(form.get("name") ?? ""),
     taxId: String(form.get("taxId") ?? ""),

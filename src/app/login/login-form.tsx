@@ -11,7 +11,7 @@ import { useMessages } from "@/lib/i18n/client";
 import { type AuthState, signIn } from "./actions";
 import { ResendConfirmation } from "./resend";
 
-export function LoginForm({ next, linkFailed }: { next: string; linkFailed?: boolean }) {
+export function LoginForm({ next, linkFailed, signUp }: { next: string; linkFailed?: boolean; signUp: boolean }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(signIn, {});
   const m = useMessages();
 
@@ -43,10 +43,10 @@ export function LoginForm({ next, linkFailed }: { next: string; linkFailed?: boo
 
       {state.pendingEmail && <ResendConfirmation email={state.pendingEmail} />}
 
-      <p className="text-sm text-muted-foreground">
+      {signUp && <p className="text-sm text-muted-foreground">
         {m.auth.newHere}{" "}
         <Link href="/register" className="font-medium text-cobalt underline-offset-4 hover:underline">{m.auth.startTrialLink(TRIAL_DAYS)}</Link>
-      </p>
+      </p>}
     </div>
   );
 }

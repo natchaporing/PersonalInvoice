@@ -6,13 +6,14 @@ import { useMessages } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
 
-export function SettingsTabs() {
+export function SettingsTabs({ billing }: { billing: boolean }) {
   const path = usePathname();
   const m = useMessages();
   const TABS = [
     { href: "/settings", label: m.settings.tabProfile },
-    { href: "/settings/billing", label: m.settings.tabBilling },
+    ...(billing ? [{ href: "/settings/billing", label: m.settings.tabBilling }] : []),
   ];
+  if (TABS.length < 2) return null;
   return (
     <nav aria-label={m.settings.title} className="mb-6 flex gap-1 border-b">
       {TABS.map((t) => {

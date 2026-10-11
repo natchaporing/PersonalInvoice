@@ -7,11 +7,13 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { Sidebar } from "@/components/sidebar";
 import { getAccess } from "@/lib/billing/access";
 import { getMessages } from "@/lib/i18n/server";
+import { commercialMode } from "@/lib/mode";
 import { requireUser } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { supabase, user } = await requireUser();
+  const commercial = commercialMode();
   const { access } = await getAccess();
   const m = await getMessages();
   const { data: profile } = await supabase.from("business_profiles").select("name_th").eq("owner_id", user.id).maybeSingle();
@@ -45,7 +47,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <Sidebar />
         </aside>
         <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8">
-          {access.kind === "trial" && (
+          {commercial && access.kind === "trial" && (
             <aside aria-label={m.billing.yourPlan} className={cn("mb-6 flex flex-wrap items-center justify-between gap-2 rounded-md border px-4 py-2.5 text-sm", access.daysLeft <= 3 ? "border-amber bg-amber/10" : "bg-card")}>
               <span>
                 <span className="font-medium">{m.common.trialShort}:</span> {m.shell.trialLeft(access.daysLeft)}
@@ -53,7 +55,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               <Link href="/settings/billing" className="font-medium text-cobalt underline underline-offset-4">{m.shell.choosePlan}</Link>
             </aside>
           )}
-          {access.kind === "expired" && (
+          {commercial && access.kind === "expired" && (
             <aside aria-label={m.billing.yourPlan} className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber bg-amber/10 px-4 py-3 text-sm">
               <span>{m.shell.trialEnded}</span>
               <Link href="/settings/billing" className="font-medium text-cobalt underline underline-offset-4">{m.shell.subscribe}</Link>
