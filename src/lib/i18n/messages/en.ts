@@ -1,6 +1,7 @@
 // English UI text. This file defines the shape: every other language must provide the same keys (see th.ts).
 // Document content (quotations, invoices, PDFs) has its own per-document language and is not translated here.
 
+import { contracts } from "./contracts";
 import { dashboard } from "./dashboard";
 import { docs } from "./docs";
 import { money } from "./money";
@@ -27,6 +28,7 @@ export const en = {
   },
   dashboard: dashboard.en,
   docs: docs.en,
+  contracts: contracts.en,
   ...records.en,
   ...money.en,
   ...profile.en,
@@ -49,6 +51,7 @@ export const en = {
     items: "Items",
     payments: "Payments",
     payees: "Payees",
+    contracts: "Contracts",
     tax: "Tax & VAT",
     settings: "Settings",
   },

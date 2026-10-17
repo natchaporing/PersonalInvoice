@@ -318,6 +318,96 @@ export type Database = {
         }
         Relationships: []
       }
+      contracts: {
+        Row: {
+          clauses: Json
+          client_sign_ip: string | null
+          client_sign_ua: string | null
+          client_signature: string | null
+          client_signed_at: string | null
+          client_signer_name: string | null
+          client_snapshot: Json
+          content_hash: string | null
+          contract_date: string
+          created_at: string
+          end_date: string | null
+          facts: Json
+          id: string
+          lang: Database["public"]["Enums"]["doc_lang"]
+          number: string
+          owner_id: string
+          owner_signer: Json | null
+          place: string | null
+          quotation_id: string
+          seller_snapshot: Json
+          sent_at: string | null
+          sign_token: string | null
+          signed_via: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+          voided_at: string | null
+        }
+        Insert: {
+          clauses?: Json
+          client_sign_ip?: string | null
+          client_sign_ua?: string | null
+          client_signature?: string | null
+          client_signed_at?: string | null
+          client_signer_name?: string | null
+          client_snapshot: Json
+          content_hash?: string | null
+          contract_date?: string
+          created_at?: string
+          end_date?: string | null
+          facts: Json
+          id?: string
+          lang?: Database["public"]["Enums"]["doc_lang"]
+          number: string
+          owner_id?: string
+          owner_signer?: Json | null
+          place?: string | null
+          quotation_id: string
+          seller_snapshot: Json
+          sent_at?: string | null
+          sign_token?: string | null
+          signed_via?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          voided_at?: string | null
+        }
+        Update: {
+          clauses?: Json
+          client_sign_ip?: string | null
+          client_sign_ua?: string | null
+          client_signature?: string | null
+          client_signed_at?: string | null
+          client_signer_name?: string | null
+          client_snapshot?: Json
+          content_hash?: string | null
+          contract_date?: string
+          created_at?: string
+          end_date?: string | null
+          facts?: Json
+          id?: string
+          lang?: Database["public"]["Enums"]["doc_lang"]
+          number?: string
+          owner_id?: string
+          owner_signer?: Json | null
+          place?: string | null
+          quotation_id?: string
+          seller_snapshot?: Json
+          sent_at?: string | null
+          sign_token?: string | null
+          signed_via?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          voided_at?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           postcode: string | null
@@ -818,6 +908,14 @@ export type Database = {
       log_access: {
         Args: { p_ip: string; p_method: string; p_path: string; p_user_agent: string }
         Returns: undefined
+      }
+      contract_for_signing: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      sign_contract: {
+        Args: { p_hash: string; p_ip: string; p_name: string; p_signature: string; p_token: string; p_ua: string }
+        Returns: string
       }
       subscription_receipt: {
         Args: { p_charge: string }

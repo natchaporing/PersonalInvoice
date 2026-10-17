@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { COMMERCIAL_ONLY, commercialMode } from "@/lib/mode";
 
 // Routes that work without a session.
-const PUBLIC = [/^\/login(\/|$)/, /^\/register(\/|$)/, /^\/welcome(\/|$)/, /^\/terms(\/|$)/, /^\/auth\//, /^\/verify(\/|$)/, /^\/art\//, /^\/api\/omise\/webhook$/];
+const PUBLIC = [/^\/login(\/|$)/, /^\/register(\/|$)/, /^\/welcome(\/|$)/, /^\/terms(\/|$)/, /^\/auth\//, /^\/verify(\/|$)/, /^\/art\//, /^\/api\/omise\/webhook$/, /^\/sign\//];
 
 /** Refreshes the Supabase session on every request and sends signed-out visitors to /login. */
 export async function proxy(request: NextRequest) {

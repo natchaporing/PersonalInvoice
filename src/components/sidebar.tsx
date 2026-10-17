@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, HandCoins, LayoutDashboard, Package, Receipt, Settings, Users, Wallet } from "lucide-react";
+import { FileSignature, FileText, HandCoins, LayoutDashboard, Package, Receipt, Settings, Users, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMessages } from "@/lib/i18n/client";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 const NAV: { href: string; key: keyof Messages["nav"]; icon: typeof FileText }[] = [
   { href: "/", key: "dashboard", icon: LayoutDashboard },
   { href: "/documents", key: "documents", icon: FileText },
+  { href: "/contracts", key: "contracts", icon: FileSignature },
   { href: "/customers", key: "customers", icon: Users },
   { href: "/items", key: "items", icon: Package },
   { href: "/payments", key: "payments", icon: Wallet },

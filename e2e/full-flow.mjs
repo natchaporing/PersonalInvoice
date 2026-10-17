@@ -12,6 +12,7 @@ if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 const email = `owner-${randomBytes(4).toString("hex")}@example.com`;
 const password = "correct-horse-battery";
 const log = (...a) => console.log("•", ...a);
+const psqlRaw = (sql) => spawnSync("docker", ["exec", "-e", `PGPASSWORD=${process.env.LOCAL_DB_PASSWORD ?? ""}`, "personalinvoice-local-db-1", "psql", "-h", "127.0.0.1", "-U", "supabase_admin", "-d", "postgres", "-Atc", sql], { encoding: "utf8" });
 const fail = (msg) => { throw new Error(msg); };
 
 /** Waits until `count` emails to `to` exist in Mailpit; returns their confirmation links, newest first. */
@@ -625,6 +626,72 @@ try {
   await page.getByText(qNumber ?? "QT").first().waitFor();
   await page.getByText(/^Transferred \d{4}-\d{2}-\d{2}$/).first().waitFor();
   log("payee profile + commission recorded, marked transferred, not on the document");
+
+  // 18d. Contract from the issued quotation: edit, draft PDF, signing link, client signs online, sealed copy
+  await page.goto(qUrl);
+  await page.getByRole("button", { name: "Create contract" }).click();
+  await page.waitForURL(/\/contracts\/[0-9a-f-]{36}$/);
+  const contractUrl = page.url();
+  const contractId = contractUrl.split("/").pop();
+  const ctNumber = qNumber.replace(/^QT/, "CT");
+  await page.getByRole("heading", { name: ctNumber }).waitFor();
+  await page.getByLabel("Start date").fill("2026-11-01");
+  await page.getByLabel("Delivery date").fill("2026-12-15");
+  await page.getByLabel("Made at").fill("กรุงเทพมหานคร");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByText("Contract saved.").waitFor();
+  for (const t of ["สัญญาจ้างบริการ", "ฉบับร่างเพื่อตรวจทาน", "15 ธันวาคม พ.ศ. 2569", qNumber, "ติดอากรแสตมป์"]) await page.getByText(t, { exact: false }).first().waitFor();
+  const ctDraft = await page.request.get(`${BASE}/contracts/${contractId}/pdf`);
+  const ctDraftBytes = await ctDraft.body();
+  if (ctDraft.status() !== 200 || ctDraftBytes.subarray(0, 5).toString() !== "%PDF-" || ctDraftBytes.toString("latin1").includes("/ByteRange")) fail("draft contract PDF should be an unsigned PDF");
+  if (!(ctDraft.headers()["content-disposition"] ?? "").includes(`DRAFT-${ctNumber}.pdf`)) fail("draft contract PDF should be named as a draft");
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Get signing link" }).click();
+  await page.getByText("Private signing link").waitFor();
+  const signLink = (await page.locator("code").first().textContent())?.trim() ?? "";
+  const signPath = signLink.replace(/^https?:\/\/[^/]+/, "");
+  if (!/^\/sign\/[\w-]{32,}$/.test(signPath)) fail(`unexpected signing link ${signLink}`);
+  await shot("16-contract-sent");
+
+  // The client, signed out, in another browser
+  const client = await browser.newContext({ viewport: { width: 1100, height: 1000 } });
+  await client.addCookies([{ name: "lang", value: "en", url: BASE }]);
+  const cp = await client.newPage();
+  await cp.goto(`${BASE}${signPath}`);
+  await cp.getByRole("heading", { name: "Review and sign" }).waitFor();
+  await cp.getByText("สัญญาจ้างบริการ").first().waitFor();
+  if (!(await cp.getByRole("button", { name: "Sign the agreement" }).isDisabled())) fail("signing should wait for name, signature and agreement");
+  await cp.getByLabel("Your full name").fill("สมชาย ผู้ว่าจ้าง");
+  await cp.getByRole("button", { name: "Draw your signature" }).click();
+  const cDialog = cp.getByRole("dialog", { name: "Draw your signature" });
+  await cDialog.waitFor();
+  const canvas = cDialog.getByRole("img", { name: "Draw your signature" });
+  const cbox = await canvas.boundingBox();
+  await cp.mouse.move(cbox.x + cbox.width * 0.2, cbox.y + cbox.height * 0.6);
+  await cp.mouse.down();
+  for (let i = 1; i <= 20; i++) await cp.mouse.move(cbox.x + cbox.width * (0.2 + i * 0.03), cbox.y + cbox.height * (0.6 - 0.2 * Math.sin(i / 2)));
+  await cp.mouse.up();
+  await cDialog.getByRole("button", { name: "Use signature" }).click();
+  await cDialog.waitFor({ state: "detached" });
+  await cp.getByLabel(/I have read this agreement/).check();
+  await cp.getByRole("button", { name: "Sign the agreement" }).click();
+  await cp.getByText(/This agreement was signed on/).waitFor({ timeout: 20_000 });
+  await cp.screenshot({ path: SHOTS ? `${SHOTS}/17-contract-signed-client.png` : "/dev/null", fullPage: false });
+  const signedPdf = await cp.request.get(`${BASE}${signPath}/pdf`);
+  const signedBytes = await signedPdf.body();
+  if (signedPdf.status() !== 200 || !signedBytes.toString("latin1").includes("/ByteRange")) fail("the signed contract PDF should be sealed");
+  const again = await cp.request.get(`${BASE}/sign/not-a-real-token-but-long-enough-0000000000`);
+  if (!(await again.text()).includes("no longer active")) fail("an unknown signing link should say it is not active");
+  await client.close();
+
+  // Back with the owner: signed, e-Stamp reminder, text frozen
+  await page.goto(contractUrl);
+  await page.getByText(/Signed by สมชาย ผู้ว่าจ้าง/).waitFor();
+  await page.getByText(/e-Stamp/).waitFor();
+  if (await page.getByRole("button", { name: "Save", exact: true }).count()) fail("a signed contract must not be editable");
+  const frozen = psqlRaw(`update contracts set place = 'changed' where id = '${contractId}'`);
+  if (!/frozen/.test(frozen.stderr)) fail(`the signed text should be frozen in the database: ${frozen.stderr || frozen.stdout}`);
+  log("contract: drafted from the quotation, signing link, client signed online, sealed PDF, text frozen", ctNumber);
 
   // 18b. A customer with no tax ID: issuing a receipt/tax invoice warns, cancelling keeps the draft, confirming issues it
   await page.goto(`${BASE}/customers/new`);

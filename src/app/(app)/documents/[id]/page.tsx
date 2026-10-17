@@ -18,6 +18,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 import { DocumentActions } from "./document-actions";
 import { CommissionPanel } from "./commission-panel";
+import { ContractPanel } from "./contract-panel";
 import { DeliveryPanel } from "./delivery-panel";
 import { EtaxPanel } from "./etax-panel";
 import { type InstallmentRow, InstallmentsPanel } from "./installments-panel";
@@ -56,6 +57,9 @@ export default async function DocumentPage({ params, searchParams }: PageProps<"
 
   // Installments and commission (quotations), and the links between quotation, invoice and receipt.
   const isQuotation = doc.doc_type === "quotation";
+  const { data: contractRows } = isQuotation
+    ? await supabase.from("contracts").select("id, number, status").eq("quotation_id", id).order("created_at")
+    : { data: null };
   const [plan, linked, commissions, receipts, parent, instInfo, payees] = await Promise.all([
     isQuotation ? supabase.from("installments").select("*").eq("quotation_id", id).order("position") : Promise.resolve({ data: null }),
     isQuotation ? supabase.from("documents").select("id, doc_type, status, number, total, installment_id").eq("quotation_id", id) : Promise.resolve({ data: null }),
@@ -136,6 +140,9 @@ export default async function DocumentPage({ params, searchParams }: PageProps<"
 
           {isQuotation && doc.status !== "draft" && doc.status !== "void" && (
             <InstallmentsPanel quotationId={id} taxable={doc.taxable} rows={installmentRows} locked={planLocked} />
+          )}
+          {isQuotation && doc.status !== "void" && (
+            <ContractPanel quotationId={id} issued={doc.status === "issued" || doc.status === "paid"} contracts={contractRows ?? []} />
           )}
           {isQuotation && doc.status !== "void" && (
             <CommissionPanel quotationId={id} taxable={doc.taxable} rows={commissions.data ?? []} today={today} payees={payees.data ?? []} defaultOpen={commission === "open"} />

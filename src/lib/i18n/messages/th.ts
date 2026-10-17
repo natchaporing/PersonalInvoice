@@ -1,3 +1,4 @@
+import { contracts } from "./contracts";
 import { dashboard } from "./dashboard";
 import { docs } from "./docs";
 import { money } from "./money";
@@ -25,6 +26,7 @@ export const th: Messages = {
   },
   dashboard: dashboard.th,
   docs: docs.th,
+  contracts: contracts.th,
   ...records.th,
   ...money.th,
   ...profile.th,
@@ -47,6 +49,7 @@ export const th: Messages = {
     items: "สินค้า/บริการ",
     payments: "การรับชำระ",
     payees: "ค่านายหน้า",
+    contracts: "สัญญา",
     tax: "ภาษี",
     settings: "ตั้งค่า",
   },
