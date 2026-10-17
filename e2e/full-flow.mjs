@@ -313,6 +313,17 @@ try {
   const docId = docUrl.split("/").pop();
   log("draft saved", docId);
 
+  // 7b. Draft for the client to check: print view and an unsigned, unnumbered PDF with the DRAFT watermark
+  if ((await page.getByRole("link", { name: "Print draft" }).getAttribute("href")) !== `/print/documents/${docId}`) fail("Print draft link missing");
+  const draftRes = await page.request.get(`${BASE}/documents/${docId}/draft-pdf`);
+  const draftPdf = await draftRes.body();
+  if (draftRes.status() !== 200 || draftPdf.subarray(0, 5).toString() !== "%PDF-") fail(`draft PDF: ${draftRes.status()}`);
+  if (draftPdf.toString("latin1").includes("/ByteRange")) fail("a draft PDF must not be signed");
+  if (!/^attachment; filename="DRAFT-tax-invoice-\d{4}-\d{2}-\d{2}\.pdf"$/.test(draftRes.headers()["content-disposition"] ?? "")) fail("draft PDF should be named as a draft");
+  const printView = await (await page.request.get(`${BASE}/print/documents/${docId}`)).text();
+  if (!printView.includes("DRAFT") || !printView.includes("Draft for review") || printView.includes(">Original<")) fail("draft print view should say draft, not original");
+  log("draft: print view and unsigned draft PDF for the client to check");
+
   // 8. Totals were computed server-side: 50,000 + 7% VAT = 53,500; WHT 3% = 1,500; net 52,000
   for (const t of ["53,500.00", "52,000.00", "1,500.00"]) await page.getByText(t, { exact: false }).first().waitFor();
 

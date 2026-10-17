@@ -62,6 +62,8 @@ export function DocumentActions({
               <Send /> {pending ? t.working : t.issue}
             </Button>
             <Button asChild variant="outline"><Link href={`/documents/${id}/edit`}><FilePen /> {t.edit}</Link></Button>
+            <Button asChild variant="outline"><a href={`/print/documents/${id}`} target="_blank" rel="noreferrer"><Printer /> {t.printDraft}</a></Button>
+            <Button asChild variant="outline"><a href={`/documents/${id}/draft-pdf`} download><Download /> {t.draftPdf}</a></Button>
             <Button variant="ghost" className="text-destructive hover:text-destructive" disabled={pending} onClick={() => run(() => deleteDraft(id), t.confirmDeleteDraft)}>
               <Trash2 /> {t.deleteDraft}
             </Button>
@@ -97,6 +99,7 @@ export function DocumentActions({
         )}
         <Button asChild variant="ghost"><Link href={`/documents/new?copy=${id}&type=${type}`}><Copy /> {t.duplicate}</Link></Button>
       </div>
+      {status === "draft" && <p className="text-[13px] text-muted-foreground">{t.draftNote}</p>}
       <FormMessage state={state} />
     </div>
   );

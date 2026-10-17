@@ -79,7 +79,8 @@ export function InvoiceModern({ doc, variant = "clean", verifyBaseUrl }: { doc: 
   const bank = showsBankDetails(doc.type) && t.netReceivable > 0 ? doc.seller.bank : undefined;
   const verifyUrl = doc.verifyCode && verifyBaseUrl ? `${verifyBaseUrl.replace(/\/$/, "")}/verify/${doc.verifyCode}` : undefined;
   const sub = lang === "bilingual" ? "th" : lang;
-  const copy = doc.copy === "copy" ? pair("สำเนา", "Copy", lang) : pair("ต้นฉบับ", "Original", lang);
+  const copy =
+    doc.status === "draft" ? pair("ฉบับร่างเพื่อตรวจทาน", "Draft for review", lang) : doc.copy === "copy" ? pair("สำเนา", "Copy", lang) : pair("ต้นฉบับ", "Original", lang);
   const seller = doc.seller;
   const sellerName = lang === "en" ? seller.nameEn ?? seller.nameTh : seller.nameTh;
 
@@ -111,7 +112,7 @@ export function InvoiceModern({ doc, variant = "clean", verifyBaseUrl }: { doc: 
     >
       {(doc.status === "draft" || doc.status === "void") && (
         <div aria-hidden className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <div className={cn("-rotate-[24deg] text-[120px] font-bold tracking-[0.2em]", doc.status === "void" ? "text-red-600/15" : "text-neutral-900/[0.045]")}>
+          <div className={cn("-rotate-[24deg] text-[120px] font-bold tracking-[0.2em]", doc.status === "void" ? "text-red-600/15" : "text-neutral-900/[0.07]")}>
             {doc.status === "void" ? "VOID" : "DRAFT"}
           </div>
         </div>
