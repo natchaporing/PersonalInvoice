@@ -6,9 +6,10 @@ describe("installment plans", () => {
     for (const p of PLAN_PRESETS) expect(planProblems(p.rows)).toEqual([]);
   });
 
-  it("rejects plans that do not add up or have one row", () => {
+  it("rejects plans that do not add up or have no rows; one installment is fine", () => {
     expect(planProblems([{ label: "a", pctBps: 5000 }, { label: "b", pctBps: 4000 }]).join()).toMatch(/90%/);
-    expect(planProblems([{ label: "a", pctBps: 10000 }]).join()).toMatch(/at least two/);
+    expect(planProblems([{ label: "a", pctBps: 10000 }])).toEqual([]);
+    expect(planProblems([]).join()).toMatch(/at least one/);
     expect(planProblems([{ label: "", pctBps: 5000 }, { label: "b", pctBps: 5000 }]).join()).toMatch(/label/);
   });
 

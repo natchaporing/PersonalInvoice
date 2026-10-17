@@ -55,7 +55,7 @@ const TH: Record<string, string> = {
   "Discount is more than the line amount": "ส่วนลดมากกว่ายอดของรายการ",
   "Choose the original document": "เลือกเอกสารต้นฉบับ",
   "Give the reason for the adjustment": "ระบุเหตุผลของการปรับปรุง",
-  "A plan needs at least two installments.": "แผนต้องมีอย่างน้อย 2 งวด",
+  "A plan needs at least one installment.": "แผนต้องมีอย่างน้อย 1 งวด",
   "A plan can have at most 12 installments.": "แผนมีได้ไม่เกิน 12 งวด",
   "Every installment needs a label.": "ทุกงวดต้องมีชื่อ",
   "Every installment needs a percentage above 0.": "ทุกงวดต้องมีเปอร์เซ็นต์มากกว่า 0",

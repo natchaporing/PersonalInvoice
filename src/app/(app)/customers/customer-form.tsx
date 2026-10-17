@@ -57,6 +57,9 @@ export function CustomerForm({ customer, next }: { customer?: Tables<"customers"
           <Field label={t.phone} htmlFor="phone" error={e.phone}>
             <Input id="phone" name="phone" type="tel" defaultValue={dv("phone")} />
           </Field>
+          <Field label={t.remark} htmlFor="remark" error={e.remark} hint={t.remarkHint} className="sm:col-span-2">
+            <Textarea id="remark" name="remark" rows={3} maxLength={2000} defaultValue={dv("remark")} />
+          </Field>
         </CardContent>
       </Card>
       <div className="flex flex-wrap items-center gap-3">

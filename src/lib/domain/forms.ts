@@ -61,6 +61,8 @@ export interface FormState {
   error?: string;
   fieldErrors?: Record<string, string>;
   message?: string;
+  /** A warning the person may confirm past; the action is then called again with its override set. */
+  confirm?: string;
   /** Submitted text values, echoed back on error so the form (which React resets) keeps what was typed. */
   values?: Record<string, string>;
 }

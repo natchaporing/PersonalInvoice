@@ -40,6 +40,7 @@ export default async function Customers() {
                     <TableCell>
                       <Link href={`/customers/${c.id}`} className="font-medium text-cobalt hover:underline">{c.name_th}</Link>
                       {c.name_en && <div className="text-[12px] text-muted-foreground">{c.name_en}</div>}
+                      {c.remark && <div className="mt-0.5 line-clamp-1 max-w-[42ch] text-[12px] text-muted-foreground italic" title={c.remark}>{c.remark}</div>}
                     </TableCell>
                     <TableCell className="num text-[13px]">{c.tax_id ?? <span className="text-muted-foreground">—</span>}{c.tax_id && c.branch_code !== "00000" && ` · ${c.branch_code}`}</TableCell>
                     <TableCell className="hidden sm:table-cell">{c.is_juristic ? t.company : t.individual}</TableCell>

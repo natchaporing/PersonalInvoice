@@ -321,6 +321,7 @@ export type Database = {
       customers: {
         Row: {
           postcode: string | null
+          remark: string | null
           address_en: string | null
           address_th: string | null
           branch_code: string
@@ -336,6 +337,7 @@ export type Database = {
         }
         Insert: {
           postcode?: string | null
+          remark?: string | null
           address_en?: string | null
           address_th?: string | null
           branch_code?: string
@@ -351,6 +353,7 @@ export type Database = {
         }
         Update: {
           postcode?: string | null
+          remark?: string | null
           address_en?: string | null
           address_th?: string | null
           branch_code?: string
@@ -837,7 +840,7 @@ export type Database = {
         Returns: string
       }
       issue_document: {
-        Args: { p_customer: Json; p_document_id: string; p_seller: Json; p_signers?: Json }
+        Args: { p_allow_incomplete_buyer?: boolean; p_customer: Json; p_document_id: string; p_seller: Json; p_signers?: Json }
         Returns: string
       }
       verify_document: {

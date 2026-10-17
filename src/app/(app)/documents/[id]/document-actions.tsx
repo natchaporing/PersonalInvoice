@@ -40,13 +40,25 @@ export function DocumentActions({
       if (r) setState(r);
     });
   };
+  // Issuing may come back with a warning to confirm (e.g. the buyer has no tax ID); confirming issues anyway.
+  const issue = () => {
+    if (!confirm(t.confirmIssue)) return;
+    setState({});
+    start(async () => {
+      const r = await issueDocument(id);
+      if (r.confirm) {
+        if (!confirm(r.confirm)) return;
+        setState(await issueDocument(id, true));
+      } else setState(r);
+    });
+  };
 
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap gap-2">
         {status === "draft" && (
           <>
-            <Button disabled={pending} onClick={() => run(() => issueDocument(id), t.confirmIssue)}>
+            <Button disabled={pending} onClick={issue}>
               <Send /> {pending ? t.working : t.issue}
             </Button>
             <Button asChild variant="outline"><Link href={`/documents/${id}/edit`}><FilePen /> {t.edit}</Link></Button>

@@ -1,13 +1,13 @@
 "use server";
 
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, getMessages } from "@/lib/i18n/server";
 import { localizeState } from "@/lib/i18n/server-text";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDocumentBundle, getProfile, paidAmount } from "@/lib/data/documents";
 import { generateEtaxPackage } from "@/lib/etax/generate";
-import { customerSnapshot, DocumentInput, isAdjustment, isPayable, sellerSnapshot, signatorySnapshot, totalsFor } from "@/lib/domain/documents";
+import { customerSnapshot, DocumentInput, isAdjustment, isPayable, isTaxDocument, sellerSnapshot, signatorySnapshot, totalsFor } from "@/lib/domain/documents";
 import { fieldErrors, type FormState, invalid, money, optText } from "@/lib/domain/forms";
 import { generateSignedPdf } from "@/lib/pdf/generate";
 import { requireUser } from "@/lib/supabase/server";
@@ -103,7 +103,7 @@ async function deleteDraftImpl(id: string): Promise<FormState> {
 }
 
 /** Assign the next number, freeze seller/buyer snapshots, then render and sign the PDF. */
-async function issueDocumentImpl(id: string): Promise<FormState> {
+async function issueDocumentImpl(id: string, allowIncompleteBuyer = false): Promise<FormState> {
   const { supabase, user } = await requireUser();
   const bundle = await getDocumentBundle(supabase, id, user.id);
   if (!bundle) return { error: "Document not found." };
@@ -120,7 +120,17 @@ async function issueDocumentImpl(id: string): Promise<FormState> {
   };
   const signers = { signer: person(bundle.doc.signer_id), approver: person(bundle.doc.approver_id) };
 
+  // A tax document without the buyer's tax ID or address: warn, and issue only once the person confirms.
+  const missing = isTaxDocument(bundle.doc.doc_type)
+    ? [!bundle.customer.tax_id && "taxId", !bundle.customer.address_th?.trim() && "address"].filter((x): x is "taxId" | "address" => !!x)
+    : [];
+  if (missing.length && !allowIncompleteBuyer) {
+    const m = await getMessages();
+    return { confirm: m.docs.actions.buyerIncomplete(bundle.customer.name_th, missing) };
+  }
+
   const { error } = await supabase.rpc("issue_document", {
+    p_allow_incomplete_buyer: missing.length > 0,
     p_document_id: id,
     p_seller: sellerSnapshot(profile) as never,
     p_customer: customerSnapshot(bundle.customer) as never,

@@ -38,7 +38,7 @@ const toDraft = (rows: { label: string; pctBps: number }[]): Draft[] => rows.map
 
 export function InstallmentsPanel({ quotationId, taxable, rows, locked }: { quotationId: string; taxable: number; rows: InstallmentRow[]; locked: boolean }) {
   const [editing, setEditing] = useState(rows.length === 0);
-  const [draft, setDraft] = useState<Draft[]>(() => toDraft(rows.length ? rows : PLAN_PRESETS[0].rows));
+  const [draft, setDraft] = useState<Draft[]>(() => toDraft(rows.length ? rows : (PLAN_PRESETS.find((p) => p.key === "50-50") ?? PLAN_PRESETS[0]).rows));
   const [state, setState] = useState<FormState>({});
   const [pending, start] = useTransition();
   const m = useMessages();
@@ -122,7 +122,7 @@ export function InstallmentsPanel({ quotationId, taxable, rows, locked }: { quot
                   <span className="font-medium">%</span>
                   <Input aria-label={t.pctAria(i + 1)} inputMode="decimal" className="num text-right" value={d.pct} onChange={(e) => setDraft(draft.map((x) => (x.key === d.key ? { ...x, pct: e.target.value } : x)))} />
                 </label>
-                <Button type="button" variant="ghost" size="icon" aria-label={t.removeAria(i + 1)} disabled={draft.length <= 2}
+                <Button type="button" variant="ghost" size="icon" aria-label={t.removeAria(i + 1)} disabled={draft.length <= 1}
                   onClick={() => setDraft(draft.filter((x) => x.key !== d.key))}>
                   <X />
                 </Button>

@@ -267,10 +267,12 @@ try {
   await fill("Address (Thai)", "99/9 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110");
   await fill("Address (English)", "99/9 Sukhumvit Rd., Khlong Toei, Bangkok 10110");
   await fill("Postcode", "10110");
+  await fill("Remark", "LINE: @siamdigital · bills go to accounting by the 25th");
   await page.getByRole("button", { name: "Add customer" }).click();
   await page.waitForURL(/\/customers$/);
   await page.getByRole("link", { name: "บริษัท สยามดิจิทัล จำกัด" }).waitFor();
-  log("customer added");
+  await page.getByText("LINE: @siamdigital · bills go to accounting by the 25th").waitFor();
+  log("customer added, remark shown in the list");
 
   // 6. Item
   await page.goto(`${BASE}/items/new`);
@@ -544,6 +546,9 @@ try {
 
   // 18c. Installments 50/50 on the quotation: invoice for installment 1 → paid → receipt/tax invoice
   const qUrl = page.url();
+  // A single 100% installment is a valid plan too
+  await page.getByRole("button", { name: "100%", exact: true }).click();
+  if ((await page.getByRole("button", { name: /Save plan|บันทึกแผน/ }).isDisabled())) fail("a 100% plan should be savable");
   await page.getByRole("button", { name: "50 / 50" }).click();
   await page.getByRole("button", { name: "Save plan" }).click();
   await page.getByText("Installment plan saved.").waitFor();
@@ -609,6 +614,36 @@ try {
   await page.getByText(qNumber ?? "QT").first().waitFor();
   await page.getByText(/^Transferred \d{4}-\d{2}-\d{2}$/).first().waitFor();
   log("payee profile + commission recorded, marked transferred, not on the document");
+
+  // 18b. A customer with no tax ID: issuing a receipt/tax invoice warns, cancelling keeps the draft, confirming issues it
+  await page.goto(`${BASE}/customers/new`);
+  await page.getByLabel("Name (Thai)", { exact: true }).fill("ลูกค้าบุคคล ไม่มีเลขภาษี");
+  await page.getByRole("button", { name: "Add customer" }).click();
+  await page.waitForURL(/\/customers$/);
+  await page.goto(`${BASE}/documents/new?type=receipt_tax_invoice`);
+  await page.getByLabel("Customer", { exact: true }).selectOption({ label: "ลูกค้าบุคคล ไม่มีเลขภาษี" });
+  await page.getByLabel("Add a saved item").selectOption({ index: 1 });
+  await page.getByRole("button", { name: "Save as draft" }).click();
+  await page.waitForURL(/\/documents\/[0-9a-f-]{36}$/);
+  // Answer each browser dialog in turn: [confirm issue, warning]
+  const seen = [];
+  const answers = [];
+  const onDialog = (d) => { seen.push(d.message()); if (answers.shift()) d.accept(); else d.dismiss(); };
+  page.on("dialog", onDialog);
+  answers.push(true, false); // issue? yes · warning: cancel
+  await page.getByRole("button", { name: /Issue & sign/ }).click();
+  await page.waitForTimeout(2000);
+  if (!/no tax ID or address[\s\S]*Issue it anyway\?/.test(seen[1] ?? "")) fail(`expected the missing-buyer warning, got ${JSON.stringify(seen)}`);
+  await page.reload();
+  if (!(await page.getByRole("button", { name: /Issue & sign/ }).count())) fail("cancelling the warning should leave the draft unissued");
+  answers.push(true, true); // issue? yes · warning: issue anyway
+  await page.getByRole("button", { name: /Issue & sign/ }).click();
+  await page.getByText(/Issued and signed\.|Issued\. The signed PDF/).waitFor({ timeout: 60_000 });
+  await page.reload();
+  const loose = (await page.locator("h1").textContent())?.trim();
+  if (!/^RTX\d{4}-0002$/.test(loose ?? "")) fail(`unexpected number ${loose}`);
+  page.off("dialog", onDialog);
+  log("missing buyer tax ID: warning, cancel keeps the draft, confirm issues", loose);
 
   // 19. Row-level security: a second user cannot see the first user's document or PDF
   const other = await browser.newContext();

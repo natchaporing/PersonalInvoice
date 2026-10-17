@@ -21,6 +21,7 @@ function customerSchema(m: Messages) {
     email: f.optText(200),
     postcode: f.postcode,
     phone: f.optText(50),
+    remark: f.optText(2000),
   });
 }
 

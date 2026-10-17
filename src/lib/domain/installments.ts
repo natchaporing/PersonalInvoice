@@ -7,6 +7,7 @@ export interface PlanRow {
 }
 
 export const PLAN_PRESETS: { key: string; name: string; rows: PlanRow[] }[] = [
+  { key: "100", name: "100%", rows: [{ label: "ชำระเต็มจำนวน · Full payment", pctBps: 10000 }] },
   { key: "50-50", name: "50 / 50", rows: [{ label: "มัดจำ · Deposit", pctBps: 5000 }, { label: "ส่งมอบงาน · On completion", pctBps: 5000 }] },
   { key: "30-70", name: "30 / 70", rows: [{ label: "มัดจำ · Deposit", pctBps: 3000 }, { label: "ส่งมอบงาน · On completion", pctBps: 7000 }] },
   {
@@ -25,7 +26,7 @@ export const pctLabel = (bps: number) => `${(bps / 100).toFixed(2).replace(/\.?0
 /** Problems with a plan, in plain language; empty when it can be saved. */
 export function planProblems(rows: PlanRow[]): string[] {
   const out: string[] = [];
-  if (rows.length < 2) out.push("A plan needs at least two installments.");
+  if (rows.length < 1) out.push("A plan needs at least one installment.");
   if (rows.length > 12) out.push("A plan can have at most 12 installments.");
   if (rows.some((r) => !r.label.trim())) out.push("Every installment needs a label.");
   if (rows.some((r) => !Number.isInteger(r.pctBps) || r.pctBps <= 0)) out.push("Every installment needs a percentage above 0.");

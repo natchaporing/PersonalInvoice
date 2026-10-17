@@ -43,6 +43,8 @@ const en = {
   },
   actions: {
     confirmIssue: "Issue this document? It gets the next number and can no longer be edited.",
+    buyerIncomplete: (name: string, missing: ("taxId" | "address")[]) =>
+      `${name} has no ${missing.map((x) => (x === "taxId" ? "tax ID" : "address")).join(" or ")}. A full tax invoice must show the buyer's name and address, and their tax ID when they are VAT-registered (Revenue Code s.86/4); without it a VAT-registered buyer can't claim the VAT.\n\nIssue it anyway?`,
     working: "Working…",
     issue: "Issue & sign",
     edit: "Edit",
@@ -287,6 +289,8 @@ const th: DocsMessages = {
   },
   actions: {
     confirmIssue: "ออกเอกสารฉบับนี้ใช่ไหม เอกสารจะได้เลขที่ถัดไปและแก้ไขไม่ได้อีก",
+    buyerIncomplete: (name, missing) =>
+      `${name} ยังไม่มี${missing.map((x) => (x === "taxId" ? "เลขประจำตัวผู้เสียภาษี" : "ที่อยู่")).join("และ")} ใบกำกับภาษีเต็มรูปต้องมีชื่อและที่อยู่ของผู้ซื้อ และเลขประจำตัวผู้เสียภาษีหากผู้ซื้อจดทะเบียน VAT (ประมวลรัษฎากร ม.86/4) หากไม่มี ผู้ซื้อที่จด VAT จะใช้ขอคืนภาษีซื้อไม่ได้\n\nออกเอกสารต่อหรือไม่`,
     working: "กำลังดำเนินการ…",
     issue: "ออกและลงลายมือชื่อ",
     edit: "แก้ไข",
