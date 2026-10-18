@@ -7,6 +7,7 @@ import { checkbox, formHelpers, formObject, type FormState, invalid, submitted }
 import type { Messages } from "@/lib/i18n/messages";
 import { getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
+import { voidQuotations } from "./unpaid";
 
 function payeeSchema(m: Messages) {
   const f = formHelpers(m.validation);
@@ -95,7 +96,12 @@ export async function payCommissions(input: z.infer<typeof PayMany>): Promise<Fo
   const m = await getMessages();
   const parsed = PayMany.safeParse(input);
   if (!parsed.success) return { error: m.payees.errPayMany };
-  const { ids, paid_on, method, reference } = parsed.data;
+  const { paid_on, method, reference } = parsed.data;
+  // Commissions on a cancelled quotation are cancelled with it and cannot be paid.
+  const { data: rows } = await supabase.from("commissions").select("id, quotation_id").in("id", parsed.data.ids);
+  const cancelled = await voidQuotations(supabase, (rows ?? []).map((r) => r.quotation_id));
+  const ids = (rows ?? []).filter((r) => !cancelled.has(r.quotation_id)).map((r) => r.id);
+  if (!ids.length) return { error: m.payees.errPayMany };
   const label = method === "cash" ? m.payees.cashReference : method === "promptpay" ? "PromptPay" : "";
   const paid_reference = [label, reference].filter(Boolean).join(" · ") || null;
   const { data, error } = await supabase.from("commissions").update({ paid_on, paid_reference }).in("id", ids).is("paid_on", null).select("payee_id, quotation_id");

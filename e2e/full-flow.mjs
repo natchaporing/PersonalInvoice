@@ -664,7 +664,26 @@ try {
   await page.getByText("Nothing to pay. Every commission is paid.").waitFor();
   await page.getByText(/^Paid in cash \d{4}-\d{2}-\d{2}$/).first().waitFor();
   if ((await page.getByText(/^Paid in cash \d{4}-\d{2}-\d{2}$/).count()) !== 2) fail("both commissions should show as paid in cash");
-  log("profiles and commissions on separate pages; two paid at once in cash, PromptPay QR for the total");
+  // A cancelled quotation cancels its unpaid commission: not listed, not owed, cannot be paid
+  const qId = qUrl.split("/").pop();
+  const pending = psqlRaw(`insert into commissions (owner_id, quotation_id, payee_id, payee_name, basis, amount, wht, wht_bps) select owner_id, quotation_id, payee_id, payee_name, 'fixed', 50000, 0, 0 from commissions where quotation_id = '${qId}' limit 1 returning id`);
+  const pendingId = pending.stdout.trim().split("\n")[0];
+  if (pending.status !== 0 || !pendingId) fail(`could not add a commission: ${pending.stderr}`);
+  await page.reload();
+  await page.getByText(/^1 unpaid · ฿500\.00 to pay/).waitFor();
+  const setStatus = (st) => psqlRaw(`set session_replication_role = replica; update documents set status = '${st}' where id = '${qId}'`);
+  if (setStatus("void").status !== 0) fail("could not void the quotation for the test");
+  try {
+    await page.reload();
+    await page.getByText("Nothing to pay. Every commission is paid.").waitFor();
+    await page.getByText("quotation cancelled").first().waitFor(); // paid ones stay in the paid list, marked
+    await page.goto(`${BASE}/payees`);
+    if (!(await page.getByRole("row", { name: /คุณแนะนำ ลูกค้า/ }).innerText()).includes("0.00")) fail("a cancelled quotation's commission should not be owed");
+  } finally {
+    setStatus("issued");
+  }
+  psqlRaw(`delete from commissions where id = '${pendingId}'`);
+  log("profiles and commissions on separate pages; two paid at once in cash, PromptPay QR for the total; cancelled QT drops out");
   log("payee profile + commission recorded, marked transferred, not on the document");
 
   // 18d. Contract from the issued quotation: edit, draft PDF, signing link, client signs online, sealed copy

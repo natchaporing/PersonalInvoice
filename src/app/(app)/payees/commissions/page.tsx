@@ -26,7 +26,7 @@ export default async function Commissions({ searchParams }: PageProps<"/payees/c
     paidQuery.order("paid_on", { ascending: false }).limit(100),
   ]);
   const qIds = [...new Set((paid ?? []).map((r) => r.quotation_id))];
-  const { data: quotes } = qIds.length ? await supabase.from("documents").select("id, number").in("id", qIds) : { data: [] };
+  const { data: quotes } = qIds.length ? await supabase.from("documents").select("id, number, status").in("id", qIds) : { data: [] };
   const t = (await getMessages()).payees;
 
   return (
@@ -45,12 +45,14 @@ export default async function Commissions({ searchParams }: PageProps<"/payees/c
             <CardContent className="text-sm">
               <ul className="divide-y rounded-md border">
                 {paid.map((r) => {
-                  const number = quotes?.find((q) => q.id === r.quotation_id)?.number ?? t.quotation;
+                  const quote = quotes?.find((q) => q.id === r.quotation_id);
+                  const number = quote?.number ?? t.quotation;
                   const net = r.amount - r.wht;
                   return (
                     <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
                       <span className="flex flex-wrap items-baseline gap-x-3">
                         <Link href={`/documents/${r.quotation_id}`} className="num text-cobalt hover:underline">{number}</Link>
+                        {quote?.status === "void" && <span className="text-[12px] text-destructive">{t.quotationCancelled}</span>}
                         {!payeeId && (r.payee_id ? <Link href={`/payees/${r.payee_id}`} className="hover:underline">{r.payee_name}</Link> : <span>{r.payee_name}</span>)}
                       </span>
                       <span className="text-ok">

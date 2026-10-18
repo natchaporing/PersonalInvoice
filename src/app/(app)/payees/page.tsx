@@ -9,15 +9,18 @@ import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 import { formatPromptPay } from "@/lib/thai/promptpay";
 import { PayeesTabs } from "./payees-tabs";
+import { voidQuotations } from "./unpaid";
 
 export default async function Payees() {
   const { supabase } = await requireUser();
   const [{ data: payees }, { data: commissions }] = await Promise.all([
     supabase.from("commission_payees").select("*").order("name"),
-    supabase.from("commissions").select("payee_id, amount, wht, paid_on"),
+    supabase.from("commissions").select("payee_id, amount, wht, paid_on, quotation_id"),
   ]);
+  // Unpaid commission on a cancelled quotation is cancelled too: it is not owed.
+  const cancelled = await voidQuotations(supabase, (commissions ?? []).filter((c) => !c.paid_on).map((c) => c.quotation_id));
   const t = (await getMessages()).payees;
-  const owed = (id: string) => (commissions ?? []).filter((c) => c.payee_id === id && !c.paid_on).reduce((s, c) => s + c.amount - c.wht, 0);
+  const owed = (id: string) => (commissions ?? []).filter((c) => c.payee_id === id && !c.paid_on && !cancelled.has(c.quotation_id)).reduce((s, c) => s + c.amount - c.wht, 0);
   const paid = (id: string) => (commissions ?? []).filter((c) => c.payee_id === id && c.paid_on).reduce((s, c) => s + c.amount - c.wht, 0);
   return (
     <>
