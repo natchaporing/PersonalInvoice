@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { todayBangkok } from "@/lib/domain/documents";
 import { checkbox, formHelpers, formObject, type FormState, invalid, submitted } from "@/lib/domain/forms";
 import type { Messages } from "@/lib/i18n/messages";
 import { getMessages } from "@/lib/i18n/server";
@@ -66,21 +65,6 @@ export async function deletePayee(id: string): Promise<FormState> {
   redirect("/payees");
 }
 
-/** Paid by hand: marks a commission paid today, in cash. */
-export async function markCommissionCash(commissionId: string): Promise<FormState> {
-  const { supabase } = await requireUser();
-  const m = await getMessages();
-  const { data, error } = await supabase
-    .from("commissions")
-    .update({ paid_on: todayBangkok(), paid_reference: m.payees.cashReference })
-    .eq("id", commissionId)
-    .is("paid_on", null)
-    .select("payee_id, quotation_id")
-    .maybeSingle();
-  if (error) return { error: error.message };
-  if (data) revalidateCommission(data);
-  return { message: m.payees.cashDone };
-}
 
 /** Undo a mistaken "paid": back to waiting for payment. */
 export async function unmarkCommissionPaid(commissionId: string): Promise<FormState> {
@@ -96,4 +80,27 @@ function revalidateCommission(c: { payee_id: string | null; quotation_id: string
   revalidatePath("/payees");
   if (c.payee_id) revalidatePath(`/payees/${c.payee_id}`);
   revalidatePath(`/documents/${c.quotation_id}`);
+}
+
+const PayMany = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(200),
+  paid_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  method: z.enum(["transfer", "promptpay", "cash"]),
+  reference: z.string().trim().max(200),
+});
+
+/** Several commissions paid in one go: same date, method and reference. Already-paid ones are left as they are. */
+export async function payCommissions(input: z.infer<typeof PayMany>): Promise<FormState> {
+  const { supabase } = await requireUser();
+  const m = await getMessages();
+  const parsed = PayMany.safeParse(input);
+  if (!parsed.success) return { error: m.payees.errPayMany };
+  const { ids, paid_on, method, reference } = parsed.data;
+  const label = method === "cash" ? m.payees.cashReference : method === "promptpay" ? "PromptPay" : "";
+  const paid_reference = [label, reference].filter(Boolean).join(" · ") || null;
+  const { data, error } = await supabase.from("commissions").update({ paid_on, paid_reference }).in("id", ids).is("paid_on", null).select("payee_id, quotation_id");
+  if (error) return { error: error.message };
+  for (const c of data ?? []) revalidateCommission(c);
+  revalidatePath("/payees");
+  return { message: m.payees.paidMany(data?.length ?? 0) };
 }

@@ -6,6 +6,9 @@ import { getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 import { PayeeForm } from "../payee-form";
+import { todayBangkok } from "@/lib/domain/documents";
+import { unpaidCommissions } from "../unpaid";
+import { UnpaidList } from "../unpaid-list";
 import { CommissionActions } from "./commission-actions";
 
 /** Commissions marked "paid in cash" carry this reference, in the language it was recorded in. */
@@ -14,9 +17,10 @@ const CASH = ["Cash", "เงินสด"];
 export default async function EditPayee({ params }: PageProps<"/payees/[id]">) {
   const { id } = await params;
   const { supabase } = await requireUser();
-  const [{ data: payee }, { data: rows }] = await Promise.all([
+  const [{ data: payee }, { data: rows }, unpaid] = await Promise.all([
     supabase.from("commission_payees").select("*").eq("id", id).maybeSingle(),
     supabase.from("commissions").select("id, amount, wht, paid_on, paid_reference, quotation_id, created_at").eq("payee_id", id).order("created_at", { ascending: false }),
+    unpaidCommissions(supabase, id),
   ]);
   if (!payee) notFound();
   const qIds = [...new Set((rows ?? []).map((r) => r.quotation_id))];
@@ -28,7 +32,9 @@ export default async function EditPayee({ params }: PageProps<"/payees/[id]">) {
       <PageHeader title={payee.name} subtitle={owed > 0 ? t.stillToTransfer(formatTHB(owed)) : undefined} />
       <div className="grid gap-8 xl:grid-cols-[minmax(0,48rem)_minmax(0,1fr)]">
         <PayeeForm payee={payee} />
-        <Card className="self-start">
+        <div className="grid gap-6 self-start">
+        <UnpaidList rows={unpaid} today={todayBangkok()} showPayee={false} />
+        <Card>
           <CardHeader>
             <CardTitle>{t.history}</CardTitle>
             <CardDescription>{t.historyNote}</CardDescription>
@@ -49,7 +55,7 @@ export default async function EditPayee({ params }: PageProps<"/payees/[id]">) {
                       </span>
                       <span className="flex items-center gap-2">
                         <span className="num font-medium">฿{formatTHB(r.amount - r.wht)}</span>
-                        <CommissionActions id={r.id} paid={!!r.paid_on} label={`${number} ฿${formatTHB(r.amount - r.wht)}`} />
+                        {r.paid_on && <CommissionActions id={r.id} label={`${number} ฿${formatTHB(r.amount - r.wht)}`} />}
                       </span>
                     </li>
                   );
@@ -58,6 +64,7 @@ export default async function EditPayee({ params }: PageProps<"/payees/[id]">) {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </>
   );

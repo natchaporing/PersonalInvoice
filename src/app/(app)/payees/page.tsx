@@ -8,12 +8,16 @@ import { getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 import { formatPromptPay } from "@/lib/thai/promptpay";
+import { todayBangkok } from "@/lib/domain/documents";
+import { unpaidCommissions } from "./unpaid";
+import { UnpaidList } from "./unpaid-list";
 
 export default async function Payees() {
   const { supabase } = await requireUser();
-  const [{ data: payees }, { data: commissions }] = await Promise.all([
+  const [{ data: payees }, { data: commissions }, unpaid] = await Promise.all([
     supabase.from("commission_payees").select("*").order("name"),
     supabase.from("commissions").select("payee_id, amount, wht, paid_on"),
+    unpaidCommissions(supabase),
   ]);
   const t = (await getMessages()).payees;
   const owed = (id: string) => (commissions ?? []).filter((c) => c.payee_id === id && !c.paid_on).reduce((s, c) => s + c.amount - c.wht, 0);
@@ -30,6 +34,8 @@ export default async function Payees() {
           {t.emptyBody}
         </EmptyState>
       ) : (
+        <div className="grid gap-6">
+        <UnpaidList rows={unpaid} today={todayBangkok()} />
         <Card className="py-2">
           <CardContent className="px-2 sm:px-3">
             <Table>
@@ -59,6 +65,7 @@ export default async function Payees() {
             </Table>
           </CardContent>
         </Card>
+        </div>
       )}
     </>
   );

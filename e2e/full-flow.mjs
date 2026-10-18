@@ -638,13 +638,30 @@ try {
   await page.getByRole("link", { name: "คุณแนะนำ ลูกค้า" }).click();
   await page.getByText(qNumber ?? "QT").first().waitFor();
   await page.getByText(/^Transferred \d{4}-\d{2}-\d{2}$/).first().waitFor();
-  // Quick cash payment per quotation from the payee page: undo the transfer, then one click "paid in cash"
+  // Undo the transfer: the quotation is back in the payee's unpaid list
   await page.getByRole("button", { name: /^Mark .* as not paid$/ }).click();
   await page.getByText("To transfer", { exact: true }).waitFor();
-  page.once("dialog", (d) => d.accept());
-  await page.getByRole("button", { name: new RegExp(`^Mark ${qNumber} .* paid in cash$`) }).click();
-  await page.getByText(/^Paid in cash \d{4}-\d{2}-\d{2}$/).waitFor();
-  if (await page.getByText(/still to transfer/).isVisible()) fail("nothing should be left to pay after cash");
+  await page.getByRole("checkbox", { name: `Select ${qNumber} for คุณแนะนำ ลูกค้า` }).waitFor();
+  // A second unpaid commission for the same payee, so several can be paid together from the payees page
+  const extra = psqlRaw(`insert into commissions (owner_id, quotation_id, payee_id, payee_name, basis, amount, wht, wht_bps) select owner_id, quotation_id, payee_id, payee_name, 'fixed', 100000, 3000, 300 from commissions where payee_name = 'คุณแนะนำ ลูกค้า' and owner_id = (select id from auth.users where email = '${email}') limit 1 returning id`);
+  if (extra.status !== 0 || !extra.stdout.trim()) fail(`could not add a second commission: ${extra.stderr}`);
+  await page.goto(`${BASE}/payees`);
+  await page.getByText(/^2 unpaid · ฿4,559\.00 to pay/).waitFor(); // 3,589 + (1,000 − 30)
+  await page.getByRole("checkbox", { name: "Select all" }).check();
+  await page.getByText("2 selected · ฿4,559.00").waitFor();
+  await page.getByLabel("Method").selectOption("promptpay");
+  await page.getByRole("img", { name: "PromptPay 081-234-5678 ฿4,559.00" }).waitFor(); // one QR for everything ticked
+  await shot("11b-payees-unpaid");
+  await page.getByLabel("Method").selectOption("cash");
+  await page.getByRole("button", { name: "Mark 2 paid" }).click();
+  await page.getByText("2 marked paid.").waitFor();
+  await page.getByText("Nothing to pay. Every commission is paid.").waitFor();
+  await page.getByRole("link", { name: "คุณแนะนำ ลูกค้า" }).first().click();
+  await page.waitForURL(/\/payees\/[0-9a-f-]{36}$/);
+  await page.getByText(/^Paid in cash \d{4}-\d{2}-\d{2}$/).first().waitFor();
+  if ((await page.getByText(/^Paid in cash \d{4}-\d{2}-\d{2}$/).count()) !== 2) fail("both commissions should show as paid in cash");
+  if (await page.getByText(/still to transfer/).isVisible()) fail("nothing should be left to pay");
+  log("unpaid quotations listed; two paid at once in cash, PromptPay QR for the total");
   log("payee profile + commission recorded, marked transferred, not on the document");
 
   // 18d. Contract from the issued quotation: edit, draft PDF, signing link, client signs online, sealed copy
