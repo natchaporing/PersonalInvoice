@@ -5,10 +5,10 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import type { FormState } from "@/lib/domain/forms";
 import { useMessages } from "@/lib/i18n/client";
-import { unmarkCommissionPaid } from "../actions";
+import { unmarkCommissionPaid } from "./actions";
 
 /** Undo a payment recorded by mistake: the commission goes back to the unpaid list. */
-export function CommissionActions({ id, label }: { id: string; label: string }) {
+export function UndoPaid({ id, label }: { id: string; label: string }) {
   const t = useMessages().payees;
   const [pending, start] = useTransition();
   const [state, setState] = useState<FormState>({});

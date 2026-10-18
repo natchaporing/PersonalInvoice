@@ -633,19 +633,25 @@ try {
   const printed = await (await ctx.request.get(`${BASE}/print/documents/${qUrl.split("/").pop()}`)).text();
   if (printed.includes("คุณแนะนำ") || /commission/i.test(printed)) fail("commission must not appear on the printed quotation");
   await shot("11-quotation-installments-commission");
+  // Payee profiles and commissions by quotation are separate pages
   await page.goto(`${BASE}/payees`);
   await page.getByText("PromptPay 081-234-5678").waitFor();
+  if (await page.getByText("Unpaid commissions").isVisible()) fail("the profiles page should not list commissions");
   await page.getByRole("link", { name: "คุณแนะนำ ลูกค้า" }).click();
+  await page.getByLabel("PromptPay").waitFor(); // the profile form
+  await page.getByRole("link", { name: "Commissions", exact: true }).click();
+  await page.waitForURL(/\/payees\/commissions\?payee=/);
   await page.getByText(qNumber ?? "QT").first().waitFor();
   await page.getByText(/^Transferred \d{4}-\d{2}-\d{2}$/).first().waitFor();
-  // Undo the transfer: the quotation is back in the payee's unpaid list
+  // Undo the transfer: the quotation is back in the unpaid list
   await page.getByRole("button", { name: /^Mark .* as not paid$/ }).click();
-  await page.getByText("To transfer", { exact: true }).waitFor();
   await page.getByRole("checkbox", { name: `Select ${qNumber} for คุณแนะนำ ลูกค้า` }).waitFor();
-  // A second unpaid commission for the same payee, so several can be paid together from the payees page
+  // A second unpaid commission for the same payee, so several can be paid together
   const extra = psqlRaw(`insert into commissions (owner_id, quotation_id, payee_id, payee_name, basis, amount, wht, wht_bps) select owner_id, quotation_id, payee_id, payee_name, 'fixed', 100000, 3000, 300 from commissions where payee_name = 'คุณแนะนำ ลูกค้า' and owner_id = (select id from auth.users where email = '${email}') limit 1 returning id`);
   if (extra.status !== 0 || !extra.stdout.trim()) fail(`could not add a second commission: ${extra.stderr}`);
   await page.goto(`${BASE}/payees`);
+  await page.getByRole("link", { name: "Commissions by quotation" }).click();
+  await page.waitForURL(/\/payees\/commissions$/);
   await page.getByText(/^2 unpaid · ฿4,559\.00 to pay/).waitFor(); // 3,589 + (1,000 − 30)
   await page.getByRole("checkbox", { name: "Select all" }).check();
   await page.getByText("2 selected · ฿4,559.00").waitFor();
@@ -656,12 +662,9 @@ try {
   await page.getByRole("button", { name: "Mark 2 paid" }).click();
   await page.getByText("2 marked paid.").waitFor();
   await page.getByText("Nothing to pay. Every commission is paid.").waitFor();
-  await page.getByRole("link", { name: "คุณแนะนำ ลูกค้า" }).first().click();
-  await page.waitForURL(/\/payees\/[0-9a-f-]{36}$/);
   await page.getByText(/^Paid in cash \d{4}-\d{2}-\d{2}$/).first().waitFor();
   if ((await page.getByText(/^Paid in cash \d{4}-\d{2}-\d{2}$/).count()) !== 2) fail("both commissions should show as paid in cash");
-  if (await page.getByText(/still to transfer/).isVisible()) fail("nothing should be left to pay");
-  log("unpaid quotations listed; two paid at once in cash, PromptPay QR for the total");
+  log("profiles and commissions on separate pages; two paid at once in cash, PromptPay QR for the total");
   log("payee profile + commission recorded, marked transferred, not on the document");
 
   // 18d. Contract from the issued quotation: edit, draft PDF, signing link, client signs online, sealed copy
