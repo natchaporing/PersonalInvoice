@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { GuillocheBackground, GuillocheBand, Microprint, Rosette, Seal, SerialNumber } from "@/components/banknote";
+import { PromptPayQrBlock } from "@/components/promptpay-qr-block";
 import { Qr } from "@/components/qr";
 import type { DocumentView, Lang, Party, Signatory } from "@/lib/document-view";
-import { DOC_TYPE_LABEL, showsBankDetails } from "@/lib/domain/documents";
+import { DOC_TYPE_LABEL, isPayable, showsBankDetails } from "@/lib/domain/documents";
 import { bahtText } from "@/lib/thai/baht-text";
 import { computeTotals, formatTHB, lineNet } from "@/lib/thai/money";
 import { formatBankAccount } from "@/lib/thai/bank";
@@ -99,6 +100,7 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
   const verifyUrl = doc.verifyCode && verifyBaseUrl ? `${verifyBaseUrl.replace(/\/$/, "")}/verify/${doc.verifyCode}` : undefined;
   const date = (iso: string) => (lang === "en" ? formatDateEN(iso) : formatDateTH(iso));
   const bank = showsBankDetails(doc.type) && t.netReceivable > 0 ? doc.seller.bank : undefined;
+  const promptpay = showsBankDetails(doc.type) && t.netReceivable > 0 ? doc.seller.promptpay : undefined;
   const copyLabel = doc.copy === "copy" ? { th: "สำเนา", en: "COPY" } : { th: "ต้นฉบับ", en: "ORIGINAL" };
   const micro = `${label.en.toUpperCase()} · ${label.th} · ${doc.number ?? "DRAFT"} · ${doc.seller.taxId} · `;
 
@@ -236,11 +238,12 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
                 <p className="whitespace-pre-line text-[11px] text-neutral-700">{doc.notes}</p>
               </div>
             )}
-            {bank && (
+            {(bank || promptpay) && (
               <div className="w-fit min-w-[300px] overflow-hidden rounded-md border" style={{ borderColor: AMBER }}>
                 <GuillocheBand tone="amber" height={7} opacity={1} />
                 <div className="bg-white px-4 py-3 text-[11px] leading-snug">
-                  <div className="mb-1.5 font-semibold"><T th="ชำระโดยโอนเงินเข้าบัญชี" en="Pay by bank transfer" lang={lang} /></div>
+                  {bank ? <div className="mb-1.5 font-semibold"><T th="ชำระโดยโอนเงินเข้าบัญชี" en="Pay by bank transfer" lang={lang} /></div> : <div className="mb-1.5 font-semibold"><T th="ชำระเงิน" en="How to pay" lang={lang} /></div>}
+                  {bank && (<>
                   <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
                     <dt className="text-neutral-500">{pair("ธนาคาร", "Bank", lang)}</dt>
                     <dd>
@@ -263,6 +266,12 @@ export function InvoiceDocument({ doc, idPrefix = "inv", verifyBaseUrl }: { doc:
                     <dd className="num font-semibold">฿{formatTHB(t.netReceivable)}</dd>
                   </dl>
                   {t.wht > 0 && <div className="mt-1 text-[10px] text-neutral-500">{pair("ยอดสุทธิหลังหักภาษี ณ ที่จ่าย", "Net of withholding tax", lang === "bilingual" ? "th" : lang)}</div>}
+                  </>)}
+                  {promptpay && (
+                    <div className={bank ? "mt-2.5 border-t pt-2.5" : undefined} style={{ borderColor: "#e5e5e5" }}>
+                      <PromptPayQrBlock id={promptpay} amount={isPayable(doc.type) ? t.netReceivable : undefined} lang={lang} color={COBALT} muted="#737373" />
+                    </div>
+                  )}
                 </div>
               </div>
             )}

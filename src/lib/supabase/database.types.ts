@@ -69,6 +69,7 @@ export type Database = {
           name_th: string
           owner_id: string
           phone: string | null
+          promptpay_id: string | null
           signature_path: string | null
           tax_id: string
           vat_registered: boolean
@@ -99,6 +100,7 @@ export type Database = {
           name_th: string
           owner_id: string
           phone?: string | null
+          promptpay_id?: string | null
           signature_path?: string | null
           tax_id: string
           vat_registered?: boolean
@@ -129,6 +131,7 @@ export type Database = {
           name_th?: string
           owner_id?: string
           phone?: string | null
+          promptpay_id?: string | null
           signature_path?: string | null
           tax_id?: string
           vat_registered?: boolean

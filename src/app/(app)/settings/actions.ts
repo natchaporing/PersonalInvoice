@@ -32,6 +32,10 @@ function profileSchema(m: Messages) {
       (v) => (typeof v === "string" ? v.replace(/\D/g, "") || null : v),
       z.string().regex(/^\d{6,20}$/, t.errAccount).nullable(),
     ),
+    promptpay_id: z.preprocess(
+      (v) => (typeof v === "string" ? v.replace(/\D/g, "") || null : v),
+      z.string().regex(/^(\d{10}|\d{13}|\d{15})$/, t.errPromptPay).nullable(),
+    ),
     addr_building_number: f.optText(60),
     addr_street: f.optText(120),
     addr_province_code: f.optText(2),

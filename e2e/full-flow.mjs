@@ -161,6 +161,7 @@ try {
   await fill("Account name (English)", "Natcha Studio");
   await fill("Account number", "123-4-56789-0");
   await page.getByLabel("Account type").selectOption("savings");
+  await page.getByLabel("PromptPay", { exact: true }).fill("081-111-2222");
   // e-Tax address as official codes: province → district → sub-district
   await page.getByLabel("House / building number").fill("88");
   await page.getByLabel("Street").fill("ถนนพระราม 9");
@@ -324,6 +325,9 @@ try {
   const printView = await (await page.request.get(`${BASE}/print/documents/${docId}`)).text();
   if (!printView.includes("DRAFT") || !printView.includes("Draft for review") || printView.includes(">Original<")) fail("draft print view should say draft, not original");
   log("draft: print view and unsigned draft PDF for the client to check");
+  // PromptPay QR for exactly what the customer transfers: 53,500 less 3% withholding
+  if (!printView.includes('aria-label="PromptPay 081-111-2222 ฿52,000.00"')) fail("the invoice should print a PromptPay QR for the net amount");
+  log("invoice prints a PromptPay QR for the amount due");
 
   // 8. Totals were computed server-side: 50,000 + 7% VAT = 53,500; WHT 3% = 1,500; net 52,000
   for (const t of ["53,500.00", "52,000.00", "1,500.00"]) await page.getByText(t, { exact: false }).first().waitFor();
@@ -544,6 +548,7 @@ try {
   // Quotations carry the bank-transfer details so the client can pay a deposit from them
   const qPrint = await (await ctx.request.get(`${BASE}/print/documents/${page.url().split("/").pop()}`)).text();
   if (!qPrint.includes("123-4-56789-0") || !qPrint.includes("ชำระโดยโอนเงิน")) fail("quotation should print the bank-transfer details");
+  if (!qPrint.includes('aria-label="PromptPay 081-111-2222"')) fail("quotation should print a PromptPay QR without a fixed amount");
   await shot("10-quotation");
   const [qDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Signed PDF" }).click()]);
   const { readFileSync: readQ } = await import("node:fs");

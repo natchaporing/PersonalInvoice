@@ -69,7 +69,8 @@ export interface DocumentView {
   signer?: Signatory;
   approver?: Signatory;
   lang: Lang;
-  seller: Party & { bank?: BankAccount };
+  /** promptpay: the seller's PromptPay ID, printed as a QR for the amount due. */
+  seller: Party & { bank?: BankAccount; promptpay?: string };
   buyer: Party;
   lines: DocLine[];
   discount: number; // satang

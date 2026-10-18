@@ -167,6 +167,9 @@ export function ProfileForm({
               <option value="current">{t.current}</option>
             </NativeSelect>
           </Field>
+          <Field label={t.promptPay} htmlFor="promptpay_id" error={e.promptpay_id} hint={t.promptPayHint}>
+            <Input id="promptpay_id" name="promptpay_id" inputMode="numeric" className="num" defaultValue={v("promptpay_id")} />
+          </Field>
         </CardContent>
       </Card>
 

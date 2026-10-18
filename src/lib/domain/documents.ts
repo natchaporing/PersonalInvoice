@@ -48,6 +48,7 @@ export interface SellerSnapshot {
   phone?: string | null;
   email?: string | null;
   bank?: BankAccount | null;
+  promptpay?: string | null;
 }
 
 export interface CustomerSnapshot {
@@ -76,7 +77,7 @@ export function sellerSnapshot(p: Tables<"business_profiles">): SellerSnapshot {
       : null;
   return {
     name_th: p.name_th, name_en: p.name_en, address_th: p.address_th, address_en: p.address_en,
-    tax_id: p.tax_id, branch_code: p.branch_code, phone: p.phone, email: p.email, bank,
+    tax_id: p.tax_id, branch_code: p.branch_code, phone: p.phone, email: p.email, bank, promptpay: p.promptpay_id,
   };
 }
 
@@ -89,10 +90,11 @@ export function customerSnapshot(c: Tables<"customers">): CustomerSnapshot {
 
 const asObj = <T>(j: Json | null): T | null => (j && typeof j === "object" && !Array.isArray(j) ? (j as unknown as T) : null);
 
-function sellerParty(s: SellerSnapshot): Party & { bank?: BankAccount } {
+function sellerParty(s: SellerSnapshot): Party & { bank?: BankAccount; promptpay?: string } {
   return {
     nameTh: s.name_th, nameEn: s.name_en ?? undefined, addressTh: s.address_th, addressEn: s.address_en ?? undefined,
     taxId: s.tax_id, branchCode: s.branch_code, phone: s.phone ?? undefined, email: s.email ?? undefined, bank: s.bank ?? undefined,
+    promptpay: s.promptpay ?? undefined,
   };
 }
 

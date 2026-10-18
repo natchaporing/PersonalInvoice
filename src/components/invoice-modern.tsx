@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import { PromptPayQrBlock } from "@/components/promptpay-qr-block";
 import { Qr } from "@/components/qr";
 import type { DocumentView, Lang, Party, Signatory } from "@/lib/document-view";
-import { DOC_TYPE_LABEL, showsBankDetails } from "@/lib/domain/documents";
+import { DOC_TYPE_LABEL, isPayable, showsBankDetails } from "@/lib/domain/documents";
 import { bahtText } from "@/lib/thai/baht-text";
 import { formatBankAccount } from "@/lib/thai/bank";
 import { computeTotals, formatTHB, lineNet } from "@/lib/thai/money";
@@ -77,6 +78,7 @@ export function InvoiceModern({ doc, variant = "clean", verifyBaseUrl }: { doc: 
   const mixedVat = new Set(doc.lines.map((l) => l.vatBps)).size > 1;
   const totalDiscount = t.lineDiscount + t.discount;
   const bank = showsBankDetails(doc.type) && t.netReceivable > 0 ? doc.seller.bank : undefined;
+  const promptpay = showsBankDetails(doc.type) && t.netReceivable > 0 ? doc.seller.promptpay : undefined;
   const verifyUrl = doc.verifyCode && verifyBaseUrl ? `${verifyBaseUrl.replace(/\/$/, "")}/verify/${doc.verifyCode}` : undefined;
   const sub = lang === "bilingual" ? "th" : lang;
   const copy =
@@ -209,15 +211,22 @@ export function InvoiceModern({ doc, variant = "clean", verifyBaseUrl }: { doc: 
                 <div>{doc.reason}</div>
               </div>
             )}
-            {bank && (
+            {(bank || promptpay) && (
               <div className="rounded-lg border px-4 py-3" style={{ borderColor: LINE }}>
-                <Label className="mb-2">{pair("ชำระโดยโอนเงิน", "Pay by bank transfer", lang)}</Label>
+                <Label className="mb-2">{bank ? pair("ชำระโดยโอนเงิน", "Pay by bank transfer", lang) : pair("ชำระเงิน", "How to pay", lang)}</Label>
+                {bank && (<>
                 <div className="font-medium">{lang === "en" ? bank.bankEn ?? bank.bankTh : bank.bankTh}{lang === "bilingual" && bank.bankEn ? ` · ${bank.bankEn}` : ""}</div>
                 <div className="mt-0.5 text-[15px] font-semibold tracking-wide tabular-nums" style={{ color: brand }}>{formatBankAccount(bank.accountNumber)}</div>
                 <div style={{ color: MUTED }}>
                   {lang === "en" ? bank.accountNameEn ?? bank.accountName : bank.accountName}
                   {bank.accountType && ` · ${bank.accountType === "savings" ? pair("ออมทรัพย์", "Savings", sub) : pair("กระแสรายวัน", "Current", sub)}`}
                 </div>
+                </>)}
+                {promptpay && (
+                  <div className={cn(bank && "mt-3 border-t pt-3")} style={{ borderColor: LINE }}>
+                    <PromptPayQrBlock id={promptpay} amount={isPayable(doc.type) ? t.netReceivable : undefined} lang={lang} color={INK} muted={MUTED} />
+                  </div>
+                )}
               </div>
             )}
             {doc.notes && (
