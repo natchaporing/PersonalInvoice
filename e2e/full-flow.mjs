@@ -638,6 +638,13 @@ try {
   await page.getByRole("link", { name: "คุณแนะนำ ลูกค้า" }).click();
   await page.getByText(qNumber ?? "QT").first().waitFor();
   await page.getByText(/^Transferred \d{4}-\d{2}-\d{2}$/).first().waitFor();
+  // Quick cash payment per quotation from the payee page: undo the transfer, then one click "paid in cash"
+  await page.getByRole("button", { name: /^Mark .* as not paid$/ }).click();
+  await page.getByText("To transfer", { exact: true }).waitFor();
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: new RegExp(`^Mark ${qNumber} .* paid in cash$`) }).click();
+  await page.getByText(/^Paid in cash \d{4}-\d{2}-\d{2}$/).waitFor();
+  if (await page.getByText(/still to transfer/).isVisible()) fail("nothing should be left to pay after cash");
   log("payee profile + commission recorded, marked transferred, not on the document");
 
   // 18d. Contract from the issued quotation: edit, draft PDF, signing link, client signs online, sealed copy

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { todayBangkok } from "@/lib/domain/documents";
 import { checkbox, formHelpers, formObject, type FormState, invalid, submitted } from "@/lib/domain/forms";
 import type { Messages } from "@/lib/i18n/messages";
 import { getMessages } from "@/lib/i18n/server";
@@ -63,4 +64,36 @@ export async function deletePayee(id: string): Promise<FormState> {
   if (error) return { error: error.message };
   revalidatePath("/payees");
   redirect("/payees");
+}
+
+/** Paid by hand: marks a commission paid today, in cash. */
+export async function markCommissionCash(commissionId: string): Promise<FormState> {
+  const { supabase } = await requireUser();
+  const m = await getMessages();
+  const { data, error } = await supabase
+    .from("commissions")
+    .update({ paid_on: todayBangkok(), paid_reference: m.payees.cashReference })
+    .eq("id", commissionId)
+    .is("paid_on", null)
+    .select("payee_id, quotation_id")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (data) revalidateCommission(data);
+  return { message: m.payees.cashDone };
+}
+
+/** Undo a mistaken "paid": back to waiting for payment. */
+export async function unmarkCommissionPaid(commissionId: string): Promise<FormState> {
+  const { supabase } = await requireUser();
+  const m = await getMessages();
+  const { data, error } = await supabase.from("commissions").update({ paid_on: null, paid_reference: null }).eq("id", commissionId).select("payee_id, quotation_id").maybeSingle();
+  if (error) return { error: error.message };
+  if (data) revalidateCommission(data);
+  return { message: m.payees.undone };
+}
+
+function revalidateCommission(c: { payee_id: string | null; quotation_id: string }) {
+  revalidatePath("/payees");
+  if (c.payee_id) revalidatePath(`/payees/${c.payee_id}`);
+  revalidatePath(`/documents/${c.quotation_id}`);
 }

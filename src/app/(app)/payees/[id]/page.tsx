@@ -6,6 +6,10 @@ import { getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
 import { PayeeForm } from "../payee-form";
+import { CommissionActions } from "./commission-actions";
+
+/** Commissions marked "paid in cash" carry this reference, in the language it was recorded in. */
+const CASH = ["Cash", "เงินสด"];
 
 export default async function EditPayee({ params }: PageProps<"/payees/[id]">) {
   const { id } = await params;
@@ -34,13 +38,22 @@ export default async function EditPayee({ params }: PageProps<"/payees/[id]">) {
               <p className="text-muted-foreground">{t.historyEmpty}</p>
             ) : (
               <ul className="divide-y rounded-md border">
-                {rows.map((r) => (
-                  <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2">
-                    <Link href={`/documents/${r.quotation_id}`} className="text-cobalt underline">{quotes?.find((q) => q.id === r.quotation_id)?.number ?? t.quotation}</Link>
-                    <span className={r.paid_on ? "text-ok" : "text-muted-foreground"}>{r.paid_on ? t.transferredOn(r.paid_on) : t.toTransfer}</span>
-                    <span className="num font-medium">฿{formatTHB(r.amount - r.wht)}</span>
-                  </li>
-                ))}
+                {rows.map((r) => {
+                  const number = quotes?.find((q) => q.id === r.quotation_id)?.number ?? t.quotation;
+                  return (
+                    <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                      <Link href={`/documents/${r.quotation_id}`} className="text-cobalt underline">{number}</Link>
+                      <span className={r.paid_on ? "text-ok" : "text-muted-foreground"}>
+                        {!r.paid_on ? t.toTransfer : CASH.includes(r.paid_reference ?? "") ? t.paidCashOn(r.paid_on) : t.transferredOn(r.paid_on)}
+                        {r.paid_on && r.paid_reference && !CASH.includes(r.paid_reference) && ` · ${r.paid_reference}`}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="num font-medium">฿{formatTHB(r.amount - r.wht)}</span>
+                        <CommissionActions id={r.id} paid={!!r.paid_on} label={`${number} ฿${formatTHB(r.amount - r.wht)}`} />
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </CardContent>
