@@ -24,6 +24,10 @@ function payeeSchema(m: Messages) {
       (v) => (typeof v === "string" ? v.replace(/\D/g, "") || null : v),
       z.string().regex(/^\d{6,20}$/, t.errAccount).nullable(),
     ),
+    promptpay_id: z.preprocess(
+      (v) => (typeof v === "string" ? v.replace(/\D/g, "") || null : v),
+      z.string().regex(/^(\d{10}|\d{13}|\d{15})$/, t.errPromptPay).nullable(),
+    ),
     default_rate: z.preprocess(
       (v) => (typeof v === "string" && v.trim() !== "" ? Number(v.replace(/,/g, "")) : null),
       z.number({ message: t.errRateNumber }).positive(t.errRatePositive).max(100, t.errRateMax).nullable(),

@@ -605,6 +605,10 @@ try {
   await page.getByLabel("Tax ID / national ID").fill("3101700123456");
   await page.getByLabel("Account number").fill("987-6-54321-0");
   await page.getByLabel("Commission rate (%)").fill("10");
+  await page.getByLabel("PromptPay").fill("12345");
+  await page.getByRole("button", { name: "Add payee" }).click();
+  await page.getByText(/PromptPay is a 10-digit phone number/).waitFor();
+  await page.getByLabel("PromptPay").fill("081-234-5678");
   await page.getByRole("button", { name: "Add payee" }).click();
   await page.waitForURL((u) => u.href === `${qUrl}?commission=open`);
   if ((await commissionToggle.getAttribute("aria-expanded")) !== "true") fail("returning from a new payee should open the commission section");
@@ -614,6 +618,9 @@ try {
   await page.getByText("฿3,589.00").waitFor(); // 10% of 37,000 = 3,700 − 3% = 3,589
   await page.getByRole("button", { name: "Record commission" }).click();
   await page.getByText("คุณแนะนำ ลูกค้า").first().waitFor();
+  if (!(await page.getByText(/PromptPay 081-234-5678/).first().isVisible())) fail("the payee's PromptPay should be on the commission row");
+  await page.getByRole("button", { name: "PromptPay QR" }).click();
+  await page.getByRole("img", { name: "PromptPay QR for 081-234-5678, ฿3,589.00" }).waitFor(); // the net, after withholding
   await page.getByRole("button", { name: "Mark transferred" }).click();
   await page.getByText(/^Transferred \d{4}-\d{2}-\d{2}/).waitFor();
   await page.goto(qUrl);
@@ -622,6 +629,7 @@ try {
   if (printed.includes("คุณแนะนำ") || /commission/i.test(printed)) fail("commission must not appear on the printed quotation");
   await shot("11-quotation-installments-commission");
   await page.goto(`${BASE}/payees`);
+  await page.getByText("PromptPay 081-234-5678").waitFor();
   await page.getByRole("link", { name: "คุณแนะนำ ลูกค้า" }).click();
   await page.getByText(qNumber ?? "QT").first().waitFor();
   await page.getByText(/^Transferred \d{4}-\d{2}-\d{2}$/).first().waitFor();

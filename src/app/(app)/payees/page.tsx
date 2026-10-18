@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getMessages } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/supabase/server";
 import { formatTHB } from "@/lib/thai/money";
+import { formatPromptPay } from "@/lib/thai/promptpay";
 
 export default async function Payees() {
   const { supabase } = await requireUser();
@@ -48,7 +49,7 @@ export default async function Payees() {
                       <Link href={`/payees/${p.id}`} className="font-medium text-cobalt hover:underline">{p.name}</Link>
                       <div className="text-[12px] text-muted-foreground">{p.is_juristic ? t.company : t.individual}{p.tax_id && ` · ${p.tax_id}`}</div>
                     </TableCell>
-                    <TableCell className="hidden text-[13px] sm:table-cell">{p.bank_name ?? "—"}{p.bank_account_number && <div className="num text-muted-foreground">{p.bank_account_number}</div>}</TableCell>
+                    <TableCell className="hidden text-[13px] sm:table-cell">{p.bank_name ?? "—"}{p.bank_account_number && <div className="num text-muted-foreground">{p.bank_account_number}</div>}{p.promptpay_id && <div className="num text-muted-foreground">{t.promptPay} {formatPromptPay(p.promptpay_id)}</div>}</TableCell>
                     <TableCell className="hidden text-[13px] md:table-cell">{p.default_rate_bps ? `${p.default_rate_bps / 100}%` : "—"}{p.default_wht_bps ? ` · ${t.wht(p.default_wht_bps / 100)}` : ""}</TableCell>
                     <TableCell className="num text-right">{formatTHB(owed(p.id))}</TableCell>
                     <TableCell className="num hidden text-right sm:table-cell">{formatTHB(paid(p.id))}</TableCell>

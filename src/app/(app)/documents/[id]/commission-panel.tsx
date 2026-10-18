@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronDown, Trash2, Undo2 } from "lucide-react";
+import { ChevronDown, QrCode, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { Field, FormMessage, SubmitButton } from "@/components/form";
+import { Qr } from "@/components/qr";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
@@ -12,11 +13,37 @@ import { useMessages } from "@/lib/i18n/client";
 import { commissionFigures } from "@/lib/domain/installments";
 import type { Tables } from "@/lib/supabase/database.types";
 import { formatTHB, thbToSatang } from "@/lib/thai/money";
+import { formatPromptPay, isPromptPayId, promptPayPayload } from "@/lib/thai/promptpay";
 import { cn } from "@/lib/utils";
 import { addCommission, deleteCommission, markCommissionPaid, undoCommissionPaid } from "../installment-actions";
 
 /** Withholding rates offered for commission, most common first. Labels come from the dictionary. */
 const WHT = [0, 300, 100, 200, 500];
+
+/** A PromptPay QR for exactly what is owed: scan it in a banking app, then mark the commission transferred. */
+function PromptPayQr({ id, amount }: { id: string; amount: number }) {
+  const t = useMessages().docs.commission;
+  const [show, setShow] = useState(false);
+  if (!isPromptPayId(id) || amount <= 0) return null;
+  return (
+    <div>
+      <Button type="button" variant="ghost" size="sm" aria-expanded={show} onClick={() => setShow((s) => !s)}>
+        <QrCode /> {show ? t.hideQr : t.showQr}
+      </Button>
+      {show && (
+        <div className="mt-2 flex items-center gap-3 rounded-md border bg-white p-3 text-[13px] text-[#1a2536]">
+          <Qr value={promptPayPayload(id, amount)} size={148} label={t.qrLabel(formatPromptPay(id), formatTHB(amount))} />
+          <div>
+            <div className="font-semibold">{t.promptPay}</div>
+            <div className="num">{formatPromptPay(id)}</div>
+            <div className="num mt-1 text-[15px] font-semibold">฿{formatTHB(amount)}</div>
+            <div className="mt-1 max-w-48 text-muted-foreground">{t.qrHint}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PaidForm({ id, today }: { id: string; today: string }) {
   const t = useMessages().docs.commission;
@@ -48,6 +75,7 @@ export function CommissionPanel({ quotationId, taxable, rows, today, payees, def
   const owed = rows.filter((r) => !r.paid_on).reduce((s, r) => s + r.amount - r.wht, 0);
   const paid = rows.filter((r) => r.paid_on).reduce((s, r) => s + r.amount - r.wht, 0);
   const run = (fn: () => Promise<FormState>) => start(async () => setMsg(await fn()));
+  const promptPayOf = (payeeId: string | null) => payees.find((p) => p.id === payeeId)?.promptpay_id ?? null;
 
   return (
     <Card>
@@ -94,13 +122,16 @@ export function CommissionPanel({ quotationId, taxable, rows, today, payees, def
                       <Button variant="ghost" size="sm" disabled={pending} onClick={() => run(() => undoCommissionPaid(r.id))}><Undo2 /> {m.actions.undo}</Button>
                     </div>
                   ) : (
-                    <div className="flex flex-wrap items-end justify-between gap-2">
-                      <PaidForm id={r.id} today={today} />
-                      <Button variant="ghost" size="icon" aria-label={t.removeAria(r.payee_name)} disabled={pending}
-                        onClick={() => confirm(t.confirmRemove) && run(() => deleteCommission(r.id))}>
-                        <Trash2 />
-                      </Button>
-                    </div>
+                    <>
+                      {promptPayOf(r.payee_id) && <PromptPayQr id={promptPayOf(r.payee_id)!} amount={r.amount - r.wht} />}
+                      <div className="flex flex-wrap items-end justify-between gap-2">
+                        <PaidForm id={r.id} today={today} />
+                        <Button variant="ghost" size="icon" aria-label={t.removeAria(r.payee_name)} disabled={pending}
+                          onClick={() => confirm(t.confirmRemove) && run(() => deleteCommission(r.id))}>
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    </>
                   )}
                 </li>
               ))}
@@ -116,7 +147,8 @@ export function CommissionPanel({ quotationId, taxable, rows, today, payees, def
   );
 }
 
-const accountText = (p: Tables<"commission_payees">) => [p.bank_name, p.bank_account_number, p.bank_account_name].filter(Boolean).join(" · ");
+const accountText = (p: Tables<"commission_payees">) =>
+  [p.bank_name, p.bank_account_number, p.bank_account_name, p.promptpay_id && `PromptPay ${formatPromptPay(p.promptpay_id)}`].filter(Boolean).join(" · ");
 
 function CommissionForm({ quotationId, taxable, payees }: { quotationId: string; taxable: number; payees: Tables<"commission_payees">[] }) {
   const [state, action] = useActionState<FormState, FormData>(addCommission.bind(null, quotationId), {});

@@ -72,6 +72,9 @@ export function PayeeForm({ payee, next }: { payee?: Tables<"commission_payees">
           <Field label={t.accountNumber} htmlFor="p_acc_no" error={e.bank_account_number}>
             <Input id="p_acc_no" name="bank_account_number" inputMode="numeric" className="num" defaultValue={dv("bank_account_number", payee?.bank_account_number ?? "")} />
           </Field>
+          <Field label={t.promptPay} htmlFor="p_promptpay" error={e.promptpay_id} hint={t.promptPayHint} className="sm:col-span-2">
+            <Input id="p_promptpay" name="promptpay_id" inputMode="numeric" className="num" defaultValue={dv("promptpay_id", payee?.promptpay_id ?? "")} />
+          </Field>
         </CardContent>
       </Card>
 

@@ -226,6 +226,7 @@ export type Database = {
           note: string | null
           owner_id: string
           phone: string | null
+          promptpay_id: string | null
           tax_id: string | null
         }
         Insert: {
@@ -243,6 +244,7 @@ export type Database = {
           note?: string | null
           owner_id?: string
           phone?: string | null
+          promptpay_id?: string | null
           tax_id?: string | null
         }
         Update: {
@@ -260,6 +262,7 @@ export type Database = {
           note?: string | null
           owner_id?: string
           phone?: string | null
+          promptpay_id?: string | null
           tax_id?: string | null
         }
         Relationships: []
